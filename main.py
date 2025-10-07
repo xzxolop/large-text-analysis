@@ -1,9 +1,11 @@
 import kagglehub
 import pandas as pd
 import nltk
+from utils import print_arr
 
 # Download latest version
-path = kagglehub.dataset_download("pavellexyr/the-reddit-dataset-dataset")
+# path = kagglehub.dataset_download("pavellexyr/the-reddit-dataset-dataset")
+path = "C:/Users/evoro/.cache/kagglehub/datasets/pavellexyr/the-reddit-dataset-dataset/versions/1"
 print("Path to dataset files:", path)
 
 posts_df = pd.read_csv(path + "\\the-reddit-dataset-dataset-posts.csv")
@@ -13,16 +15,18 @@ comments_df = pd.read_csv(path + "\\the-reddit-dataset-dataset-comments.csv")
 #print(comments_df)
 
 comments_body = comments_df["body"]
-s1 = comments_body[0]
-print(s1)
 
-sentances = nltk.sent_tokenize(s1)
-print(sentances)
+sentences = []
 
-print("\nSentances:")
-for i in range(len(sentances)):
-    print(i, ":", sentances[i])
-print("")
+for x in comments_body:
+    if isinstance(x, str):
+        sentences += nltk.sent_tokenize(x)
 
-tokens = nltk.word_tokenize(s1)
-print(tokens)
+print_arr(sentences, "sentences")
+
+tokens = []
+
+for x in sentences:
+    tokens += nltk.word_tokenize(x)
+
+#print(tokens)

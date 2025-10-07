@@ -1,7 +1,7 @@
 import kagglehub
 import pandas as pd
 import nltk
-from utils import print_arr
+from utils import print_arr, count_word_matches
 
 # Download latest version
 # path = kagglehub.dataset_download("pavellexyr/the-reddit-dataset-dataset")
@@ -22,11 +22,14 @@ for x in comments_body:
     if isinstance(x, str):
         sentences += nltk.sent_tokenize(x)
 
-print_arr(sentences, "sentences")
+#print_arr(sentences, "sentences")
 
-tokens = []
+words = []
 
 for x in sentences:
-    tokens += nltk.word_tokenize(x)
+    words += nltk.word_tokenize(x)
 
-#print(tokens)
+search_word = "data"
+
+cnt_words = count_word_matches(search_word, words)
+print(cnt_words)

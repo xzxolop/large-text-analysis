@@ -15,8 +15,14 @@ comments_df = pd.read_csv(path + "\\the-reddit-dataset-dataset-comments.csv")
 comments_body = comments_df["body"]
 s1 = comments_body[0]
 print(s1)
+
 sentances = nltk.sent_tokenize(s1)
 print(sentances)
+
+print("\nSentances:")
+for i in range(len(sentances)):
+    print(i, ":", sentances[i])
+print("")
 
 tokens = nltk.word_tokenize(s1)
 print(tokens)

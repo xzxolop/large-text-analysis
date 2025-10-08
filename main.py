@@ -15,17 +15,17 @@ print("Path to dataset files:", path)
 
 posts_df = pd.read_csv(path + "\\the-reddit-dataset-dataset-posts.csv")
 comments_df = pd.read_csv(path + "\\the-reddit-dataset-dataset-comments.csv")
-
 comments_body = comments_df["body"]
 
 sentences = tokenize_sentances(comments_body)
+words = tokenize_words(sentences)
 
 tf = core.calculate_TF("of", sentences[0])
 print("tf:", tf )
 
-words = tokenize_words(sentences)
+idf = core.claculate_IDF("of", sentences)
+print("idf:", idf)
 
 search_word = "data"
-
 cnt_words = count_word_matches(search_word, words)
 print(f"Колличество слов {search_word}: {cnt_words}")

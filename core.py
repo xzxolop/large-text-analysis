@@ -22,7 +22,7 @@ def calculate_TF(word, document):
     print(include_count)
     print(words)
     print(len(words))
-
+    
     return include_count / len(words)
 
 def claculate_IDF(word, documents):
@@ -31,7 +31,8 @@ def claculate_IDF(word, documents):
 def count_documents_include_word(word, documents):
     cnt = 0
     for d in documents:
-        if d.count(word):
-            cnt+=1
+        if isinstance(d, str):
+            if d.count(word):
+                cnt+=1
     return cnt
 

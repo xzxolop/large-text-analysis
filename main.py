@@ -1,6 +1,8 @@
 import kagglehub
 import pandas as pd
 import nltk
+
+import core
 from utils import print_arr, count_word_matches
 from core import tokenize_sentances, tokenize_words
 
@@ -17,6 +19,10 @@ comments_df = pd.read_csv(path + "\\the-reddit-dataset-dataset-comments.csv")
 comments_body = comments_df["body"]
 
 sentences = tokenize_sentances(comments_body)
+
+tf = core.calculate_TF("of", sentences[0])
+print("tf:", tf )
+
 words = tokenize_words(sentences)
 
 search_word = "data"

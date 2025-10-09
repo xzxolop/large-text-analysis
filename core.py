@@ -20,9 +20,9 @@ def calculate_TF(word, document):
     words = nltk.word_tokenize(document)
     include_count = utils.count_word_matches(word, words)
 
-    print(include_count)
-    print(words)
-    print(len(words))
+    #print(include_count)
+    #print(words)
+    #print(len(words))
 
     return include_count / len(words)
 

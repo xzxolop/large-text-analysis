@@ -3,8 +3,7 @@ import pandas as pd
 import nltk
 
 import core
-from utils import print_arr, count_word_matches
-from core import tokenize_sentances, tokenize_words
+from utils import count_word_matches
 
 # Note: Необходимо выполнить при первом запуске
 path = kagglehub.dataset_download("pavellexyr/the-reddit-dataset-dataset")
@@ -17,8 +16,8 @@ posts_df = pd.read_csv(path + "\\the-reddit-dataset-dataset-posts.csv")
 comments_df = pd.read_csv(path + "\\the-reddit-dataset-dataset-comments.csv")
 comments_body = comments_df["body"]
 
-sentences = tokenize_sentances(comments_body)
-words = tokenize_words(sentences)
+sentences = core.tokenize_sentances(comments_body)
+words = core.tokenize_words(sentences)
 
 tf = core.calculate_TF("of", sentences[0])
 print("tf:", tf )

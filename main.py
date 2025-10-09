@@ -1,19 +1,20 @@
 import kagglehub
 import pandas as pd
 import nltk
+from pathlib import Path
 
 import core
 from utils import count_word_matches
 
 # Note: Необходимо выполнить при первом запуске
-path = kagglehub.dataset_download("pavellexyr/the-reddit-dataset-dataset")
 nltk.download('punkt_tab')
 
-path = "C:/Users/evoro/.cache/kagglehub/datasets/pavellexyr/the-reddit-dataset-dataset/versions/1"
-print("Path to dataset files:", path)
+path = Path(kagglehub.dataset_download("pavellexyr/the-reddit-dataset-dataset"))
+path_to_posts = path.joinpath("the-reddit-dataset-dataset-posts.csv")
+path_to_comments = path.joinpath("the-reddit-dataset-dataset-comments.csv")
 
-posts_df = pd.read_csv(path + "\\the-reddit-dataset-dataset-posts.csv")
-comments_df = pd.read_csv(path + "\\the-reddit-dataset-dataset-comments.csv")
+posts_df = pd.read_csv(path_to_posts)
+comments_df = pd.read_csv(path_to_comments)
 comments_body = comments_df["body"]
 
 sentences = core.tokenize_sentances(comments_body)

@@ -15,6 +15,7 @@ def tokenize_words(sentences):
         words += nltk.word_tokenize(x)
     return words
 
+# TODO: при токенизации необходимо не добавлять запятые, точки, и т.д.
 def calculate_TF(word, document):
     words = nltk.word_tokenize(document)
     include_count = utils.count_word_matches(word, words)

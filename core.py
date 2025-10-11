@@ -42,8 +42,9 @@ def make_map_most_popular(search_word: str, documents):
         words = nltk.word_tokenize(doc)
         if search_word in words:
             for word in words:
-                if word in m:
-                    m[word] = (m[word] + 1)
-                else:
-                    m[word] = 1
+                if word != search_word:
+                    if word in m:
+                        m[word] = (m[word] + 1)
+                    else:
+                        m[word] = 1
     return m

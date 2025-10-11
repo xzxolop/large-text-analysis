@@ -60,16 +60,25 @@ print(df)
 
 m = core.make_map_most_popular("data", df['processed'])
 
-sorted_items = sorted(m.items(), key=lambda x: x[1], reverse=True)
+sorted_items = sorted(m.items(), key=lambda x: x[1], reverse=True)    
 
-def print_searched_words(words, count):
-    if len(words) < count or count < 0:
-        count = len(words)
+core.print_searched_words(sorted_items, 10)
 
-    for key, value in words:
-        if count < 0:
-            break
-        print(f"{key}: {value}")
-        count -= 1        
+def create_list(words, size: int):
+    lst = []
+    for i in range(0, size+1):
+        print(words[i][1])
+        lst.append(words[i][0])
+        
+    return lst            
 
-print_searched_words(sorted_items, 10)
+top_ten_words = create_list(sorted_items, 10)
+print(top_ten_words)
+
+for word in top_ten_words:
+    print('')
+    print(word)
+
+    m = core.make_map_most_popular(word, df['processed'])
+    sorted_items = sorted(m.items(), key=lambda x: x[1], reverse=True)    
+    core.print_searched_words(sorted_items, 10)

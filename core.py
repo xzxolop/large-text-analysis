@@ -48,3 +48,13 @@ def make_map_most_popular(search_word: str, documents):
                     else:
                         m[word] = 1
     return m
+
+def print_searched_words(words, count):
+    if len(words) < count or count < 0:
+        count = len(words)
+
+    for key, value in words:
+        if count < 0:
+            break
+        print(f"{key}: {value}")
+        count -= 1    

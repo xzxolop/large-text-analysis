@@ -21,6 +21,11 @@ data
 
 Демонстрацию планируется написать с использованием streamlit.
 
+## Сборка проекта
+
+Если версии python и pip не совпадают то используйте
+
+python -m pip install kagglehub
 
 ## Getting started
 

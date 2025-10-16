@@ -23,6 +23,14 @@ data
 
 ## Сборка проекта
 
+### С использованием uv
+
+uv sync
+
+uv run main.py
+
+### С использованием pip
+
 Если версии python и pip не совпадают то используйте
 
 python -m pip install kagglehub

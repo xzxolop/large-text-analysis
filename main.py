@@ -34,30 +34,6 @@ def preprocess(text):
 df['processed'] = df['document'].apply(preprocess)
 print(df)
 
-# # Применение tf-idf
-# from sklearn.feature_extraction.text import TfidfVectorizer
-
-# vectorizer = TfidfVectorizer()
-# tfidf_matrix = vectorizer.fit_transform(df['processed'])
-
-# # Вывод TF-IDF в виде массивов
-# print(tfidf_matrix.toarray())
-# print(vectorizer.get_feature_names_out())
-
-# # Вывод в виде таблицы
-# tfidf_df = pd.DataFrame(tfidf_matrix.toarray(), columns=vectorizer.get_feature_names_out())
-# print(tfidf_df)
-
-# cnt = 0
-# # Вывод в виде каждого документа отдельно
-# # TODO: сделать вывод наиболее важных if value > 0
-# for index, row in tfidf_df.iterrows():
-#     print(f"Документ {index + 1}:")
-#     print(row.sort_values(ascending=False).head(5)) # выводит самые важные, но значение константно
-#     cnt += 1
-#     if (cnt == 100):
-#         break
-
 m = core.make_map_most_popular("data", df['processed'])
 
 sorted_items = sorted(m.items(), key=lambda x: x[1], reverse=True)    

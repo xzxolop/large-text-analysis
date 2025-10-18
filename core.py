@@ -1,42 +1,10 @@
 import nltk
-import math
 import kagglehub
 from pathlib import Path
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import pandas as pd
 import streamlit as st
-
-import utils
-
-def tokenize_sentances(text):
-    sentences = []
-    for x in text:
-        if isinstance(x, str):
-            sentences += nltk.sent_tokenize(x)
-    return sentences
-
-def tokenize_words(sentences):
-    words = []
-    for x in sentences:
-        words += nltk.word_tokenize(x)
-    return words
-
-# TODO: при токенизации необходимо не добавлять запятые, точки, и т.д.
-def calculate_TF(word, document):
-    words = nltk.word_tokenize(document)
-    include_count = utils.count_word_matches(word, words)
-    return include_count / len(words)
-
-def claculate_IDF(word, documents):
-    return math.log(len(documents) / count_documents_include_word(word, documents))
-
-def count_documents_include_word(word, documents):
-    cnt = 0
-    for d in documents:
-        if d.count(word):
-            cnt+=1
-    return cnt
 
 def make_map_most_popular(search_word: str, documents):
     m = {}
@@ -95,10 +63,7 @@ def search_word_func():
     word = st.session_state['text_input']
     df = st.session_state['text_df']
     m = make_map_most_popular(word, df['processed'])
-
     sorted_items = sorted(m.items(), key=lambda x: x[1], reverse=True)    
-
-    print_searched_words(sorted_items, 10)
 
     def create_list(words, size: int):
         word_list = []
@@ -111,12 +76,4 @@ def search_word_func():
         return df
     
     df = create_list(sorted_items, 10)
-    print(df)
-
-    if 'data_frame' in st.session_state:
-        print('is yet!')
-        print(st.session_state['data_frame'])
-    else:
-        print('not yet!')
-
     st.session_state['data_frame'] = df 

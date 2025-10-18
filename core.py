@@ -68,11 +68,14 @@ def search_word_func():
     def create_list(words, size: int):
         word_list = []
         count_list = []
-        for i in range(0, size+1):
-            word_list.append(words[i][0])
-            count_list.append(words[i][1])
-        d = {'word':word_list, 'count':count_list}           
-        df = pd.DataFrame(data=d)
+        if (len(words) > size):
+            for i in range(0, size+1):
+                word_list.append(words[i][0])
+                count_list.append(words[i][1])
+            d = {'word':word_list, 'count':count_list}           
+            df = pd.DataFrame(data=d)
+        else:
+            df = pd.DataFrame()
         return df
     
     df = create_list(sorted_items, 10)

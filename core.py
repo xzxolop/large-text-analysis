@@ -2,7 +2,7 @@ import nltk
 import kagglehub
 from pathlib import Path
 from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize, sent_tokenize
+from nltk.tokenize import word_tokenize
 import pandas as pd
 import streamlit as st
 
@@ -36,22 +36,14 @@ def load_data():
     def preprocess(text):
         if not isinstance(text, str):
             return ''
+
         tokens = word_tokenize(text.lower())
-        filtered_tokens = [word for word in tokens if word not in stop_words]
+        filtered_tokens = [word for word in tokens if word.isalnum() and word not in stop_words]
         return ' '.join(filtered_tokens)
 
     df['processed'] = df['document'].apply(preprocess)
-
-    sentance_list = []
-    for doc in df['processed'].values :
-        lst = sent_tokenize(doc)
-        for sent in lst:
-            sentance_list.append(sent)
-
-    sentances_df = pd.DataFrame()
-    sentances_df['processed'] = sentance_list
     print("end load")
-    return sentances_df
+    return df
 
 # Создает словарь вида <слово, колличество> внем находятся слова с которыми поисковое слово встречается наиболее часто
 def make_word_frequency_map(search_word: str, sentences):
@@ -60,7 +52,7 @@ def make_word_frequency_map(search_word: str, sentences):
         words = nltk.word_tokenize(sent)
         if search_word in words:
             for word in words:
-                if word != search_word and word.isalnum():
+                if word != search_word:
                     if word in word_frequency_map:
                         word_frequency_map[word] = (word_frequency_map[word] + 1)
                     else:

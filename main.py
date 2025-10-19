@@ -17,3 +17,7 @@ st.write('Это приложение позволяет проводить по
 ' Поиск проводится на датасете the-reddit-dataset-dataset-comments.')
 st.text_input('Search word', key='text_input', on_change=core.search_word_func)
 st.dataframe(st.session_state['data_frame'])
+
+# df = st.session_state['data_frame']
+# for index, row in df.iterrows():
+#     st.expander(f"{row['word']} {row['count']}")

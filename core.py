@@ -6,18 +6,20 @@ from nltk.tokenize import word_tokenize
 import pandas as pd
 import streamlit as st
 
-def make_map_most_popular(search_word: str, documents):
-    m = {}
-    for doc in documents[:100]:
+# Создает словарь вида <слово, колличество> внем находятся слова с которыми поисковое слово встречается наиболее часто
+#TODO : сделать возвращ. значение DF
+def make_word_frequency_map(search_word: str, sentences):
+    word_frequency_map = {}
+    for doc in sentences:
         words = nltk.word_tokenize(doc)
         if search_word in words:
             for word in words:
                 if word != search_word:
-                    if word in m:
-                        m[word] = (m[word] + 1)
+                    if word in word_frequency_map:
+                        word_frequency_map[word] = (word_frequency_map[word] + 1)
                     else:
-                        m[word] = 1
-    return m
+                        word_frequency_map[word] = 1
+    return word_frequency_map
 
 def print_searched_words(words, count):
     if len(words) < count or count < 0:
@@ -60,9 +62,9 @@ def load_data():
     return df
 
 def search_word_func():
-    word = st.session_state['text_input']
+    word = st.session_state['text_input'] # Зависимость от модуля более высокого урвня = нарушение DIP
     df = st.session_state['text_df']
-    m = make_map_most_popular(word, df['processed'])
+    m = make_word_frequency_map(word, df['processed'])
     sorted_items = sorted(m.items(), key=lambda x: x[1], reverse=True)    
 
     def create_list(words, size: int):

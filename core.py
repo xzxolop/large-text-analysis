@@ -6,29 +6,25 @@ from nltk.tokenize import word_tokenize
 import pandas as pd
 import streamlit as st
 
-def make_map_most_popular(search_word: str, documents):
+def make_map_most_popular(search_words, documents):
+    """Ищет слова, которые встречаются вместе с заданными словами"""
     m = {}
+    
     for doc in documents[:100]:
         words = nltk.word_tokenize(doc)
-        if search_word in words:
+        
+        # Проверяем, содержатся ли ВСЕ слова из поискового запроса в документе
+        if all(sw in words for sw in search_words):
             for word in words:
-                if word != search_word:
+                # Исключаем слова из поискового запроса и стоп-слова
+                if (word not in search_words and 
+                    word.isalnum() and 
+                    word not in stopwords.words('english')):
                     if word in m:
-                        m[word] = (m[word] + 1)
+                        m[word] = m[word] + 1
                     else:
                         m[word] = 1
     return m
-
-def print_searched_words(words, count):
-    if len(words) < count or count < 0:
-        count = len(words)
-
-    for key, value in words:
-        if count < 0:
-            break
-        print(f"{key}: {value}")
-        count -= 1    
-
 
 @st.cache_data
 def load_data():
@@ -60,22 +56,38 @@ def load_data():
     return df
 
 def search_word_func():
-    word = st.session_state['text_input']
-    df = st.session_state['text_df']
-    m = make_map_most_popular(word, df['processed'])
-    sorted_items = sorted(m.items(), key=lambda x: x[1], reverse=True)    
-
-    def create_list(words, size: int):
-        if size < 0:
-            size = len(words)
-        word_list = []
-        count_list = []
-        for i in range(0, min(size, len(words))):  # Добавлена проверка на размер
-            word_list.append(words[i][0])
-            count_list.append(words[i][1])
-        d = {'word': word_list, 'count': count_list}           
-        df = pd.DataFrame(data=d)
-        return df
+    # Используем current_search вместо прямого доступа к text_input
+    search_query = st.session_state.get('current_search', '').strip()
+    if not search_query:
+        # Если current_search пуст, пробуем взять из text_input
+        search_query = st.session_state.get('text_input', '').strip()
+        st.session_state['current_search'] = search_query
     
-    df = create_list(sorted_items, -1)
-    st.session_state['data_frame'] = df 
+    df = st.session_state['text_df']
+    
+    if search_query:
+        search_words = search_query.split()
+        
+        # Обновляем историю поиска
+        if not st.session_state['search_history'] or (st.session_state['search_history'] and st.session_state['search_history'][-1] != search_words):
+            st.session_state['search_history'].append(search_words)
+        
+        m = make_map_most_popular(search_words, df['processed'])
+        sorted_items = sorted(m.items(), key=lambda x: x[1], reverse=True)    
+
+        def create_list(words, size: int):
+            if size < 0:
+                size = len(words)
+            word_list = []
+            count_list = []
+            for i in range(0, min(size, len(words))):
+                word_list.append(words[i][0])
+                count_list.append(words[i][1])
+            d = {'word': word_list, 'count': count_list}           
+            return pd.DataFrame(data=d)
+        
+        result_df = create_list(sorted_items, 20)  # Ограничиваем до 20 результатов для наглядности
+        st.session_state['data_frame'] = result_df
+    else:
+        st.session_state['data_frame'] = pd.DataFrame()
+        st.session_state['search_history'] = []

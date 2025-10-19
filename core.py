@@ -6,21 +6,6 @@ from nltk.tokenize import word_tokenize
 import pandas as pd
 import streamlit as st
 
-# Создает словарь вида <слово, колличество> внем находятся слова с которыми поисковое слово встречается наиболее часто
-#TODO : сделать возвращ. значение DF
-def make_word_frequency_map(search_word: str, sentences):
-    word_frequency_map = {}
-    for doc in sentences:
-        words = nltk.word_tokenize(doc)
-        if search_word in words:
-            for word in words:
-                if word != search_word:
-                    if word in word_frequency_map:
-                        word_frequency_map[word] = (word_frequency_map[word] + 1)
-                    else:
-                        word_frequency_map[word] = 1
-    return word_frequency_map
-
 def print_searched_words(words, count):
     if len(words) < count or count < 0:
         count = len(words)
@@ -30,7 +15,6 @@ def print_searched_words(words, count):
             break
         print(f"{key}: {value}")
         count -= 1    
-
 
 @st.cache_data
 def load_data():
@@ -61,23 +45,40 @@ def load_data():
     print("end load")
     return df
 
-def search_word_func():
-    word = st.session_state['text_input'] # Зависимость от модуля более высокого урвня = нарушение DIP
-    df = st.session_state['text_df']
-    m = make_word_frequency_map(word, df['processed'])
-    sorted_items = sorted(m.items(), key=lambda x: x[1], reverse=True)    
+# Создает словарь вида <слово, колличество> внем находятся слова с которыми поисковое слово встречается наиболее часто
+def make_word_frequency_map(search_word: str, sentences):
+    word_frequency_map = {}
+    for doc in sentences:
+        words = nltk.word_tokenize(doc)
+        if search_word in words:
+            for word in words:
+                if word != search_word:
+                    if word in word_frequency_map:
+                        word_frequency_map[word] = (word_frequency_map[word] + 1)
+                    else:
+                        word_frequency_map[word] = 1
+    return word_frequency_map
 
-    def create_list(words, size: int):
+
+def word_map_to_df(word_frequency_map, size: int):
         if size < 0:
-            size = len(words)
+            size = len(word_frequency_map)
         word_list = []
         count_list = []
-        for i in range(0, min(size, len(words))):  # Добавлена проверка на размер
-            word_list.append(words[i][0])
-            count_list.append(words[i][1])
+        for i in range(0, min(size, len(word_frequency_map))):
+            word_list.append(word_frequency_map[i][0])
+            count_list.append(word_frequency_map[i][1])
         d = {'word': word_list, 'count': count_list}           
         df = pd.DataFrame(data=d)
         return df
-    
-    df = create_list(sorted_items, -1)
+
+#search_word
+def search_word():
+    search_word = st.session_state['text_input'] # Зависимость от модуля более высокого урвня = нарушение DIP
+    df = st.session_state['text_df']
+
+    word_map = make_word_frequency_map(search_word, df['processed'])
+    sorted_word_map = sorted(word_map.items(), key=lambda x: x[1], reverse=True)    
+
+    df = word_map_to_df(sorted_word_map, -1)
     st.session_state['data_frame'] = df 

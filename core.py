@@ -60,12 +60,12 @@ def make_word_frequency_map(search_word: str, sentences):
     return word_frequency_map
 
 
-def word_map_to_df(word_frequency_map, size: int):
-        if size < 0:
-            size = len(word_frequency_map)
+def word_map_to_df(word_frequency_map, limit:int):
+        if limit < 0:
+            limit = len(word_frequency_map)
         word_list = []
         count_list = []
-        for i in range(0, min(size, len(word_frequency_map))):
+        for i in range(0, min(limit, len(word_frequency_map))):
             word_list.append(word_frequency_map[i][0])
             count_list.append(word_frequency_map[i][1])
         d = {'word': word_list, 'count': count_list}           
@@ -74,11 +74,14 @@ def word_map_to_df(word_frequency_map, size: int):
 
 #search_word
 def search_word():
-    search_word = st.session_state['text_input'] # Зависимость от модуля более высокого урвня = нарушение DIP
+    search_word = st.session_state['search_word'] # Зависимость от модуля более высокого урвня = нарушение DIP
     df = st.session_state['text_df']
 
     word_map = make_word_frequency_map(search_word, df['processed'])
     sorted_word_map = sorted(word_map.items(), key=lambda x: x[1], reverse=True)    
 
-    df = word_map_to_df(sorted_word_map, -1)
+    limit_words = st.session_state['max_words']
+    print(f"limit words: {limit_words}")
+
+    df = word_map_to_df(sorted_word_map, int(limit_words))
     st.session_state['data_frame'] = df 

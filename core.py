@@ -48,8 +48,8 @@ def load_data():
 # Создает словарь вида <слово, колличество> внем находятся слова с которыми поисковое слово встречается наиболее часто
 def make_word_frequency_map(search_word: str, sentences):
     word_frequency_map = {}
-    for doc in sentences:
-        words = nltk.word_tokenize(doc)
+    for sent in sentences:
+        words = nltk.word_tokenize(sent)
         if search_word in words:
             for word in words:
                 if word != search_word:
@@ -91,6 +91,26 @@ def search_word():
     words_view_df = word_map_to_df(sorted_word_map, limit_words)
     st.session_state['words_view_df'] = words_view_df 
 
+    search_sentences_by_word()
+
 def search_sentences_by_word():
+    text_df = st.session_state['text_df']
     search_word = st.session_state['search_word']
+
+    sentences = text_df['processed']
     words_view_df =  st.session_state['words_view_df']
+    view_words = words_view_df['word'].values
+
+    sentences_list = []
+    for word in view_words:
+        for sent in sentences:
+            words = nltk.word_tokenize(sent)
+            if word in words and search_word in words:
+                sentences_list.append(sent)
+    
+    st.session_state['sentances_view_df'] = pd.DataFrame(sentences_list)
+    
+    #return sentences_list
+
+
+

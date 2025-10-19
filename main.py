@@ -12,6 +12,9 @@ if 'text_df' not in st.session_state:
 if 'words_view_df' not in st.session_state:
     st.session_state['words_view_df'] = pd.DataFrame()
 
+if 'sentances_view_df' not in st.session_state:
+    st.session_state['sentances_view_df'] = pd.DataFrame()
+
 st.title('Word finder')
 st.write('Это приложение позволяет проводить поиск слов, которые наиболее часто встречаются в тексте.' \
 ' Поиск проводится на датасете the-reddit-dataset-dataset-comments.')
@@ -22,4 +25,6 @@ col2.text_input('Ограничение по колличеству слов', k
 
 st.button(label='Поиск', on_click=core.search_word)
 
-st.dataframe(st.session_state['words_view_df'])
+col3, col4 = st.columns([1,2])
+col3.dataframe(st.session_state['words_view_df'])
+col4.dataframe(st.session_state['sentances_view_df'])

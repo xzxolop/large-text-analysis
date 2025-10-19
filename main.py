@@ -6,6 +6,8 @@ import core
 
 text_df = core.load_data()
 
+st.dataframe(text_df)
+
 if 'text_df' not in st.session_state:
     st.session_state['text_df'] = text_df
     

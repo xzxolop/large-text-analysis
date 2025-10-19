@@ -2,7 +2,7 @@ import nltk
 import kagglehub
 from pathlib import Path
 from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
+from nltk.tokenize import word_tokenize, sent_tokenize
 import pandas as pd
 import streamlit as st
 
@@ -25,8 +25,18 @@ def load_data():
     comments_df = pd.read_csv(path_to_comments)
     comments_body = comments_df["body"]
 
+    all_sentences = []
+
+    # Проходим по каждому комментарию
+    for comment in comments_body:
+        if isinstance(comment, str):  # проверяем, что это строка
+            sentences = sent_tokenize(comment)
+            for sent in sentences:
+                all_sentences.append(sent)  # добавляем все предложения в общий список
+        # else: можно добавить обработку для NaN или не-строк
+
     df = pd.DataFrame()
-    df['document'] = comments_body
+    df['document'] = all_sentences
 
     nltk.download('punkt')
     nltk.download('stopwords')
@@ -37,9 +47,18 @@ def load_data():
         if not isinstance(text, str):
             return ''
 
-        tokens = word_tokenize(text.lower())
-        filtered_tokens = [word for word in tokens if word.isalnum() and word not in stop_words]
-        return ' '.join(filtered_tokens)
+        # Сначала разбиваем на предложения
+        sentences = sent_tokenize(text)
+        all_filtered_tokens = []
+        
+        for sentence in sentences:
+            # Токенизируем каждое предложение отдельно
+            tokens = word_tokenize(sentence.lower())
+            filtered_tokens = [word for word in tokens if word.isalnum() and word not in stop_words]
+            all_filtered_tokens.extend(filtered_tokens)
+        
+        # Возвращаем все токены как один текст
+        return ' '.join(all_filtered_tokens)
 
     df['processed'] = df['document'].apply(preprocess)
     print("end load")

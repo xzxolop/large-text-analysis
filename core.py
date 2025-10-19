@@ -75,13 +75,22 @@ def word_map_to_df(word_frequency_map, limit:int):
 #search_word
 def search_word():
     search_word = st.session_state['search_word'] # Зависимость от модуля более высокого урвня = нарушение DIP
-    df = st.session_state['text_df']
+    text_df = st.session_state['text_df']
 
-    word_map = make_word_frequency_map(search_word, df['processed'])
+    word_map = make_word_frequency_map(search_word, text_df['processed'])
     sorted_word_map = sorted(word_map.items(), key=lambda x: x[1], reverse=True)    
 
     limit_words = st.session_state['max_words']
-    print(f"limit words: {limit_words}")
 
-    df = word_map_to_df(sorted_word_map, int(limit_words))
-    st.session_state['data_frame'] = df 
+    if limit_words.isdigit():
+        limit_words = int(limit_words)
+    else:
+        limit_words = -1
+    
+    print(f"limit words: {limit_words}")
+    words_view_df = word_map_to_df(sorted_word_map, limit_words)
+    st.session_state['words_view_df'] = words_view_df 
+
+def search_sentences_by_word():
+    search_word = st.session_state['search_word']
+    words_view_df =  st.session_state['words_view_df']

@@ -9,8 +9,8 @@ text_df = core.load_data()
 if 'text_df' not in st.session_state:
     st.session_state['text_df'] = text_df
     
-if 'data_frame' not in st.session_state:
-    st.session_state['data_frame'] = pd.DataFrame()
+if 'words_view_df' not in st.session_state:
+    st.session_state['words_view_df'] = pd.DataFrame()
 
 st.title('Word finder')
 st.write('Это приложение позволяет проводить поиск слов, которые наиболее часто встречаются в тексте.' \
@@ -22,4 +22,4 @@ col2.text_input('Ограничение по колличеству слов', k
 
 st.button(label='Поиск', on_click=core.search_word)
 
-st.dataframe(st.session_state['data_frame'])
+st.dataframe(st.session_state['words_view_df'])

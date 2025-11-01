@@ -1,113 +1,85 @@
-import nltk
-import kagglehub
-from pathlib import Path
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize, sent_tokenize
-import pandas as pd
-import streamlit as st
+import math
+from collections import Counter
+import re
 
-import invertedindex as ii
-
-# Глобальная переменная для индекса (кешируем)
-@st.cache_resource
-def create_inverted_index(_texts):
-    """Создает и возвращает инвертированный индекс"""
-    print("Создание инвертированного индекса...")
-    index = ii.InvertedIndex()
-    index.add_documents(_texts)
-    print(f"Индекс создан! Слов: {len(index.index)}, Документов: {index.doc_count}")
-    return index
-
-@st.cache_data
-def load_data():
-    print("start load")
-    path = Path(kagglehub.dataset_download("pavellexyr/the-reddit-dataset-dataset"))
-    path_to_comments = path.joinpath("the-reddit-dataset-dataset-comments.csv")
-
-    comments_df = pd.read_csv(path_to_comments)
-    comments_body = comments_df["body"]
-
-    all_sentences = []
-
-    # Проходим по каждому комментарию
-    for comment in comments_body:
-        if isinstance(comment, str):  # проверяем, что это строка
-            sentences = sent_tokenize(comment)
-            for sent in sentences:
-                all_sentences.append(sent)  # добавляем все предложения в общий список
-
-    df = pd.DataFrame()
-    df['document'] = all_sentences
-
-    nltk.download('punkt')
-    nltk.download('stopwords')
-
-    stop_words = set(stopwords.words('english'))
-
-    def preprocess(text):
-        if not isinstance(text, str):
-            return ''
-
-        # Сначала разбиваем на предложения
-        sentences = sent_tokenize(text)
-        all_filtered_tokens = []
+class InvertedIndex:
+    def __init__(self):
+        self.index = {}
+        self.documents = {}
+        self.doc_count = 0
+    
+    def add_documents(self, documents):
+        """Добавляет несколько документов в индекс"""
+        for doc_id, text in enumerate(documents):
+            self.add_document(doc_id, text)
+    
+    def add_document(self, doc_id, text):
+        """Добавление документа с расчетом TF"""
+        self.documents[doc_id] = text
+        self.doc_count += 1
         
-        for sentence in sentences:
-            # Токенизируем каждое предложение отдельно
-            tokens = word_tokenize(sentence.lower())
-            filtered_tokens = [word for word in tokens if word.isalnum() and word not in stop_words]
-            all_filtered_tokens.extend(filtered_tokens)
+        words = self._tokenize(text)
+        word_freq = Counter(words)
+        total_words = len(words)
         
-        # Возвращаем все токены как один текст
-        return ' '.join(all_filtered_tokens)
-
-    df['processed'] = df['document'].apply(preprocess)
-    print("end load")
-    return df
-
-def word_map_to_df(word_frequency_map, limit:int):
-    """Конвертирует словарь частот в DataFrame"""
-    if limit < 0:
-        limit = len(word_frequency_map)
+        for word, freq in word_freq.items():
+            tf = freq / total_words
+            
+            if word not in self.index:
+                self.index[word] = {}
+            
+            self.index[word][doc_id] = tf
     
-    word_list = []
-    count_list = []
+    def get_co_occurring_words(self, search_word, limit=10):
+        """Находит слова, которые чаще всего встречаются вместе с search_word"""
+        if search_word not in self.index:
+            return []
+        
+        # Собираем статистику совместного появления
+        word_freq = {}
+        search_word_docs = set(self.index[search_word].keys())
+        
+        for word, doc_weights in self.index.items():
+            if word == search_word:
+                continue
+                
+            # Находим документы, где оба слова встречаются вместе
+            common_docs = search_word_docs.intersection(doc_weights.keys())
+            frequency = len(common_docs)
+            
+            if frequency > 0:
+                word_freq[word] = frequency
+        
+        # Сортируем по убыванию частоты
+        sorted_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
+        
+        return sorted_words[:limit] if limit > 0 else sorted_words
     
-    for i in range(min(limit, len(word_frequency_map))):
-        word_list.append(word_frequency_map[i][0])
-        count_list.append(word_frequency_map[i][1])
+    def search_sentences_with_words(self, search_word, co_occurring_words):
+        """Находит предложения, содержащие search_word и co_occurring_words"""
+        if search_word not in self.index:
+            return []
+        
+        search_word_docs = set(self.index[search_word].keys())
+        result_sentences = []
+        
+        for word in co_occurring_words:
+            if word in self.index:
+                # Документы, где встречаются оба слова
+                common_docs = search_word_docs.intersection(self.index[word].keys())
+                
+                for doc_id in common_docs:
+                    sentence = self.documents[doc_id]
+                    # Добавляем только уникальные предложения
+                    if sentence not in result_sentences:
+                        result_sentences.append(sentence)
+                    
+                    # Ограничиваем количество результатов для производительности
+                    if len(result_sentences) >= 100:  # максимум 100 предложений
+                        return result_sentences
+        
+        return result_sentences
     
-    df = pd.DataFrame({'word': word_list, 'count': count_list})
-    return df
-
-def search_word():
-    """Основная функция поиска с использованием инвертированного индекса"""
-    search_word = st.session_state['search_word']
-    text_df = st.session_state['text_df']
-    
-    # Получаем инвертированный индекс (кешируется)
-    inverted_index = st.session_state['inverted_index']
-    
-    # Определяем лимит слов
-    try:
-        limit_words = int(st.session_state['max_words'])
-    except:
-        limit_words = -1
-    
-    print(f"Поиск слова: {search_word}, лимит: {limit_words}")
-    
-    # Используем инвертированный индекс для поиска совместно встречающихся слов
-    word_frequency_map = inverted_index.get_co_occurring_words(search_word, limit_words)
-    
-    # Создаем DataFrame для отображения
-    words_view_df = word_map_to_df(word_frequency_map, limit_words)
-    st.session_state['words_view_df'] = words_view_df
-    
-    # Находим предложения с этими словами
-    co_occurring_words = [word for word, freq in word_frequency_map]
-    sentences = inverted_index.search_sentences_with_words(search_word, co_occurring_words)
-    
-    # Ограничиваем количество предложений для производительности
-    sentences = sentences[:50]  # максимум 50 предложений
-    
-    st.session_state['sentances_view_df'] = pd.DataFrame(sentences, columns=['sentence'])
+    def _tokenize(self, text):
+        """Токенизация текста"""
+        return re.findall(r'\b\w+\b', text.lower())

@@ -1,4 +1,3 @@
-
 import pandas as pd
 import streamlit as st
 
@@ -8,9 +7,13 @@ text_df = core.load_data()
 
 st.dataframe(text_df)
 
+# Инициализация session state
 if 'text_df' not in st.session_state:
     st.session_state['text_df'] = text_df
-    
+
+if 'inverted_index' not in st.session_state:
+    st.session_state['inverted_index'] = core.create_inverted_index(text_df['processed'].tolist())
+
 if 'words_view_df' not in st.session_state:
     st.session_state['words_view_df'] = pd.DataFrame()
 
@@ -23,7 +26,7 @@ st.write('Это приложение позволяет проводить по
 
 col1, col2 = st.columns([1, 1])
 col1.text_input('Слово для поиска', key='search_word')
-col2.text_input('Ограничение по колличеству слов', key='max_words')
+col2.text_input('Ограничение по количеству слов', key='max_words')
 
 st.button(label='Поиск', on_click=core.search_word)
 

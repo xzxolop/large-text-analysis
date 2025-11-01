@@ -6,16 +6,15 @@ from nltk.tokenize import word_tokenize, sent_tokenize
 import pandas as pd
 import streamlit as st
 
-import invertedindex as ii
+def print_searched_words(words, count):
+    if len(words) < count or count < 0:
+        count = len(words)
 
-@st.cache_resource
-def create_inverted_index(_texts):
-    """Создает и возвращает инвертированный индекс"""
-    print("Создание инвертированного индекса...")
-    index = ii.InvertedIndex()
-    index.add_documents(_texts)
-    print(f"Индекс создан! Слов: {len(index.index)}, Документов: {index.doc_count}")
-    return index
+    for key, value in words:
+        if count < 0:
+            break
+        print(f"{key}: {value}")
+        count -= 1    
 
 @st.cache_data
 def load_data():
@@ -65,48 +64,72 @@ def load_data():
     print("end load")
     return df
 
-def word_map_to_df(word_frequency_map, limit:int):
-    """Конвертирует словарь частот в DataFrame"""
-    if limit < 0:
-        limit = len(word_frequency_map)
-    
-    word_list = []
-    count_list = []
-    
-    for i in range(min(limit, len(word_frequency_map))):
-        word_list.append(word_frequency_map[i][0])
-        count_list.append(word_frequency_map[i][1])
-    
-    df = pd.DataFrame({'word': word_list, 'count': count_list})
-    return df
+# Создает словарь вида <слово, колличество> внем находятся слова с которыми поисковое слово встречается наиболее часто
+def make_word_frequency_map(search_word: str, sentences):
+    word_frequency_map = {}
+    for sent in sentences:
+        words = nltk.word_tokenize(sent)
+        if search_word in words:
+            for word in words:
+                if word != search_word:
+                    if word in word_frequency_map:
+                        word_frequency_map[word] = (word_frequency_map[word] + 1)
+                    else:
+                        word_frequency_map[word] = 1
+    return word_frequency_map
 
+
+def word_map_to_df(word_frequency_map, limit:int):
+        if limit < 0:
+            limit = len(word_frequency_map)
+        word_list = []
+        count_list = []
+        for i in range(0, min(limit, len(word_frequency_map))):
+            word_list.append(word_frequency_map[i][0])
+            count_list.append(word_frequency_map[i][1])
+        d = {'word': word_list, 'count': count_list}           
+        df = pd.DataFrame(data=d)
+        return df
+
+#search_word
 def search_word():
-    """Основная функция поиска с использованием инвертированного индекса"""
+    search_word = st.session_state['search_word'] # Зависимость от модуля более высокого урвня = нарушение DIP
+    text_df = st.session_state['text_df']
+
+    word_map = make_word_frequency_map(search_word, text_df['processed'])
+    sorted_word_map = sorted(word_map.items(), key=lambda x: x[1], reverse=True)    
+
+    limit_words = st.session_state['max_words'] # TODO: rename to max_words_limit
+
+    if limit_words.isdigit():
+        limit_words = int(limit_words)
+    else:
+        limit_words = -1
+    
+    print(f"limit words: {limit_words}")
+    words_view_df = word_map_to_df(sorted_word_map, limit_words)
+    st.session_state['words_view_df'] = words_view_df 
+
+    search_sentences_by_word()
+
+def search_sentences_by_word():
+    text_df = st.session_state['text_df']
     search_word = st.session_state['search_word']
+
+    sentences = text_df['processed']
+    words_view_df =  st.session_state['words_view_df']
+    view_words = words_view_df['word'].values
+
+    sentences_list = []
+    for word in view_words:
+        for sent in sentences:
+            words = nltk.word_tokenize(sent)
+            if word in words and search_word in words:
+                sentences_list.append(sent)
     
-    # Получаем инвертированный индекс
-    inverted_index = st.session_state['inverted_index']
+    st.session_state['sentances_view_df'] = pd.DataFrame(sentences_list)
     
-    # Определяем лимит слов
-    try:
-        limit_words = int(st.session_state['max_words'])
-    except:
-        limit_words = 10  # значение по умолчанию
-    
-    print(f"Поиск слова: '{search_word}', лимит: {limit_words}")
-    
-    # Используем инвертированный индекс для поиска совместно встречающихся слов
-    word_frequency_map = inverted_index.get_co_occurring_words(search_word, limit_words)
-    
-    # Создаем DataFrame для отображения слов
-    words_view_df = word_map_to_df(word_frequency_map, limit_words)
-    st.session_state['words_view_df'] = words_view_df
-    
-    # Находим предложения с этими словами используя инвертированный индекс
-    co_occurring_words = [word for word, freq in word_frequency_map]
-    sentences = inverted_index.search_sentences_with_words(search_word, co_occurring_words)
-    
-    # Ограничиваем количество предложений для производительности
-    sentences = sentences[:50]  # максимум 50 предложений
-    
-    st.session_state['sentances_view_df'] = pd.DataFrame(sentences, columns=['sentence'])
+    #return sentences_list
+
+
+

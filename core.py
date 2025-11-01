@@ -99,7 +99,7 @@ def search_word():
     word_map = make_word_frequency_map(search_word, text_df['processed'])
     sorted_word_map = sorted(word_map.items(), key=lambda x: x[1], reverse=True)    
 
-    limit_words = st.session_state['max_words']
+    limit_words = st.session_state['max_words'] # TODO: rename to max_words_limit
 
     if limit_words.isdigit():
         limit_words = int(limit_words)

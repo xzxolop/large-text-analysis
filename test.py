@@ -1,11 +1,21 @@
-import pandas as pd
+import invertedindex as ii
 
-d = {'word': ['aaa', 'www'], 'count': [3, 4]}
-word_frequency_df = pd.DataFrame(data = d)
+index = ii.InvertedIndex()
 
-print(word_frequency_df)
-print(word_frequency_df['word'])
+documents = {
+    1: "Python is a programming language",
+    2: "Java is another programming language",
+    3: "Python and Java are both popular",
+    4: "Programming languages are important for developers"
+}
 
-word_frequency_df.add('sss', 3)
+index.add_documents(documents)
 
-print(word_frequency_df)
+# Поиск
+print("Документы содержащие 'python':", index.search("python"))
+print("Документы содержащие 'programming':", index.search("programming"))
+print("Документы содержащие 'python programming':", index.search("python programming"))
+
+# Вывод всего индекса
+print("\nПолный индекс:")
+index.print_index()

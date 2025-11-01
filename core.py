@@ -22,114 +22,93 @@ def load_data():
     path = Path(kagglehub.dataset_download("pavellexyr/the-reddit-dataset-dataset"))
     path_to_comments = path.joinpath("the-reddit-dataset-dataset-comments.csv")
 
-    comments_df = pd.read_csv(path_to_comments)
+    # Загрузка только нужной колонки для экономии памяти
+    comments_df = pd.read_csv(path_to_comments, usecols=["body"])
     comments_body = comments_df["body"]
 
     all_sentences = []
-
-    # Проходим по каждому комментарию
-    for comment in comments_body:
-        if isinstance(comment, str):  # проверяем, что это строка
+    
+    # Более эффективная обработка предложений
+    for comment in comments_body.dropna():  # автоматически пропускаем NaN
+        if isinstance(comment, str):
             sentences = sent_tokenize(comment)
-            for sent in sentences:
-                all_sentences.append(sent)  # добавляем все предложения в общий список
-        # else: можно добавить обработку для NaN или не-строк
+            all_sentences.extend(sentences)
 
-    df = pd.DataFrame()
-    df['document'] = all_sentences
-
-    nltk.download('punkt')
-    nltk.download('stopwords')
+    # Создаем DataFrame с правильными индексами
+    df = pd.DataFrame({'document': all_sentences})
+    
+    # Загружаем NLTK данные один раз
+    nltk.download('punkt', quiet=True)
+    nltk.download('stopwords', quiet=True)
 
     stop_words = set(stopwords.words('english'))
 
     def preprocess(text):
-        if not isinstance(text, str):
-            return ''
-
-        # Сначала разбиваем на предложения
-        sentences = sent_tokenize(text)
-        all_filtered_tokens = []
-        
-        for sentence in sentences:
-            # Токенизируем каждое предложение отдельно
-            tokens = word_tokenize(sentence.lower())
-            filtered_tokens = [word for word in tokens if word.isalnum() and word not in stop_words]
-            all_filtered_tokens.extend(filtered_tokens)
-        
-        # Возвращаем все токены как один текст
-        return ' '.join(all_filtered_tokens)
+        tokens = word_tokenize(text.lower())
+        filtered_tokens = [word for word in tokens if word.isalnum() and word not in stop_words]
+        return ' '.join(filtered_tokens)
 
     df['processed'] = df['document'].apply(preprocess)
-    print("end load")
+    
+    # Используем AdvancedInvertedIndex
+    index = st.session_state['index']
+    index.add_documents_serias(df['processed'])
+    
+    print(f"end load. Loaded {len(df)} sentences")
     return df
 
-# Создает словарь вида <слово, колличество> внем находятся слова с которыми поисковое слово встречается наиболее часто
-def make_word_frequency_map(search_word: str, sentences):
-    word_frequency_map = {}
-    for sent in sentences:
-        words = nltk.word_tokenize(sent)
-        if search_word in words:
-            for word in words:
-                if word != search_word:
-                    if word in word_frequency_map:
-                        word_frequency_map[word] = (word_frequency_map[word] + 1)
-                    else:
-                        word_frequency_map[word] = 1
-    return word_frequency_map
-
-
-def word_map_to_df(word_frequency_map, limit:int):
-        if limit < 0:
-            limit = len(word_frequency_map)
-        word_list = []
-        count_list = []
-        for i in range(0, min(limit, len(word_frequency_map))):
-            word_list.append(word_frequency_map[i][0])
-            count_list.append(word_frequency_map[i][1])
-        d = {'word': word_list, 'count': count_list}           
-        df = pd.DataFrame(data=d)
-        return df
-
-#search_word
 def search_word():
-    search_word = st.session_state['search_word'] # Зависимость от модуля более высокого урвня = нарушение DIP
+    search_word = st.session_state['search_word'].lower().strip()
+    max_words = st.session_state.get('max_words', '10')
+    
+    try:
+        max_words = int(max_words)
+    except ValueError:
+        max_words = 10
+    
+    if not search_word:
+        st.warning("Введите слово для поиска")
+        return
+    
+    index = st.session_state['index']
     text_df = st.session_state['text_df']
-
-    word_map = make_word_frequency_map(search_word, text_df['processed'])
-    sorted_word_map = sorted(word_map.items(), key=lambda x: x[1], reverse=True)    
-
-    limit_words = st.session_state['max_words'] # TODO: rename to max_words_limit
-
-    if limit_words.isdigit():
-        limit_words = int(limit_words)
+    
+    # Поиск слов, которые часто встречаются вместе с заданным
+    co_occurring_words = index.find_co_occurring_words(search_word, top_k=max_words)
+    
+    # Создаем DataFrame для отображения слов
+    if co_occurring_words:
+        words_df = pd.DataFrame(
+            co_occurring_words, 
+            columns=['Word', 'TF-IDF Score']
+        )
+        words_df['Rank'] = range(1, len(words_df) + 1)
+        words_df = words_df[['Rank', 'Word', 'TF-IDF Score']]
     else:
-        limit_words = -1
+        words_df = pd.DataFrame(columns=['Rank', 'Word', 'TF-IDF Score'])
     
-    print(f"limit words: {limit_words}")
-    words_view_df = word_map_to_df(sorted_word_map, limit_words)
-    st.session_state['words_view_df'] = words_view_df 
-
-    search_sentences_by_word()
-
-def search_sentences_by_word():
-    text_df = st.session_state['text_df']
-    search_word = st.session_state['search_word']
-
-    sentences = text_df['processed']
-    words_view_df =  st.session_state['words_view_df']
-    view_words = words_view_df['word'].values
-
-    sentences_list = []
-    for word in view_words:
-        for sent in sentences:
-            words = nltk.word_tokenize(sent)
-            if word in words and search_word in words:
-                sentences_list.append(sent)
+    # Получаем предложения, содержащие исходное слово
+    target_docs = index.get_documents_with_word(search_word)
+    sentences_data = []
     
-    st.session_state['sentances_view_df'] = pd.DataFrame(sentences_list)
+    for doc_info in target_docs[:20]:  # Ограничиваем количество предложений
+        original_text = text_df.loc[doc_info['doc_id'], 'document']
+        sentences_data.append({
+            'Document ID': doc_info['doc_id'],
+            'Sentence': original_text,
+            'TF': f"{doc_info['tf']:.4f}"
+        })
     
-    #return sentences_list
-
-
-
+    sentences_df = pd.DataFrame(sentences_data)
+    
+    # Обновляем состояние
+    st.session_state['words_view_df'] = words_df
+    st.session_state['sentances_view_df'] = sentences_df
+    
+    # Дополнительная статистика
+    word_stats = index.get_word_statistics(search_word)
+    if word_stats:
+        st.sidebar.subheader("Статистика слова")
+        st.sidebar.write(f"Частота в документах: {word_stats['document_frequency']}")
+        st.sidebar.write(f"IDF: {word_stats['idf']:.4f}")
+        st.sidebar.write(f"Средний TF: {word_stats['average_tf']:.4f}")

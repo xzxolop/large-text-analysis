@@ -91,7 +91,7 @@ def search_word():
     target_docs = index.get_documents_with_word(search_word)
     sentences_data = []
     
-    for doc_info in target_docs[:20]:  # Ограничиваем количество предложений
+    for doc_info in target_docs:  # Ограничиваем количество предложений
         original_text = text_df.loc[doc_info['doc_id'], 'document']
         sentences_data.append({
             'Document ID': doc_info['doc_id'],

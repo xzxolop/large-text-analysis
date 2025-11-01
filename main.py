@@ -1,84 +1,35 @@
-import kagglehub
 import pandas as pd
-from pathlib import Path
+import streamlit as st
 
 import core
 
-path = Path(kagglehub.dataset_download("pavellexyr/the-reddit-dataset-dataset"))
-path_to_comments = path.joinpath("the-reddit-dataset-dataset-comments.csv")
+text_df = core.load_data()
 
-comments_df = pd.read_csv(path_to_comments)
-comments_body = comments_df["body"]
+st.dataframe(text_df)
 
-df = pd.DataFrame()
-df['document'] = comments_body
-print(df)
+# Инициализация session state
+if 'text_df' not in st.session_state:
+    st.session_state['text_df'] = text_df
 
-import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
+if 'inverted_index' not in st.session_state:
+    st.session_state['inverted_index'] = core.create_inverted_index(text_df['processed'].tolist())
 
-nltk.download('punkt')
-nltk.download('stopwords')
+if 'words_view_df' not in st.session_state:
+    st.session_state['words_view_df'] = pd.DataFrame()
 
-stop_words = set(stopwords.words('english'))
+if 'sentances_view_df' not in st.session_state:
+    st.session_state['sentances_view_df'] = pd.DataFrame()
 
-def preprocess(text):
-    if not isinstance(text, str):
-        return ''
+st.title('Word finder')
+st.write('Это приложение позволяет проводить поиск слов, которые наиболее часто встречаются в тексте.' \
+' Поиск проводится на датасете the-reddit-dataset-dataset-comments.')
 
-    tokens = word_tokenize(text.lower())
-    filtered_tokens = [word for word in tokens if word.isalnum() and word not in stop_words]
-    return ' '.join(filtered_tokens)
+col1, col2 = st.columns([1, 1])
+col1.text_input('Слово для поиска', key='search_word')
+col2.text_input('Ограничение по количеству слов', key='max_words')
 
-df['processed'] = df['document'].apply(preprocess)
-print(df)
+st.button(label='Поиск', on_click=core.search_word)
 
-# # Применение tf-idf
-# from sklearn.feature_extraction.text import TfidfVectorizer
-
-# vectorizer = TfidfVectorizer()
-# tfidf_matrix = vectorizer.fit_transform(df['processed'])
-
-# # Вывод TF-IDF в виде массивов
-# print(tfidf_matrix.toarray())
-# print(vectorizer.get_feature_names_out())
-
-# # Вывод в виде таблицы
-# tfidf_df = pd.DataFrame(tfidf_matrix.toarray(), columns=vectorizer.get_feature_names_out())
-# print(tfidf_df)
-
-# cnt = 0
-# # Вывод в виде каждого документа отдельно
-# # TODO: сделать вывод наиболее важных if value > 0
-# for index, row in tfidf_df.iterrows():
-#     print(f"Документ {index + 1}:")
-#     print(row.sort_values(ascending=False).head(5)) # выводит самые важные, но значение константно
-#     cnt += 1
-#     if (cnt == 100):
-#         break
-
-m = core.make_map_most_popular("data", df['processed'])
-
-sorted_items = sorted(m.items(), key=lambda x: x[1], reverse=True)    
-
-core.print_searched_words(sorted_items, 10)
-
-def create_list(words, size: int):
-    lst = []
-    for i in range(0, size+1):
-        print(words[i][1])
-        lst.append(words[i][0])
-        
-    return lst            
-
-top_ten_words = create_list(sorted_items, 10)
-print(top_ten_words)
-
-for word in top_ten_words:
-    print('')
-    print(word)
-
-    m = core.make_map_most_popular(word, df['processed'])
-    sorted_items = sorted(m.items(), key=lambda x: x[1], reverse=True)    
-    core.print_searched_words(sorted_items, 10)
+col3, col4 = st.columns([1,2])
+col3.dataframe(st.session_state['words_view_df'])
+col4.dataframe(st.session_state['sentances_view_df'])

@@ -1,60 +1,112 @@
 import nltk
-import utils
-import math
+import kagglehub
+from pathlib import Path
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize, sent_tokenize
+import pandas as pd
+import streamlit as st
 
-def tokenize_sentances(text):
-    sentences = []
-    for x in text:
-        if isinstance(x, str):
-            sentences += nltk.sent_tokenize(x)
-    return sentences
+import invertedindex as ii
 
-def tokenize_words(sentences):
-    words = []
-    for x in sentences:
-        words += nltk.word_tokenize(x)
-    return words
+@st.cache_resource
+def create_inverted_index(_texts):
+    """Создает и возвращает инвертированный индекс"""
+    print("Создание инвертированного индекса...")
+    index = ii.InvertedIndex()
+    index.add_documents(_texts)
+    print(f"Индекс создан! Слов: {len(index.index)}, Документов: {index.doc_count}")
+    return index
 
-# TODO: при токенизации необходимо не добавлять запятые, точки, и т.д.
-def calculate_TF(word, document):
-    words = nltk.word_tokenize(document)
-    include_count = utils.count_word_matches(word, words)
+@st.cache_data
+def load_data():
+    print("start load")
+    path = Path(kagglehub.dataset_download("pavellexyr/the-reddit-dataset-dataset"))
+    path_to_comments = path.joinpath("the-reddit-dataset-dataset-comments.csv")
 
-    #print(include_count)
-    #print(words)
-    #print(len(words))
+    comments_df = pd.read_csv(path_to_comments)
+    comments_body = comments_df["body"]
 
-    return include_count / len(words)
+    all_sentences = []
 
-def claculate_IDF(word, documents):
-    return math.log(len(documents) / count_documents_include_word(word, documents))
+    # Проходим по каждому комментарию
+    for comment in comments_body:
+        if isinstance(comment, str):  # проверяем, что это строка
+            sentences = sent_tokenize(comment)
+            for sent in sentences:
+                all_sentences.append(sent)  # добавляем все предложения в общий список
+        # else: можно добавить обработку для NaN или не-строк
 
-def count_documents_include_word(word, documents):
-    cnt = 0
-    for d in documents:
-        if d.count(word):
-            cnt+=1
-    return cnt
+    df = pd.DataFrame()
+    df['document'] = all_sentences
 
-def make_map_most_popular(search_word: str, documents):
-    m = {}
-    for doc in documents[:100]:
-        words = nltk.word_tokenize(doc)
-        if search_word in words:
-            for word in words:
-                if word != search_word:
-                    if word in m:
-                        m[word] = (m[word] + 1)
-                    else:
-                        m[word] = 1
-    return m
+    nltk.download('punkt')
+    nltk.download('stopwords')
 
-def print_searched_words(words, count):
-    if len(words) < count or count < 0:
-        count = len(words)
+    stop_words = set(stopwords.words('english'))
 
-    for key, value in words:
-        if count < 0:
-            break
-        print(f"{key}: {value}")
-        count -= 1    
+    def preprocess(text):
+        if not isinstance(text, str):
+            return ''
+
+        # Сначала разбиваем на предложения
+        sentences = sent_tokenize(text)
+        all_filtered_tokens = []
+        
+        for sentence in sentences:
+            # Токенизируем каждое предложение отдельно
+            tokens = word_tokenize(sentence.lower())
+            filtered_tokens = [word for word in tokens if word.isalnum() and word not in stop_words]
+            all_filtered_tokens.extend(filtered_tokens)
+        
+        # Возвращаем все токены как один текст
+        return ' '.join(all_filtered_tokens)
+
+    df['processed'] = df['document'].apply(preprocess)
+    print("end load")
+    return df
+
+def word_map_to_df(word_frequency_map, limit:int):
+    """Конвертирует словарь частот в DataFrame"""
+    if limit < 0:
+        limit = len(word_frequency_map)
+    
+    word_list = []
+    count_list = []
+    
+    for i in range(min(limit, len(word_frequency_map))):
+        word_list.append(word_frequency_map[i][0])
+        count_list.append(word_frequency_map[i][1])
+    
+    df = pd.DataFrame({'word': word_list, 'count': count_list})
+    return df
+
+def search_word():
+    """Основная функция поиска с использованием инвертированного индекса"""
+    search_word = st.session_state['search_word']
+    
+    # Получаем инвертированный индекс
+    inverted_index = st.session_state['inverted_index']
+    
+    # Определяем лимит слов
+    try:
+        limit_words = int(st.session_state['max_words'])
+    except:
+        limit_words = 10  # значение по умолчанию
+    
+    print(f"Поиск слова: '{search_word}', лимит: {limit_words}")
+    
+    # Используем инвертированный индекс для поиска совместно встречающихся слов
+    word_frequency_map = inverted_index.get_co_occurring_words(search_word, limit_words)
+    
+    # Создаем DataFrame для отображения слов
+    words_view_df = word_map_to_df(word_frequency_map, limit_words)
+    st.session_state['words_view_df'] = words_view_df
+    
+    # Находим предложения с этими словами используя инвертированный индекс
+    co_occurring_words = [word for word, freq in word_frequency_map]
+    sentences = inverted_index.search_sentences_with_words(search_word, co_occurring_words)
+    
+    # Ограничиваем количество предложений для производительности
+    sentences = sentences[:50]  # максимум 50 предложений
+    
+    st.session_state['sentances_view_df'] = pd.DataFrame(sentences, columns=['sentence'])

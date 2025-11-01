@@ -1,6 +1,7 @@
 import invertedindex as ii
 
 index = ii.InvertedIndex()
+#index = ii.AdvancedInvertedIndex() #ii.InvertedIndex()
 
 documents = {
     1: "Python is a programming language",
@@ -9,7 +10,7 @@ documents = {
     4: "Programming languages are important for developers"
 }
 
-index.add_documents(documents)
+index.add_documents(documents=documents)
 
 # Поиск
 print("Документы содержащие 'python':", index.search("python"))

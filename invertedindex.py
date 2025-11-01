@@ -2,20 +2,15 @@ import math
 from collections import Counter
 import re
 
-class AdvancedInvertedIndex:
+class InvertedIndex:
     def __init__(self):
-        self.index = {}  # слово -> {doc_id: tf}
-        self.documents = {}  # doc_id -> текст
+        self.index = {}
+        self.documents = {}
         self.doc_count = 0
-        self.co_occurrence_cache = {}  # Кэш для часто встречающихся слов
-    
-    def add_documents_serias(self, documents_series):
-        """Добавление документов из Series с авто-генерацией ID"""
-        for doc_id, text in documents_series.items():
-            self.add_document(doc_id, text)
     
     def add_documents(self, documents):
-        for doc_id, text in documents.items():
+        """Добавляет несколько документов в индекс"""
+        for doc_id, text in enumerate(documents):
             self.add_document(doc_id, text)
     
     def add_document(self, doc_id, text):
@@ -28,97 +23,63 @@ class AdvancedInvertedIndex:
         total_words = len(words)
         
         for word, freq in word_freq.items():
-            tf = freq / total_words  # Term Frequency
+            tf = freq / total_words
             
             if word not in self.index:
                 self.index[word] = {}
             
             self.index[word][doc_id] = tf
     
-    def search_documents(self, query):
-        """Поиск документов, содержащих все слова запроса"""
-        words = self._tokenize(query)
-        
-        if not words:
-            return set()
-        
-        # Начинаем с первого слова
-        result = set(self.index.get(words[0], {}).keys())
-        
-        # Пересечение множеств для всех слов (AND логика)
-        for word in words[1:]:
-            result = result.intersection(self.index.get(word, {}).keys())
-        
-        return result
-    
-    def find_co_occurring_words(self, target_word, top_k=10):
-        """Найти слова, которые чаще всего встречаются вместе с target_word"""
-        if target_word not in self.index:
+    def get_co_occurring_words(self, search_word, limit=10):
+        """Находит слова, которые чаще всего встречаются вместе с search_word"""
+        if search_word not in self.index:
             return []
         
-        # Документы, содержащие целевое слово
-        target_docs = set(self.index[target_word].keys())
+        # Собираем статистику совместного появления
+        word_freq = {}
+        search_word_docs = set(self.index[search_word].keys())
         
-        # Счетчик для слов, встречающихся в тех же документах
-        co_occurrence_counter = Counter()
-        
-        for word, doc_tf in self.index.items():
-            if word == target_word:
+        for word, doc_weights in self.index.items():
+            if word == search_word:
                 continue
                 
-            # Документы, содержащие текущее слово
-            word_docs = set(doc_tf.keys())
+            # Находим документы, где оба слова встречаются вместе
+            common_docs = search_word_docs.intersection(doc_weights.keys())
+            frequency = len(common_docs)
             
-            # Количество документов, где оба слова встречаются вместе
-            co_occurrence_count = len(target_docs.intersection(word_docs))
-            
-            if co_occurrence_count > 0:
-                # Используем TF-IDF как меру важности
-                idf = math.log(self.doc_count / (1 + len(word_docs)))
-                avg_tf = sum(doc_tf.values()) / len(doc_tf)
-                score = co_occurrence_count * avg_tf * idf
-                
-                co_occurrence_counter[word] = score
+            if frequency > 0:
+                word_freq[word] = frequency
         
-        return co_occurrence_counter.most_common(top_k)
+        # Сортируем по убыванию частоты
+        sorted_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
+        
+        return sorted_words[:limit] if limit > 0 else sorted_words
     
-    def get_documents_with_word(self, word):
-        """Получить документы, содержащие слово"""
-        if word not in self.index:
+    def search_sentences_with_words(self, search_word, co_occurring_words):
+        """Находит предложения, содержащие search_word и co_occurring_words"""
+        if search_word not in self.index:
             return []
         
-        doc_ids = list(self.index[word].keys())
-        documents = []
+        search_word_docs = set(self.index[search_word].keys())
+        result_sentences = []
         
-        for doc_id in doc_ids:
-            documents.append({
-                'doc_id': doc_id,
-                'text': self.documents.get(doc_id, ''),
-                'tf': self.index[word][doc_id]
-            })
+        for word in co_occurring_words:
+            if word in self.index:
+                # Документы, где встречаются оба слова
+                common_docs = search_word_docs.intersection(self.index[word].keys())
+                
+                for doc_id in common_docs:
+                    sentence = self.documents[doc_id]
+                    # Добавляем только уникальные предложения
+                    if sentence not in result_sentences:
+                        result_sentences.append(sentence)
+                    
+                    # Ограничиваем количество результатов для производительности
+                    if len(result_sentences) >= 100:  # максимум 100 предложений
+                        return result_sentences
         
-        return documents
+        return result_sentences
     
     def _tokenize(self, text):
-        """Улучшенная токенизация"""
-        if not isinstance(text, str):
-            return []
-        # Удаление знаков препинания и приведение к нижнему регистру
-        words = re.findall(r'\b\w+\b', text.lower())
-        return words
-    
-    def get_word_statistics(self, word):
-        """Получить статистику по слову"""
-        if word not in self.index:
-            return None
-        
-        doc_freq = len(self.index[word])
-        idf = math.log(self.doc_count / (1 + doc_freq))
-        avg_tf = sum(self.index[word].values()) / doc_freq
-        
-        return {
-            'document_frequency': doc_freq,
-            'idf': idf,
-            'average_tf': avg_tf,
-            'total_occurrences': sum(len(self._tokenize(self.documents[doc_id])) for doc_id in self.index[word])
-        }
+        """Токенизация текста"""
+        return re.findall(r'\b\w+\b', text.lower())

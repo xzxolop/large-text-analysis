@@ -23,6 +23,10 @@ data
 
 ## Сборка проекта
 
+### Запуск streamlit
+
+streamlit run main.py
+
 ### С использованием uv
 
 uv sync

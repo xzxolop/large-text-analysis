@@ -73,10 +73,6 @@ class InvertedIndex:
                     # Добавляем только уникальные предложения
                     if sentence not in result_sentences:
                         result_sentences.append(sentence)
-                    
-                    # Ограничиваем количество результатов для производительности
-                    if len(result_sentences) >= 100:  # максимум 100 предложений
-                        return result_sentences
         
         return result_sentences
     

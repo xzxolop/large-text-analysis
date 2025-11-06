@@ -110,6 +110,10 @@ def search_word():
     
     # Находим предложения с этими словами используя инвертированный индекс
     co_occurring_words = [word for word, freq in word_frequency_map]
+    
+    # Если хотите ограничить предложения, передайте limit параметр
+    # sentences = inverted_index.search_sentences_with_words(search_word, co_occurring_words, limit=100)
+    # Или без ограничения:
     sentences = inverted_index.search_sentences_with_words(search_word, co_occurring_words)
     
     st.session_state['sentances_view_df'] = pd.DataFrame(sentences, columns=['sentence'])

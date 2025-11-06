@@ -67,12 +67,14 @@ def load_data():
 
 def word_map_to_df(word_frequency_map, limit:int):
     """Конвертирует словарь частот в DataFrame"""
+    # Если limit отрицательный, показываем все слова
     if limit < 0:
         limit = len(word_frequency_map)
     
     word_list = []
     count_list = []
     
+    # Берем только нужное количество слов (не больше, чем есть в мапе)
     for i in range(min(limit, len(word_frequency_map))):
         word_list.append(word_frequency_map[i][0])
         count_list.append(word_frequency_map[i][1])
@@ -90,8 +92,10 @@ def search_word():
     # Определяем лимит слов
     try:
         limit_words = int(st.session_state['max_words'])
+        if limit_words <= 0:
+            limit_words = -1  # Используем -1 для обозначения "без ограничений"
     except:
-        limit_words = 10  # значение по умолчанию
+        limit_words = -1  # При ошибке - без ограничений
     
     print(f"Поиск слова: '{search_word}', лимит: {limit_words}")
     
@@ -99,14 +103,13 @@ def search_word():
     word_frequency_map = inverted_index.get_co_occurring_words(search_word, limit_words)
     
     # Создаем DataFrame для отображения слов
-    words_view_df = word_map_to_df(word_frequency_map, limit_words)
+    # Если limit_words = -1, показываем все слова
+    display_limit = len(word_frequency_map) if limit_words == -1 else limit_words
+    words_view_df = word_map_to_df(word_frequency_map, display_limit)
     st.session_state['words_view_df'] = words_view_df
     
     # Находим предложения с этими словами используя инвертированный индекс
     co_occurring_words = [word for word, freq in word_frequency_map]
     sentences = inverted_index.search_sentences_with_words(search_word, co_occurring_words)
-    
-    # Ограничиваем количество предложений для производительности
-    sentences = sentences[:50]  # максимум 50 предложений
     
     st.session_state['sentances_view_df'] = pd.DataFrame(sentences, columns=['sentence'])

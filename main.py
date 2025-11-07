@@ -1,35 +1,79 @@
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List, Optional
 import pandas as pd
-import streamlit as st
+from .core import load_data, create_inverted_index
 
-import core
+app = FastAPI(title="Word Finder API")
 
-text_df = core.load_data()
+# CORS для работы с фронтендом
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # В продакшене укажите конкретный домен
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-#st.dataframe(text_df)
+# Глобальные переменные (в продакшене используйте кэширование/БД)
+text_df = None
+inverted_index = None
 
-# Инициализация session state
-if 'text_df' not in st.session_state:
-    st.session_state['text_df'] = text_df
+@app.on_event("startup")
+async def startup_event():
+    """Инициализация при запуске"""
+    global text_df, inverted_index
+    print("Загрузка данных...")
+    text_df = load_data()
+    print("Создание инвертированного индекса...")
+    inverted_index = create_inverted_index(text_df['processed'].tolist())
+    print("Готово к работе!")
 
-if 'inverted_index' not in st.session_state:
-    st.session_state['inverted_index'] = core.create_inverted_index(text_df['processed'].tolist())
+class SearchRequest(BaseModel):
+    search_word: str
+    max_words: Optional[int] = 10
 
-if 'words_view_df' not in st.session_state:
-    st.session_state['words_view_df'] = pd.DataFrame()
+class SearchResponse(BaseModel):
+    words: List[dict]
+    sentences: List[str]
 
-if 'sentances_view_df' not in st.session_state:
-    st.session_state['sentances_view_df'] = pd.DataFrame()
+@app.get("/")
+async def root():
+    return {"message": "Word Finder API"}
 
-st.title('Word finder')
-st.write('Это приложение позволяет проводить поиск слов, которые наиболее часто встречаются в тексте.' \
-' Поиск проводится на датасете the-reddit-dataset-dataset-comments.')
+@app.post("/search", response_model=SearchResponse)
+async def search_words(request: SearchRequest):
+    try:
+        if not inverted_index:
+            raise HTTPException(status_code=500, detail="Index not initialized")
+        
+        # Определяем лимит слов
+        limit_words = request.max_words if request.max_words and request.max_words > 0 else -1
+        
+        print(f"Поиск слова: '{request.search_word}', лимит: {limit_words}")
+        
+        # Используем инвертированный индекс для поиска
+        word_frequency_map = inverted_index.get_co_occurring_words(
+            request.search_word, 
+            limit_words
+        )
+        
+        # Форматируем слова для ответа
+        words_data = [{"word": word, "count": count} for word, count in word_frequency_map]
+        
+        # Находим предложения
+        co_occurring_words = [word for word, freq in word_frequency_map]
+        sentences = inverted_index.search_sentences_with_words(
+            request.search_word, 
+            co_occurring_words
+        )
+        
+        return SearchResponse(words=words_data, sentences=sentences[:50])  # Ограничиваем предложения
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-col1, col2 = st.columns([1, 1])
-col1.text_input('Слово для поиска', key='search_word')
-col2.text_input('Ограничение по количеству слов', key='max_words')
-
-st.button(label='Поиск', on_click=core.search_word)
-
-col3, col4 = st.columns([1,2])
-col3.dataframe(st.session_state['words_view_df'])
-col4.dataframe(st.session_state['sentances_view_df'])
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "documents_loaded": inverted_index.doc_count if inverted_index else 0}

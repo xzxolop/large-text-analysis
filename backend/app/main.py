@@ -2,7 +2,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
-import pandas as pd
+
+# Исправленные импорты
 from .core import load_data, create_inverted_index
 
 app = FastAPI(title="Word Finder API")
@@ -16,7 +17,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Глобальные переменные (в продакшене используйте кэширование/БД)
+# Глобальные переменные
 text_df = None
 inverted_index = None
 
@@ -69,7 +70,7 @@ async def search_words(request: SearchRequest):
             co_occurring_words
         )
         
-        return SearchResponse(words=words_data, sentences=sentences[:50])  # Ограничиваем предложения
+        return SearchResponse(words=words_data, sentences=sentences[:50])
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

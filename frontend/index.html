@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Finder</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Word Finder</h1>
+            <p>Это приложение позволяет проводить поиск слов, которые наиболее часто встречаются в тексте. 
+               Поиск проводится на датасете the-reddit-dataset-dataset-comments.</p>
+        </header>
+
+        <div class="search-section">
+            <div class="input-group">
+                <input type="text" id="searchWord" placeholder="Слово для поиска">
+                <input type="number" id="maxWords" placeholder="Ограничение по количеству слов" value="10">
+                <button onclick="search()">Поиск</button>
+            </div>
+        </div>
+
+        <div class="results-section">
+            <div class="results-container">
+                <div class="words-column">
+                    <h3>Найденные слова</h3>
+                    <div id="wordsResults" class="results-table">
+                        <p>Результаты появятся здесь...</p>
+                    </div>
+                </div>
+                <div class="sentences-column">
+                    <h3>Примеры предложений</h3>
+                    <div id="sentencesResults" class="results-table">
+                        <p>Предложения появятся здесь...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading" class="loading hidden">
+            <p>Поиск...</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

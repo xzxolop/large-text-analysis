@@ -5,13 +5,13 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize, sent_tokenize
 import pandas as pd
 
-import invertedindex as ii
+# Изменен импорт - теперь относительный
+from .invertedindex import InvertedIndex
 
-# Убраны декораторы streamlit
 def create_inverted_index(_texts):
     """Создает и возвращает инвертированный индекс"""
     print("Создание инвертированного индекса...")
-    index = ii.InvertedIndex()
+    index = InvertedIndex()  # Используем прямое имя класса
     index.add_documents(_texts)
     print(f"Индекс создан! Слов: {len(index.index)}, Документов: {index.doc_count}")
     return index

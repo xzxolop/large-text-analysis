@@ -37,17 +37,33 @@ pip install kagglehub pandas nltk uvicorn fastapi pydantic
 
 python -m pip install kagglehub
 
+### Структура проекта
+
+large-text-analysis/
+├── backend/
+│   ├── the-reddit-dataset-dataset-comments.csv  # ← ПЕРЕНЕСИТЕ ФАЙЛ СЮДА
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── core.py
+│   │   └── invertedindex.py
+│   └── run.py
+└── frontend/
+    ├── index.html
+    ├── style.css
+    └── script.js
 
 ### Запуск проекта
 
 Backend:
 
 bash
+```
 cd backend
 pip install -r requirements.txt
 python run.py
 Frontend:
 Просто откройте frontend/index.html в браузере или используйте простой HTTP-сервер:
+```
 
 bash
 cd frontend

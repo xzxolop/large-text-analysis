@@ -45,6 +45,7 @@ header p {
     display: flex;
     gap: 15px;
     flex-wrap: wrap;
+    margin-bottom: 15px;
 }
 
 .input-group input {
@@ -62,7 +63,7 @@ header p {
 }
 
 .input-group button {
-    padding: 12px 30px;
+    padding: 12px 20px;
     background: #3498db;
     color: white;
     border: none;
@@ -74,6 +75,26 @@ header p {
 
 .input-group button:hover {
     background: #2980b9;
+}
+
+.clear-btn {
+    background: #e74c3c !important;
+}
+
+.clear-btn:hover {
+    background: #c0392b !important;
+}
+
+.current-path {
+    padding: 10px;
+    background: #ecf0f1;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+#pathText {
+    font-weight: bold;
+    color: #2c3e50;
 }
 
 .results-container {
@@ -96,20 +117,34 @@ header p {
     padding-bottom: 5px;
 }
 
-.results-table {
-    max-height: 500px;
+.words-tree {
+    max-height: 600px;
     overflow-y: auto;
+}
+
+.word-node {
+    margin: 5px 0;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.word-node:hover {
+    background-color: #f8f9fa;
 }
 
 .word-item {
     display: flex;
     justify-content: space-between;
-    padding: 10px;
-    border-bottom: 1px solid #ecf0f1;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 5px;
+    background: #f8f9fa;
+    margin: 2px 0;
 }
 
-.word-item:last-child {
-    border-bottom: none;
+.word-item.expanded {
+    background: #e3f2fd;
+    border-left: 3px solid #3498db;
 }
 
 .word-text {
@@ -123,6 +158,14 @@ header p {
     padding: 2px 8px;
     border-radius: 20px;
     font-size: 12px;
+    min-width: 40px;
+    text-align: center;
+}
+
+.word-children {
+    margin-left: 20px;
+    border-left: 2px solid #ecf0f1;
+    padding-left: 10px;
 }
 
 .sentence-item {
@@ -148,6 +191,22 @@ header p {
 
 .hidden {
     display: none;
+}
+
+.breadcrumb {
+    display: inline-block;
+    cursor: pointer;
+    color: #3498db;
+    margin-right: 5px;
+}
+
+.breadcrumb:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-separator {
+    margin: 0 5px;
+    color: #7f8c8d;
 }
 
 @media (max-width: 768px) {

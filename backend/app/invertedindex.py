@@ -5,19 +5,17 @@ import re
 class InvertedIndex:
     def __init__(self):
         self.index = {}
-        self.documents = {}  # Токенизированные документы для поиска
-        self.original_documents = {}  # Оригинальные документы для отображения
+        self.documents = {}
+        self.original_documents = {}
         self.doc_count = 0
     
     def add_documents(self, documents_df):
-        """Добавляет несколько документов в индекс"""
         for doc_id, row in documents_df.iterrows():
             self.add_document(doc_id, row['processed'], row['original'])
     
     def add_document(self, doc_id, processed_text, original_text):
-        """Добавление документа с расчетом TF"""
-        self.documents[doc_id] = processed_text  # Токенизированный текст для поиска
-        self.original_documents[doc_id] = original_text  # Оригинальный текст для отображения
+        self.documents[doc_id] = processed_text
+        self.original_documents[doc_id] = original_text
         self.doc_count += 1
         
         words = self._tokenize(processed_text)
@@ -26,28 +24,40 @@ class InvertedIndex:
         
         for word, freq in word_freq.items():
             tf = freq / total_words
-            
             if word not in self.index:
                 self.index[word] = {}
-            
             self.index[word][doc_id] = tf
     
-    def get_co_occurring_words(self, search_word, limit=10):
-        """Находит слова, которые чаще всего встречаются вместе с search_word"""
-        if search_word not in self.index:
+    def get_co_occurring_words_multiple(self, search_words, limit=10):
+        """Находит слова, которые встречаются вместе с несколькими словами"""
+        if not search_words:
             return []
         
-        # Собираем статистику совместного появления
+        # Находим документы, где встречаются ВСЕ слова из search_words
+        common_docs = None
+        for word in search_words:
+            if word not in self.index:
+                return []  # Если хоть одно слово не найдено, возвращаем пустой список
+            
+            word_docs = set(self.index[word].keys())
+            if common_docs is None:
+                common_docs = word_docs
+            else:
+                common_docs = common_docs.intersection(word_docs)
+        
+        if not common_docs:
+            return []
+        
+        # Собираем статистику совместного появления с другими словами
         word_freq = {}
-        search_word_docs = set(self.index[search_word].keys())
         
         for word, doc_weights in self.index.items():
-            if word == search_word:
-                continue
+            if word in search_words:
+                continue  # Пропускаем сами слова запроса
                 
-            # Находим документы, где оба слова встречаются вместе
-            common_docs = search_word_docs.intersection(doc_weights.keys())
-            frequency = len(common_docs)
+            # Находим документы, где встречаются все слова запроса И текущее слово
+            word_common_docs = common_docs.intersection(doc_weights.keys())
+            frequency = len(word_common_docs)
             
             if frequency > 0:
                 word_freq[word] = frequency
@@ -57,38 +67,39 @@ class InvertedIndex:
         
         return sorted_words[:limit] if limit > 0 else sorted_words
     
-    def search_sentences_with_words(self, search_word, co_occurring_words):
-        """Находит предложения, содержащие search_word и co_occurring_words"""
-        if search_word not in self.index:
+    def search_sentences_with_multiple_words(self, search_words):
+        """Находит предложения, содержащие несколько слов"""
+        if not search_words:
             return []
         
-        search_word_docs = set(self.index[search_word].keys())
-        result_sentences = []
+        # Находим документы, где встречаются ВСЕ слова
+        common_docs = None
+        for word in search_words:
+            if word not in self.index:
+                return []
+            
+            word_docs = set(self.index[word].keys())
+            if common_docs is None:
+                common_docs = word_docs
+            else:
+                common_docs = common_docs.intersection(word_docs)
         
-        for word in co_occurring_words:
-            if word in self.index:
-                # Документы, где встречаются оба слова
-                common_docs = search_word_docs.intersection(self.index[word].keys())
-                
-                for doc_id in common_docs:
-                    # Используем оригинальное предложение для отображения
-                    original_sentence = self.original_documents[doc_id]
-                    # Используем токенизированное для поиска (можно убрать, если не нужно)
-                    processed_sentence = self.documents[doc_id]
-                    
-                    # Добавляем только уникальные предложения
-                    if original_sentence not in [s['original'] for s in result_sentences]:
-                        result_sentences.append({
-                            'original': original_sentence,
-                            'processed': processed_sentence  # Можно убрать, если не нужно
-                        })
-                    
-                    # Ограничиваем количество результатов для производительности
-                    if len(result_sentences) >= 100:  # максимум 100 предложений
-                        return result_sentences
+        if not common_docs:
+            return []
+        
+        result_sentences = []
+        for doc_id in common_docs:
+            original_sentence = self.original_documents[doc_id]
+            if original_sentence not in [s['original'] for s in result_sentences]:
+                result_sentences.append({
+                    'original': original_sentence,
+                    'processed': self.documents[doc_id]
+                })
+            
+            if len(result_sentences) >= 100:
+                break
         
         return result_sentences
     
     def _tokenize(self, text):
-        """Токенизация текста"""
         return re.findall(r'\b\w+\b', text.lower())

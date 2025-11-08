@@ -1,47 +1,47 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
-# Исправленные импорты
 from .core import load_data, create_inverted_index
 
 app = FastAPI(title="Word Finder API")
 
-# CORS для работы с фронтендом
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # В продакшене укажите конкретный домен
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Глобальные переменные
 text_df = None
 inverted_index = None
 
 @app.on_event("startup")
 async def startup_event():
-    """Инициализация при запуске"""
     global text_df, inverted_index
     print("Загрузка данных...")
     text_df = load_data()
     print("Создание инвертированного индекса...")
-    # Теперь передаем весь DataFrame, а не только processed колонку
     inverted_index = create_inverted_index(text_df)
     print("Готово к работе!")
 
 class SearchRequest(BaseModel):
-    search_word: str
+    search_words: List[str]  # Теперь принимаем список слов
     max_words: Optional[int] = 10
 
 class SentenceResponse(BaseModel):
     original: str
-    processed: str  # Можно убрать, если не нужно показывать обработанную версию
+    processed: str
+
+class WordNode(BaseModel):
+    word: str
+    count: int
+    children: List[Dict[str, Any]] = []  # Рекурсивная структура
 
 class SearchResponse(BaseModel):
-    words: List[dict]
+    word_tree: List[WordNode]
     sentences: List[SentenceResponse]
 
 @app.get("/")
@@ -54,28 +54,38 @@ async def search_words(request: SearchRequest):
         if not inverted_index:
             raise HTTPException(status_code=500, detail="Index not initialized")
         
-        # Определяем лимит слов
         limit_words = request.max_words if request.max_words and request.max_words > 0 else -1
         
-        print(f"Поиск слова: '{request.search_word}', лимит: {limit_words}")
+        print(f"Поиск слов: {request.search_words}, лимит: {limit_words}")
         
-        # Используем инвертированный индекс для поиска
-        word_frequency_map = inverted_index.get_co_occurring_words(
-            request.search_word, 
-            limit_words
-        )
+        # Если список слов пустой, ищем самые частые слова
+        if not request.search_words:
+            # Здесь можно вернуть самые частые слова из индекса
+            word_tree = []
+            sentences = []
+        else:
+            # Получаем совместно встречающиеся слова для всех слов в запросе
+            word_frequency_map = inverted_index.get_co_occurring_words_multiple(
+                request.search_words, 
+                limit_words
+            )
+            
+            # Строим дерево слов
+            word_tree = []
+            for word, count in word_frequency_map:
+                word_tree.append({
+                    "word": word,
+                    "count": count,
+                    "children": []  # Дети будут заполняться на фронтенде при раскрытии
+                })
+            
+            # Находим предложения
+            co_occurring_words = [word for word, freq in word_frequency_map]
+            sentences = inverted_index.search_sentences_with_multiple_words(
+                request.search_words + co_occurring_words
+            )
         
-        # Форматируем слова для ответа
-        words_data = [{"word": word, "count": count} for word, count in word_frequency_map]
-        
-        # Находим предложения
-        co_occurring_words = [word for word, freq in word_frequency_map]
-        sentences = inverted_index.search_sentences_with_words(
-            request.search_word, 
-            co_occurring_words
-        )
-        
-        return SearchResponse(words=words_data, sentences=sentences[:50])
+        return SearchResponse(word_tree=word_tree, sentences=sentences[:50])
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

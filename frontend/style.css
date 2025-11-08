@@ -259,3 +259,71 @@ header p {
     font-weight: bold;
     color: #2c3e50;
 }
+
+/* Добавим в существующий CSS */
+
+.arrow {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    transition: transform 0.2s;
+    font-size: 12px;
+    color: #7f8c8d;
+}
+
+.word-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 5px;
+    background: #f8f9fa;
+    margin: 2px 0;
+    transition: background-color 0.2s;
+}
+
+.word-item:hover {
+    background: #e9ecef;
+}
+
+.word-item.expanded {
+    background: #e3f2fd;
+    border-left: 3px solid #3498db;
+}
+
+.word-text {
+    font-weight: bold;
+    color: #2c3e50;
+    flex: 1;
+}
+
+.word-count {
+    background: #3498db;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 12px;
+    min-width: 40px;
+    text-align: center;
+}
+
+.word-children {
+    margin-left: 20px;
+    border-left: 2px solid #ecf0f1;
+    padding-left: 10px;
+}
+
+.word-node[data-level="0"] .word-item {
+    background: #e8f4fd;
+    border-left: 3px solid #2980b9;
+}
+
+.word-node[data-level="1"] .word-item {
+    background: #f0f8ff;
+    border-left: 3px solid #3498db;
+}
+
+.word-node[data-level="2"] .word-item {
+    background: #f8fdff;
+    border-left: 3px solid #5dade2;
+}

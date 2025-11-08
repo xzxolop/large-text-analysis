@@ -1,5 +1,6 @@
 const API_BASE_URL = 'http://localhost:8000';
 let currentSearchWords = [];
+let wordTreeState = {}; // Храним состояние дерева
 
 async function search() {
     const searchWord = document.getElementById('searchWord').value.trim();
@@ -11,29 +12,39 @@ async function search() {
     }
 
     currentSearchWords = [searchWord.toLowerCase()];
+    wordTreeState = {}; // Сбрасываем состояние дерева
     await performSearch();
 }
 
-async function performSearch() {
+async function performSearch(expandWord = null) {
     const maxWords = document.getElementById('maxWords').value;
     const loadingElement = document.getElementById('loading');
     const wordsTree = document.getElementById('wordsTree');
     const sentencesResults = document.getElementById('sentencesResults');
 
     loadingElement.classList.remove('hidden');
-    wordsTree.innerHTML = '<p>Поиск...</p>';
+    
+    if (!expandWord) {
+        wordsTree.innerHTML = '<p>Поиск...</p>';
+    }
     sentencesResults.innerHTML = '<p>Поиск...</p>';
 
     try {
+        const requestBody = {
+            search_words: currentSearchWords,
+            max_words: parseInt(maxWords) || 10
+        };
+        
+        if (expandWord) {
+            requestBody.expand_word = expandWord;
+        }
+
         const response = await fetch(`${API_BASE_URL}/search`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                search_words: currentSearchWords,
-                max_words: parseInt(maxWords) || 10
-            })
+            body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) {
@@ -46,15 +57,21 @@ async function performSearch() {
         updateCurrentPath();
 
         // Отображаем дерево слов
-        displayWordTree(data.word_tree);
+        if (expandWord) {
+            // Обновляем только детей для раскрытого слова
+            updateWordChildren(expandWord, data.word_tree);
+        } else {
+            // Отображаем полное дерево
+            displayWordTree(data.word_tree);
+        }
 
         // Отображаем предложения
         displaySentences(data.sentences);
 
     } catch (error) {
         console.error('Ошибка:', error);
-        wordsTree.innerHTML = `<p style="color: red;">Ошибка: ${error.message}</p>`;
-        sentencesResults.innerHTML = `<p style="color: red;">Ошибка при поиске</p>`;
+        document.getElementById('wordsTree').innerHTML = `<p style="color: red;">Ошибка: ${error.message}</p>`;
+        document.getElementById('sentencesResults').innerHTML = `<p style="color: red;">Ошибка при поиске</p>`;
     } finally {
         loadingElement.classList.add('hidden');
     }
@@ -70,42 +87,129 @@ function displayWordTree(wordTree) {
 
     wordsTree.innerHTML = '';
     wordTree.forEach(node => {
-        wordsTree.appendChild(createWordNode(node));
+        const nodeElement = createWordNode(node, 0);
+        wordsTree.appendChild(nodeElement);
+        
+        // Сохраняем состояние узла
+        const nodePath = getNodePath(node);
+        wordTreeState[nodePath] = {
+            element: nodeElement,
+            children: node.children || [],
+            expanded: false
+        };
     });
 }
 
-function createWordNode(node) {
+function createWordNode(node, level) {
     const nodeElement = document.createElement('div');
     nodeElement.className = 'word-node';
+    nodeElement.dataset.level = level;
+    nodeElement.dataset.word = node.word;
     
     const itemElement = document.createElement('div');
     itemElement.className = 'word-item';
+    itemElement.style.paddingLeft = (level * 20) + 'px';
+    
+    // Добавляем стрелку для узлов, у которых могут быть дети
+    const arrow = node.has_children ? 
+        '<span class="arrow">▶</span>' : 
+        '<span class="arrow" style="visibility: hidden;">▶</span>';
     
     itemElement.innerHTML = `
+        ${arrow}
         <span class="word-text">${node.word}</span>
         <span class="word-count">${node.count}</span>
     `;
     
-    // Обработчик клика для добавления слова в поиск
-    itemElement.addEventListener('click', (e) => {
-        e.stopPropagation();
-        addWordToSearch(node.word);
-    });
+    // Обработчик клика для раскрытия/закрытия
+    if (node.has_children) {
+        itemElement.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleWordNode(node, itemElement, nodeElement, level);
+        });
+        itemElement.style.cursor = 'pointer';
+    }
     
     nodeElement.appendChild(itemElement);
+    
+    // Контейнер для детей
+    const childrenContainer = document.createElement('div');
+    childrenContainer.className = 'word-children';
+    childrenContainer.style.display = 'none';
+    nodeElement.appendChild(childrenContainer);
     
     return nodeElement;
 }
 
-async function addWordToSearch(word) {
-    // Проверяем, нет ли уже этого слова в поиске (предотвращаем циклы)
-    if (currentSearchWords.includes(word)) {
+async function toggleWordNode(node, itemElement, nodeElement, level) {
+    const childrenContainer = nodeElement.querySelector('.word-children');
+    const arrow = itemElement.querySelector('.arrow');
+    const nodePath = getNodePath(node);
+    
+    // Если узел уже раскрыт - закрываем
+    if (wordTreeState[nodePath]?.expanded) {
+        wordTreeState[nodePath].expanded = false;
+        itemElement.classList.remove('expanded');
+        childrenContainer.style.display = 'none';
+        arrow.textContent = '▶';
         return;
     }
     
-    // Добавляем слово в текущий поиск
-    currentSearchWords.push(word);
-    await performSearch();
+    // Раскрываем узел
+    wordTreeState[nodePath] = {
+        element: nodeElement,
+        children: [],
+        expanded: true
+    };
+    
+    itemElement.classList.add('expanded');
+    arrow.textContent = '▼';
+    
+    // Показываем загрузку в контейнере детей
+    childrenContainer.innerHTML = '<div style="padding: 10px; color: #666;">Загрузка...</div>';
+    childrenContainer.style.display = 'block';
+    
+    try {
+        // Запрашиваем детей для этого узла
+        await performSearch(node.word);
+        
+    } catch (error) {
+        console.error('Ошибка при раскрытии узла:', error);
+        childrenContainer.innerHTML = '<div style="padding: 10px; color: red;">Ошибка загрузки</div>';
+    }
+}
+
+function updateWordChildren(parentWord, children) {
+    const nodePath = currentSearchWords.join('+') + '+' + parentWord;
+    const parentNode = wordTreeState[nodePath];
+    
+    if (!parentNode) return;
+    
+    const childrenContainer = parentNode.element.querySelector('.word-children');
+    
+    if (!children || children.length === 0) {
+        childrenContainer.innerHTML = '<div style="padding: 10px; color: #666;">Нет дополнительных слов</div>';
+        return;
+    }
+    
+    // Очищаем и добавляем детей
+    childrenContainer.innerHTML = '';
+    children.forEach(child => {
+        const childElement = createWordNode(child, parseInt(parentNode.element.dataset.level) + 1);
+        childrenContainer.appendChild(childElement);
+        
+        // Сохраняем состояние ребенка
+        const childPath = nodePath + '+' + child.word;
+        wordTreeState[childPath] = {
+            element: childElement,
+            children: child.children || [],
+            expanded: false
+        };
+    });
+}
+
+function getNodePath(node) {
+    return [...currentSearchWords, node.word].join('+');
 }
 
 function displaySentences(sentences) {
@@ -131,23 +235,12 @@ function updateCurrentPath() {
         return;
     }
     
-    // Создаем хлебные крошки
-    const breadcrumbs = currentSearchWords.map((word, index) => {
-        const wordsUpToHere = currentSearchWords.slice(0, index + 1);
-        return `<span class="breadcrumb" onclick="navigateToPath(${index})">${word}</span>`;
-    }).join('<span class="breadcrumb-separator">+</span>');
-    
-    pathText.innerHTML = breadcrumbs;
-}
-
-function navigateToPath(index) {
-    // Обрезаем путь до выбранного элемента
-    currentSearchWords = currentSearchWords.slice(0, index + 1);
-    performSearch();
+    pathText.innerHTML = currentSearchWords.join(' + ');
 }
 
 function clearSearch() {
     currentSearchWords = [];
+    wordTreeState = {};
     document.getElementById('searchWord').value = '';
     document.getElementById('wordsTree').innerHTML = '<p>Введите слово для поиска...</p>';
     document.getElementById('sentencesResults').innerHTML = '<p>Предложения появятся здесь...</p>';

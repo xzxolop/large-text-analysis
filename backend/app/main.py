@@ -30,12 +30,19 @@ async def startup_event():
 class SearchRequest(BaseModel):
     search_words: List[str]
     max_words: Optional[int] = 10
+    expand_word: Optional[str] = None  # Слово для раскрытия
 
 class SentenceResponse(BaseModel):
     original: str
 
+class WordNode(BaseModel):
+    word: str
+    count: int
+    children: List[Dict[str, Any]] = []
+    has_children: bool = True  # Флаг, что у слова могут быть дети
+
 class SearchResponse(BaseModel):
-    word_tree: List[Dict[str, Any]]
+    word_tree: List[WordNode]
     sentences: List[SentenceResponse]
 
 @app.get("/")
@@ -50,29 +57,51 @@ async def search_words(request: SearchRequest):
         
         limit_words = request.max_words if request.max_words and request.max_words > 0 else 10
         
-        print(f"Поиск слов: {request.search_words}, лимит: {limit_words}")
+        print(f"Поиск слов: {request.search_words}, раскрытие: {request.expand_word}, лимит: {limit_words}")
         
-        # Получаем совместно встречающиеся слова
-        word_frequency_map = inverted_index.get_co_occurring_words_multiple(
-            request.search_words, 
-            limit_words
-        )
-        
-        # Строим дерево слов
-        word_tree = []
-        for word, count in word_frequency_map:
-            word_tree.append({
-                "word": word,
-                "count": count
-            })
-        
-        # Находим предложения для текущего набора слов
-        sentences = inverted_index.search_sentences_with_multiple_words(request.search_words)
-        
-        return SearchResponse(
-            word_tree=word_tree, 
-            sentences=[SentenceResponse(original=sent) for sent in sentences[:20]]
-        )
+        # Если нужно раскрыть конкретное слово
+        if request.expand_word:
+            # Добавляем слово для раскрытия в поиск
+            expanded_search_words = request.search_words + [request.expand_word]
+            word_frequency_map = inverted_index.get_co_occurring_words_multiple(
+                expanded_search_words, 
+                limit_words
+            )
+            
+            # Строим дерево только для детей
+            children_tree = []
+            for word, count in word_frequency_map:
+                children_tree.append({
+                    "word": word,
+                    "count": count,
+                    "has_children": True
+                })
+            
+            return SearchResponse(
+                word_tree=children_tree,
+                sentences=inverted_index.search_sentences_with_multiple_words(expanded_search_words)
+            )
+        else:
+            # Обычный поиск - строим корневое дерево
+            word_frequency_map = inverted_index.get_co_occurring_words_multiple(
+                request.search_words, 
+                limit_words
+            )
+            
+            word_tree = []
+            for word, count in word_frequency_map:
+                word_tree.append({
+                    "word": word,
+                    "count": count,
+                    "has_children": True  # У всех корневых слов есть дети
+                })
+            
+            sentences = inverted_index.search_sentences_with_multiple_words(request.search_words)
+            
+            return SearchResponse(
+                word_tree=word_tree, 
+                sentences=[SentenceResponse(original=sent) for sent in sentences[:20]]
+            )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

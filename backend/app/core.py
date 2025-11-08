@@ -30,6 +30,7 @@ def load_data():
     comments_body = comments_df["body"]
 
     all_sentences = []
+    all_original_sentences = []  # Новый список для оригинальных предложений
 
     # Проходим по каждому комментарию
     for comment in comments_body:
@@ -37,9 +38,12 @@ def load_data():
             sentences = sent_tokenize(comment)
             for sent in sentences:
                 all_sentences.append(sent)
+                all_original_sentences.append(sent)  # Сохраняем оригинальное предложение
 
+    # Создаем DataFrame с двумя колонками
     df = pd.DataFrame()
     df['document'] = all_sentences
+    df['original'] = all_original_sentences  # Оригинальные предложения
 
     # Загружаем NLTK данные
     nltk.download('punkt', quiet=True)

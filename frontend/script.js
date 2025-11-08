@@ -48,10 +48,14 @@ async function search() {
             wordsResults.innerHTML = '<p>Слова не найдены</p>';
         }
 
-        // Отображаем предложения
+        // Отображаем предложения (оригинальные)
         if (data.sentences && data.sentences.length > 0) {
             sentencesResults.innerHTML = data.sentences.map(sentence => `
-                <div class="sentence-item">${sentence}</div>
+                <div class="sentence-item">
+                    <div class="sentence-original">${sentence.original}</div>
+                    <!-- Можно добавить обработанную версию, если нужно -->
+                    <!-- <div class="sentence-processed">Обработанно: ${sentence.processed}</div> -->
+                </div>
             `).join('');
         } else {
             sentencesResults.innerHTML = '<p>Предложения не найдены</p>';
@@ -66,14 +70,13 @@ async function search() {
     }
 }
 
-// Поиск при нажатии Enter
+// Остальной код без изменений...
 document.getElementById('searchWord').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         search();
     }
 });
 
-// Проверка здоровья API при загрузке
 async function checkHealth() {
     try {
         const response = await fetch(`${API_BASE_URL}/health`);
@@ -85,5 +88,4 @@ async function checkHealth() {
     }
 }
 
-// Проверяем здоровье при загрузке страницы
 document.addEventListener('DOMContentLoaded', checkHealth);

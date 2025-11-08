@@ -28,16 +28,21 @@ async def startup_event():
     print("Загрузка данных...")
     text_df = load_data()
     print("Создание инвертированного индекса...")
-    inverted_index = create_inverted_index(text_df['processed'].tolist())
+    # Теперь передаем весь DataFrame, а не только processed колонку
+    inverted_index = create_inverted_index(text_df)
     print("Готово к работе!")
 
 class SearchRequest(BaseModel):
     search_word: str
     max_words: Optional[int] = 10
 
+class SentenceResponse(BaseModel):
+    original: str
+    processed: str  # Можно убрать, если не нужно показывать обработанную версию
+
 class SearchResponse(BaseModel):
     words: List[dict]
-    sentences: List[str]
+    sentences: List[SentenceResponse]
 
 @app.get("/")
 async def root():

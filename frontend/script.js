@@ -1,6 +1,6 @@
 const API_BASE_URL = 'http://localhost:8000';
-let currentSearchWords = [];
-let wordTreeState = {}; // Храним состояние дерева
+let currentBaseWords = [];
+let wordTreeState = {};
 
 async function search() {
     const searchWord = document.getElementById('searchWord').value.trim();
@@ -11,8 +11,8 @@ async function search() {
         return;
     }
 
-    currentSearchWords = [searchWord.toLowerCase()];
-    wordTreeState = {}; // Сбрасываем состояние дерева
+    currentBaseWords = [searchWord.toLowerCase()];
+    wordTreeState = {};
     await performSearch();
 }
 
@@ -30,14 +30,18 @@ async function performSearch(expandWord = null) {
     sentencesResults.innerHTML = '<p>Поиск...</p>';
 
     try {
+        // Формируем корректный запрос согласно новой структуре API
         const requestBody = {
-            search_words: currentSearchWords,
+            base_words: currentBaseWords,
             max_words: parseInt(maxWords) || 10
         };
         
+        // Добавляем expand_word только если он есть
         if (expandWord) {
             requestBody.expand_word = expandWord;
         }
+
+        console.log('Отправка запроса:', JSON.stringify(requestBody, null, 2));
 
         const response = await fetch(`${API_BASE_URL}/search`, {
             method: 'POST',
@@ -48,20 +52,27 @@ async function performSearch(expandWord = null) {
         });
 
         if (!response.ok) {
-            throw new Error(`Ошибка: ${response.status}`);
+            let errorMessage = `Ошибка: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = `Ошибка ${response.status}: ${errorData.detail || JSON.stringify(errorData)}`;
+            } catch (e) {
+                const errorText = await response.text();
+                errorMessage = `Ошибка ${response.status}: ${errorText}`;
+            }
+            throw new Error(errorMessage);
         }
 
         const data = await response.json();
+        console.log('Получен ответ:', data);
 
         // Обновляем путь поиска
-        updateCurrentPath();
+        updateCurrentPath(expandWord);
 
         // Отображаем дерево слов
         if (expandWord) {
-            // Обновляем только детей для раскрытого слова
             updateWordChildren(expandWord, data.word_tree);
         } else {
-            // Отображаем полное дерево
             displayWordTree(data.word_tree);
         }
 
@@ -69,14 +80,19 @@ async function performSearch(expandWord = null) {
         displaySentences(data.sentences);
 
     } catch (error) {
-        console.error('Ошибка:', error);
-        document.getElementById('wordsTree').innerHTML = `<p style="color: red;">Ошибка: ${error.message}</p>`;
+        console.error('Полная ошибка:', error);
+        const errorMessage = error.message.includes('422') ? 
+            'Ошибка валидации данных. Проверьте структуру запроса.' : 
+            error.message;
+            
+        document.getElementById('wordsTree').innerHTML = `<p style="color: red;">${errorMessage}</p>`;
         document.getElementById('sentencesResults').innerHTML = `<p style="color: red;">Ошибка при поиске</p>`;
     } finally {
         loadingElement.classList.add('hidden');
     }
 }
 
+// Остальные функции остаются без изменений...
 function displayWordTree(wordTree) {
     const wordsTree = document.getElementById('wordsTree');
     
@@ -90,11 +106,10 @@ function displayWordTree(wordTree) {
         const nodeElement = createWordNode(node, 0);
         wordsTree.appendChild(nodeElement);
         
-        // Сохраняем состояние узла
         const nodePath = getNodePath(node);
         wordTreeState[nodePath] = {
             element: nodeElement,
-            children: node.children || [],
+            children: [],
             expanded: false
         };
     });
@@ -110,7 +125,6 @@ function createWordNode(node, level) {
     itemElement.className = 'word-item';
     itemElement.style.paddingLeft = (level * 20) + 'px';
     
-    // Добавляем стрелку для узлов, у которых могут быть дети
     const arrow = node.has_children ? 
         '<span class="arrow">▶</span>' : 
         '<span class="arrow" style="visibility: hidden;">▶</span>';
@@ -121,18 +135,18 @@ function createWordNode(node, level) {
         <span class="word-count">${node.count}</span>
     `;
     
-    // Обработчик клика для раскрытия/закрытия
     if (node.has_children) {
         itemElement.addEventListener('click', (e) => {
             e.stopPropagation();
             toggleWordNode(node, itemElement, nodeElement, level);
         });
         itemElement.style.cursor = 'pointer';
+    } else {
+        itemElement.style.cursor = 'default';
     }
     
     nodeElement.appendChild(itemElement);
     
-    // Контейнер для детей
     const childrenContainer = document.createElement('div');
     childrenContainer.className = 'word-children';
     childrenContainer.style.display = 'none';
@@ -146,7 +160,6 @@ async function toggleWordNode(node, itemElement, nodeElement, level) {
     const arrow = itemElement.querySelector('.arrow');
     const nodePath = getNodePath(node);
     
-    // Если узел уже раскрыт - закрываем
     if (wordTreeState[nodePath]?.expanded) {
         wordTreeState[nodePath].expanded = false;
         itemElement.classList.remove('expanded');
@@ -155,7 +168,6 @@ async function toggleWordNode(node, itemElement, nodeElement, level) {
         return;
     }
     
-    // Раскрываем узел
     wordTreeState[nodePath] = {
         element: nodeElement,
         children: [],
@@ -165,25 +177,28 @@ async function toggleWordNode(node, itemElement, nodeElement, level) {
     itemElement.classList.add('expanded');
     arrow.textContent = '▼';
     
-    // Показываем загрузку в контейнере детей
     childrenContainer.innerHTML = '<div style="padding: 10px; color: #666;">Загрузка...</div>';
     childrenContainer.style.display = 'block';
     
     try {
-        // Запрашиваем детей для этого узла
         await performSearch(node.word);
-        
     } catch (error) {
         console.error('Ошибка при раскрытии узла:', error);
         childrenContainer.innerHTML = '<div style="padding: 10px; color: red;">Ошибка загрузки</div>';
+        wordTreeState[nodePath].expanded = false;
+        itemElement.classList.remove('expanded');
+        arrow.textContent = '▶';
     }
 }
 
 function updateWordChildren(parentWord, children) {
-    const nodePath = currentSearchWords.join('+') + '+' + parentWord;
+    const nodePath = getNodePath({ word: parentWord });
     const parentNode = wordTreeState[nodePath];
     
-    if (!parentNode) return;
+    if (!parentNode) {
+        console.error('Родительский узел не найден:', nodePath);
+        return;
+    }
     
     const childrenContainer = parentNode.element.querySelector('.word-children');
     
@@ -192,24 +207,22 @@ function updateWordChildren(parentWord, children) {
         return;
     }
     
-    // Очищаем и добавляем детей
     childrenContainer.innerHTML = '';
     children.forEach(child => {
         const childElement = createWordNode(child, parseInt(parentNode.element.dataset.level) + 1);
         childrenContainer.appendChild(childElement);
         
-        // Сохраняем состояние ребенка
         const childPath = nodePath + '+' + child.word;
         wordTreeState[childPath] = {
             element: childElement,
-            children: child.children || [],
+            children: [],
             expanded: false
         };
     });
 }
 
 function getNodePath(node) {
-    return [...currentSearchWords, node.word].join('+');
+    return [...currentBaseWords, node.word].join('+');
 }
 
 function displaySentences(sentences) {
@@ -227,19 +240,24 @@ function displaySentences(sentences) {
     `).join('');
 }
 
-function updateCurrentPath() {
+function updateCurrentPath(expandWord = null) {
     const pathText = document.getElementById('pathText');
     
-    if (currentSearchWords.length === 0) {
+    if (currentBaseWords.length === 0) {
         pathText.innerHTML = '-';
         return;
     }
     
-    pathText.innerHTML = currentSearchWords.join(' + ');
+    let path = currentBaseWords.join(' + ');
+    if (expandWord) {
+        path += ` + ${expandWord}`;
+    }
+    
+    pathText.innerHTML = path;
 }
 
 function clearSearch() {
-    currentSearchWords = [];
+    currentBaseWords = [];
     wordTreeState = {};
     document.getElementById('searchWord').value = '';
     document.getElementById('wordsTree').innerHTML = '<p>Введите слово для поиска...</p>';
@@ -247,14 +265,12 @@ function clearSearch() {
     document.getElementById('pathText').innerHTML = '-';
 }
 
-// Поиск при нажатии Enter
 document.getElementById('searchWord').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         search();
     }
 });
 
-// Проверка здоровья API при загрузке
 async function checkHealth() {
     try {
         const response = await fetch(`${API_BASE_URL}/health`);

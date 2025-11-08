@@ -27,10 +27,11 @@ async def startup_event():
     inverted_index = create_inverted_index(text_df)
     print("Готово к работе!")
 
+# Упрощенная модель запроса
 class SearchRequest(BaseModel):
-    search_words: List[str]
+    base_words: List[str] = []  # Делаем по умолчанию пустым списком
+    expand_word: Optional[str] = None
     max_words: Optional[int] = 10
-    expand_word: Optional[str] = None  # Слово для раскрытия
 
 class SentenceResponse(BaseModel):
     original: str
@@ -38,8 +39,7 @@ class SentenceResponse(BaseModel):
 class WordNode(BaseModel):
     word: str
     count: int
-    children: List[Dict[str, Any]] = []
-    has_children: bool = True  # Флаг, что у слова могут быть дети
+    has_children: bool = True
 
 class SearchResponse(BaseModel):
     word_tree: List[WordNode]
@@ -57,53 +57,45 @@ async def search_words(request: SearchRequest):
         
         limit_words = request.max_words if request.max_words and request.max_words > 0 else 10
         
-        print(f"Поиск слов: {request.search_words}, раскрытие: {request.expand_word}, лимит: {limit_words}")
+        print(f"Базовые слова: {request.base_words}, раскрытие: {request.expand_word}, лимит: {limit_words}")
         
-        # Если нужно раскрыть конкретное слово
+        # Определяем слова для поиска
+        search_words = request.base_words.copy()  # Копируем базовые слова
         if request.expand_word:
-            # Добавляем слово для раскрытия в поиск
-            expanded_search_words = request.search_words + [request.expand_word]
-            word_frequency_map = inverted_index.get_co_occurring_words_multiple(
-                expanded_search_words, 
-                limit_words
-            )
-            
-            # Строим дерево только для детей
-            children_tree = []
-            for word, count in word_frequency_map:
-                children_tree.append({
-                    "word": word,
-                    "count": count,
-                    "has_children": True
-                })
-            
-            return SearchResponse(
-                word_tree=children_tree,
-                sentences=inverted_index.search_sentences_with_multiple_words(expanded_search_words)
-            )
-        else:
-            # Обычный поиск - строим корневое дерево
-            word_frequency_map = inverted_index.get_co_occurring_words_multiple(
-                request.search_words, 
-                limit_words
-            )
-            
-            word_tree = []
-            for word, count in word_frequency_map:
-                word_tree.append({
-                    "word": word,
-                    "count": count,
-                    "has_children": True  # У всех корневых слов есть дети
-                })
-            
-            sentences = inverted_index.search_sentences_with_multiple_words(request.search_words)
-            
-            return SearchResponse(
-                word_tree=word_tree, 
-                sentences=[SentenceResponse(original=sent) for sent in sentences[:20]]
-            )
+            search_words.append(request.expand_word)
+        
+        # Если нет слов для поиска, возвращаем пустой результат
+        if not search_words:
+            return SearchResponse(word_tree=[], sentences=[])
+        
+        # Получаем совместно встречающиеся слова
+        word_frequency_map = inverted_index.get_co_occurring_words_multiple(
+            search_words, 
+            limit_words
+        )
+        
+        # Строим дерево слов
+        word_tree = []
+        for word, count in word_frequency_map:
+            if word not in search_words:  # Защита от циклов
+                word_tree.append(WordNode(
+                    word=word,
+                    count=count,
+                    has_children=True
+                ))
+        
+        # Находим предложения
+        sentences = inverted_index.search_sentences_with_multiple_words(search_words)
+        
+        return SearchResponse(
+            word_tree=word_tree, 
+            sentences=[SentenceResponse(original=sent) for sent in sentences[:20]]
+        )
         
     except Exception as e:
+        print(f"Ошибка в поиске: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")

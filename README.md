@@ -23,10 +23,6 @@ data
 
 ## Сборка проекта
 
-### Запуск streamlit
-
-streamlit run main.py
-
 ### С использованием uv
 
 uv sync
@@ -35,9 +31,28 @@ uv run main.py
 
 ### С использованием pip
 
+pip install kagglehub pandas nltk uvicorn fastapi pydantic
+
 Если версии python и pip не совпадают то используйте
 
 python -m pip install kagglehub
+
+
+### Запуск проекта
+
+Backend:
+
+bash
+cd backend
+pip install -r requirements.txt
+python run.py
+Frontend:
+Просто откройте frontend/index.html в браузере или используйте простой HTTP-сервер:
+
+bash
+cd frontend
+python -m http.server 8080
+
 
 ## Getting started
 

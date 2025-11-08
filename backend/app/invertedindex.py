@@ -52,8 +52,9 @@ class InvertedIndex:
         word_freq = {}
         
         for word, doc_weights in self.index.items():
+            # Исключаем слова, которые уже есть в поисковом запросе (предотвращаем циклы)
             if word in search_words:
-                continue  # Пропускаем сами слова запроса
+                continue
                 
             # Находим документы, где встречаются все слова запроса И текущее слово
             word_common_docs = common_docs.intersection(doc_weights.keys())
@@ -88,15 +89,12 @@ class InvertedIndex:
             return []
         
         result_sentences = []
-        for doc_id in common_docs:
+        for doc_id in list(common_docs)[:50]:  # Ограничиваем количество
             original_sentence = self.original_documents[doc_id]
-            if original_sentence not in [s['original'] for s in result_sentences]:
-                result_sentences.append({
-                    'original': original_sentence,
-                    'processed': self.documents[doc_id]
-                })
+            if original_sentence not in result_sentences:
+                result_sentences.append(original_sentence)
             
-            if len(result_sentences) >= 100:
+            if len(result_sentences) >= 20:  # максимум 20 предложений
                 break
         
         return result_sentences

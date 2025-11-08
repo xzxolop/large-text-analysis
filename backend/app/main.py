@@ -28,20 +28,14 @@ async def startup_event():
     print("Готово к работе!")
 
 class SearchRequest(BaseModel):
-    search_words: List[str]  # Теперь принимаем список слов
+    search_words: List[str]
     max_words: Optional[int] = 10
 
 class SentenceResponse(BaseModel):
     original: str
-    processed: str
-
-class WordNode(BaseModel):
-    word: str
-    count: int
-    children: List[Dict[str, Any]] = []  # Рекурсивная структура
 
 class SearchResponse(BaseModel):
-    word_tree: List[WordNode]
+    word_tree: List[Dict[str, Any]]
     sentences: List[SentenceResponse]
 
 @app.get("/")
@@ -54,38 +48,31 @@ async def search_words(request: SearchRequest):
         if not inverted_index:
             raise HTTPException(status_code=500, detail="Index not initialized")
         
-        limit_words = request.max_words if request.max_words and request.max_words > 0 else -1
+        limit_words = request.max_words if request.max_words and request.max_words > 0 else 10
         
         print(f"Поиск слов: {request.search_words}, лимит: {limit_words}")
         
-        # Если список слов пустой, ищем самые частые слова
-        if not request.search_words:
-            # Здесь можно вернуть самые частые слова из индекса
-            word_tree = []
-            sentences = []
-        else:
-            # Получаем совместно встречающиеся слова для всех слов в запросе
-            word_frequency_map = inverted_index.get_co_occurring_words_multiple(
-                request.search_words, 
-                limit_words
-            )
-            
-            # Строим дерево слов
-            word_tree = []
-            for word, count in word_frequency_map:
-                word_tree.append({
-                    "word": word,
-                    "count": count,
-                    "children": []  # Дети будут заполняться на фронтенде при раскрытии
-                })
-            
-            # Находим предложения
-            co_occurring_words = [word for word, freq in word_frequency_map]
-            sentences = inverted_index.search_sentences_with_multiple_words(
-                request.search_words + co_occurring_words
-            )
+        # Получаем совместно встречающиеся слова
+        word_frequency_map = inverted_index.get_co_occurring_words_multiple(
+            request.search_words, 
+            limit_words
+        )
         
-        return SearchResponse(word_tree=word_tree, sentences=sentences[:50])
+        # Строим дерево слов
+        word_tree = []
+        for word, count in word_frequency_map:
+            word_tree.append({
+                "word": word,
+                "count": count
+            })
+        
+        # Находим предложения для текущего набора слов
+        sentences = inverted_index.search_sentences_with_multiple_words(request.search_words)
+        
+        return SearchResponse(
+            word_tree=word_tree, 
+            sentences=[SentenceResponse(original=sent) for sent in sentences[:20]]
+        )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

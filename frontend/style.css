@@ -222,3 +222,40 @@ header p {
         width: 100%;
     }
 }
+
+/* Добавим в существующий CSS */
+
+.breadcrumb {
+    display: inline-block;
+    cursor: pointer;
+    color: #3498db;
+    margin-right: 5px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.breadcrumb:hover {
+    background-color: #3498db;
+    color: white;
+    text-decoration: none;
+}
+
+.breadcrumb-separator {
+    margin: 0 5px;
+    color: #7f8c8d;
+    font-weight: bold;
+}
+
+.current-path {
+    padding: 10px;
+    background: #ecf0f1;
+    border-radius: 5px;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+#pathText {
+    font-weight: bold;
+    color: #2c3e50;
+}

@@ -69,6 +69,7 @@ bash
 cd frontend
 python -m http.server 8080
 
+Перейти в папку /frontend/index.html
 
 ## Getting started
 

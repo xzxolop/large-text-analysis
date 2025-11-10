@@ -27,7 +27,7 @@ data
 
 uv sync
 
-uv run main.py
+uv run ./backend/run.py
 
 ### С использованием pip
 
@@ -54,6 +54,10 @@ large-text-analysis/
 
 ### Запуск проекта
 
+pip install -r ./backend/requirements.txt
+python ./backend/run.py
+python -m http.server 8080 --directory frontend
+
 Backend:
 
 bash
@@ -61,9 +65,10 @@ bash
 cd backend
 pip install -r requirements.txt
 python run.py
-Frontend:
-Просто откройте frontend/index.html в браузере или используйте простой HTTP-сервер:
+
 ```
+
+Frontend: 
 
 bash
 cd frontend

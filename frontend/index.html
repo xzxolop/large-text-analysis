@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Finder Tree</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Word Finder Tree</h1>
+            <p>Исследуйте слова, которые встречаются вместе в Reddit комментариях. Кликайте на слова для раскрытия дерева.</p>
+        </header>
+
+        <div class="search-section">
+            <div class="input-group">
+                <input type="text" id="searchWord" placeholder="Введите слово для поиска (например: data)">
+                <input type="number" id="maxWords" placeholder="Лимит слов" value="10">
+                <button onclick="search()">Поиск</button>
+                <button onclick="clearSearch()" class="clear-btn">Очистить</button>
+            </div>
+            <div class="current-path" id="currentPath">
+                Текущий путь: <span id="pathText">-</span>
+            </div>
+        </div>
+
+        <div class="results-section">
+            <div class="results-container">
+                <div class="words-column">
+                    <h3>Дерево слов</h3>
+                    <div id="wordsTree" class="words-tree">
+                        <p>Введите слово для поиска...</p>
+                    </div>
+                </div>
+                <div class="sentences-column">
+                    <h3>Примеры предложений</h3>
+                    <div id="sentencesResults" class="results-table">
+                        <p>Предложения появятся здесь...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading" class="loading hidden">
+            <p>Поиск...</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

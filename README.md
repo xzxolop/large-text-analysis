@@ -27,13 +27,54 @@ data
 
 uv sync
 
-uv run main.py
+uv run ./backend/run.py
 
 ### С использованием pip
+
+pip install kagglehub pandas nltk uvicorn fastapi pydantic
 
 Если версии python и pip не совпадают то используйте
 
 python -m pip install kagglehub
+
+### Структура проекта
+
+large-text-analysis/
+├── backend/
+│   ├── the-reddit-dataset-dataset-comments.csv  # ← ПЕРЕНЕСИТЕ ФАЙЛ СЮДА
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── core.py
+│   │   └── invertedindex.py
+│   └── run.py
+└── frontend/
+    ├── index.html
+    ├── style.css
+    └── script.js
+
+### Запуск проекта
+
+pip install -r ./backend/requirements.txt
+python ./backend/run.py
+python -m http.server 8080 --directory frontend
+
+Backend:
+
+bash
+```
+cd backend
+pip install -r requirements.txt
+python run.py
+
+```
+
+Frontend: 
+
+bash
+cd frontend
+python -m http.server 8080
+
+Перейти в папку /frontend/index.html
 
 ## Getting started
 

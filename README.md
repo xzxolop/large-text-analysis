@@ -75,3 +75,10 @@ cd frontend
 python -m http.server 8080
 
 Перейти в папку /frontend/index.html
+
+
+### Запуск демонстрации в консоли
+
+```
+python .\backend\console-demo\main.py
+```

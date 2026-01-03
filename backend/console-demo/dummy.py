@@ -12,11 +12,13 @@ def load_data():
     print(f"Датасет загружен в: {path_to_comments}\n")
 
     comments_df = pd.read_csv(path_to_comments)
-    
     print("comments_df:\n", comments_df, "\n")
 
-    # Комментарии
-    print("comments body:\n", comments_df["body"], "\n")
+    sentances_df = pd.DataFrame({
+        "raw": comments_df["body"]  # Тут создается копия!
+    })
+
+    print("sentances_df:\n", sentances_df, "\n")
 
     nltk.download('stopwords', quiet=True)
     
@@ -24,32 +26,38 @@ def load_data():
     stop_words = set(stopwords.words('english'))
     print("stop words:\n", stop_words, "\n")
 
+
+    sentances_df["processed"] = ""
+    print("sentances_df:\n", sentances_df, "\n")
+
     print("sentances list:\n")
-    for i in range(1):
-        sent = preprocess(comments_df["body"][i], stop_words)
-        print(f"After preprocess:\n {sent}")
+    preprocess_df(sentances_df, stop_words)
+    print(sentances_df)
 
     # Комментарий -> предложения -> удалить ненужные слова.
-def preprocess(text: str, stop_words):
+def preprocess_df(sentances_df, stop_words):
+    print("size:", sentances_df["raw"].size)
+    for i in range(sentances_df["raw"].size): #sentances_df["raw"].size
+        sent = sentances_df["raw"][i]
+        sent_list = preprocess_sent(sent, stop_words)
+        sentances_df.at[i, "processed"] = sent_list
+
+def preprocess_sent(text: str, stop_words):
     
     # Разбиваем комментарий на предложения
-    setances_list = nltk.sent_tokenize(text)
-    print(setances_list, "\n")
-
     filtered_setances_list = []
+
+    if not isinstance(text, str):
+            return filtered_setances_list
+
+    setances_list = nltk.sent_tokenize(text)
     
     for sent in setances_list:
         filtered_sent = ""
         words = nltk.word_tokenize(sent)
-        print(f"words: \n{words}")
         for word in words:
             if word not in stop_words:
                 filtered_sent += word
                 filtered_sent += " "
         filtered_setances_list.append(filtered_sent)
     return filtered_setances_list
-        
-                
-        
-
-    

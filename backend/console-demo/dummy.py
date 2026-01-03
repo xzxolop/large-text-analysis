@@ -14,6 +14,7 @@ def load_data():
     comments_df = pd.read_csv(path_to_comments)
     print("comments_df:\n", comments_df, "\n")
 
+    # NOTE: На мой взгляд, иметь отдельный df для хранения оригинальных и обработанных предложений - хорошоая идея
     sentances_df = pd.DataFrame({
         "raw": comments_df["body"]  # Тут создается копия!
     })
@@ -31,7 +32,6 @@ def load_data():
     preprocess_df(sentances_df, stop_words)
     print(sentances_df)
 
-    # Комментарий -> предложения -> удалить ненужные слова.
 def preprocess_df(sentances_df, stop_words):
     for i in range(sentances_df["raw"].size):
         sent = sentances_df["raw"][i]
@@ -39,8 +39,6 @@ def preprocess_df(sentances_df, stop_words):
         sentances_df.at[i, "processed"] = sent_list
 
 def preprocess_sent(text: str, stop_words):
-    
-    # Разбиваем комментарий на предложения
     filtered_setances_list = []
 
     if not isinstance(text, str):

@@ -3,7 +3,7 @@ import time
 import dummy
 
 start_time = time.perf_counter()
-dummy.load_data()
+dummy.load_dataV2()
 end_time = time.perf_counter()
 
 elapsed_time = end_time - start_time

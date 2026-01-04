@@ -84,25 +84,27 @@ def load_dataV2():
     stop_words = set(stopwords.words('english'))
     print("stop words:\n", stop_words, "\n")
 
-    text_to_sent(text_list, orig_list, proc_list, stop_words)
+    text_to_sent(text_list, orig_list, proc_list, alias_list, stop_words)
     print(orig_list[:5])
     print(proc_list[:5])
+    print(alias_list[:5])
     
 
-def text_to_sent(text_list: list, orig_list: list, proc_list: list, stop_words):
-    
-    
-    for text in text_list:
+def text_to_sent(text_list: list, orig_list: list, proc_list: list, alias_list:list, stop_words):
+    for i in range(len(text_list)):
+        text = text_list[i]
         # TODO: тут делать связку
         if not isinstance(text, str):
             orig_list.append("")
             proc_list.append("")
+            alias_list.append(i)
         else:
             sent_list = sent_tokenize(text)
             for sent in sent_list:
                 orig_list.append(sent)
                 proc_sent = preprocess_sentV2(sent, stop_words)
                 proc_list.append(proc_sent)
+                alias_list.append(i)
 
 def preprocess_sentV2(sent: str, stop_words):
     proc_sent = ""

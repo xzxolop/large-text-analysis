@@ -7,15 +7,27 @@ from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
 
 class DataStorage:
-    __main_text_list = [] #TODO: rename to documents_list
+    """
+    Хранит данные датасета в списках python.
+    __main_text_list        - список документов (текстов) датасета.\n
+    __orig_sent_list        - список оригинальных предложений, получается из разбиения документов датасета на предложения.\n
+    __processed_sent_list   - список обработаных предложений (равно числу оригинальных.\n
+    __alias_list            - список связей, где index соответствует оригинальному и обработаному предожению, а value - документу датасета.\n
+    """
+    __main_text_list = []  #TODO: rename to documents_list
     __orig_sent_list = []
     __processed_sent_list = []
     __alias_list = []
+
+    # TODO: Нужно устанавливать путь к http, и возвращать пусть в ОС
     __dataset_path = ""
 
     __stop_words = set()
 
     def load_data(self):
+        """Загружает данные из датасета в списки python."""
+
+
         path = kagglehub.dataset_download("pavellexyr/the-reddit-dataset-dataset")
         self.__dataset_path = Path(path) / "the-reddit-dataset-dataset-comments.csv"
         
@@ -64,6 +76,7 @@ class DataStorage:
                     self.__processed_sent_list.append(proc_sent)
                     self.__alias_list.append(i)
 
+#TODO: переделать
     def __preprocess_sent(self, sent: str):
         proc_sent = ""
         words = word_tokenize(sent)

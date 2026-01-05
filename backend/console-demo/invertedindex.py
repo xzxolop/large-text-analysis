@@ -1,6 +1,14 @@
 from nltk.tokenize import word_tokenize
 
 class InvertedIndex:
+    """
+    __index         - словарь вида <string, set<int>>, где ключ - слово, а значение - множество индексов списка предложений (__sentences).\n
+    __sentences:    - список предложений.\n
+
+    __searched_words        - слова по которым прошел поиск.\n
+    __searched_sentences    - предложения, в которых слова встретились.\n
+    """
+
     __index = dict()
     __sentences: list
 
@@ -19,14 +27,12 @@ class InvertedIndex:
                     s = set()
                     s.add(i)
                     self.__index[word] = s
-        
-    def __search(self, search_word) -> set:
-        if search_word not in self.__index:
-            return {}
-        else:
-            return self.__index[search_word]
-        
+    
     def searchWith(self, search_word) -> set:
+        """
+        Функция для последовательного поиска слов (с памятью)
+        """
+
         if search_word in self.__searched_words:
             return {} # TODO: мб кинуть ошибку
         
@@ -48,6 +54,9 @@ class InvertedIndex:
         return s
     
     def clearState(self):
+        """
+        Очистить состояние поиска.
+        """
         self.__searched_words.clear()
         self.__searched_sentences.clear()
 
@@ -62,3 +71,9 @@ class InvertedIndex:
 
     def printResult(self):
         print(f"{self.__searched_words}, {self.__searched_sentences}")
+
+    def __search(self, search_word) -> set:
+        if search_word not in self.__index:
+            return {}
+        else:
+            return self.__index[search_word]

@@ -62,7 +62,7 @@ def preprocess_sent(text: str, stop_words):
 # Вариант 2. "4 списка"
 #########################
 
-# Слишком много копирования кода
+# Слишком много копирования кода V2, V1
 def load_dataV2():
     path = kagglehub.dataset_download("pavellexyr/the-reddit-dataset-dataset")
     path_to_comments = Path(path) / "the-reddit-dataset-dataset-comments.csv"

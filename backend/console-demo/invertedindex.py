@@ -14,13 +14,16 @@ class InvertedIndex:
                     s = set()
                     s.add(i)
                     self.index[word] = s
-        print(self.index)
+        
     
     def search(self, search_word):
         if search_word not in self.index:
             return {}
         else:
             return self.index[search_word]
+    
+    def print(self):
+        print(self.index)
     
 sentences = [
     "Кот сидит на ковре.",
@@ -32,5 +35,7 @@ sentences = [
 
 # Создаем инвертированный индекс
 idx = InvertedIndex(sentences)
+idx.print()
+
 w = idx.search("Кот")
 print("Кот:", w)

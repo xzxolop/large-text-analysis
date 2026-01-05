@@ -62,12 +62,3 @@ class InvertedIndex:
 
     def printResult(self):
         print(f"{self.__searched_words}, {self.__searched_sentences}")
-
-    def getSentByIndex(self, index: int):
-        return self.__sentences[index]
-
-    def getSentByIndexes(self, indexes: set) -> list:
-        sent_list = []
-        for i in indexes:
-            sent_list.append(self.__sentences[i])
-        return sent_list

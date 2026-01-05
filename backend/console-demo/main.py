@@ -10,12 +10,12 @@ end_time = time.perf_counter()
 elapsed_time = end_time - start_time
 print(f"Время выполнения: {elapsed_time:.4f} секунд")
 
-sentances = dataStore.get_sentances()
+sentances = dataStore.get_processed_sentences()
 index = InvertedIndex(sentances)
 #index.printIndex() # TODO: сделать вывод по популяронсти встреч
 res = index.searchWith("russia")
 index.printResult()
-sent = dataStore.get_original_sentences(res)
+sent = dataStore.get_original_sentences_by_index(res)
 print(sent)
 
 print("end")

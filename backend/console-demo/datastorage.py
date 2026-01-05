@@ -14,6 +14,8 @@ class DataStorage:
 
     __stop_words = set()
 
+    def get_sentances(self):
+        return self.__processed_sent_list
 
     def set_stopwords():
         return

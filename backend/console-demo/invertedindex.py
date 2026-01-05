@@ -51,8 +51,13 @@ class InvertedIndex:
         self.__searched_words.clear()
         self.__searched_sentences.clear()
 
-    def printIndex(self):
-        print(self.__index)
+    def printIndex(self, n = None):
+        if n == None or n > len(self.__index):
+            print(self.__index)
+        else:
+            firstOfN = list(self.__index.items())[:n]
+            for key, value in firstOfN:
+                print(f"{key}: {value}")
 
     def printResult(self):
         print(f"{self.__searched_words}, {self.__searched_sentences}")
@@ -65,29 +70,3 @@ class InvertedIndex:
         for i in indexes:
             sent_list.append(self.__sentences[i].copy())
         return sent_list
-    
-sentences = [
-    "Кот сидит на ковре.",
-    "Собака бежит за котом.",
-    "Кот и собака играют.",
-    "Рыжий кот спит на диване.",
-    "Собака охраняет дом."
-]
-
-# Создаем инвертированный индекс
-idx = InvertedIndex(sentences)
-idx.printIndex()
-
-w = idx.searchWith("Кот")
-#print("w:", w)
-idx.printResult()
-
-w = idx.searchWith("сидит")
-#print("w:", w)
-idx.printResult()
-
-idx.clearState()
-idx.searchWith("Собака")
-idx.printResult()
-idx.searchWith("дом")
-idx.printResult()

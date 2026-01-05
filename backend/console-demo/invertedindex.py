@@ -1,65 +1,69 @@
 from nltk.tokenize import word_tokenize
 
 class InvertedIndex:
-    index = dict()
-    _sentences: list
+    __index = dict()
+    __sentences: list
 
-    searched_words = set()
-    searched_sentences = set()
+    __searched_words = set()
+    __searched_sentences = set()
 
     def __init__(self, sentences: list):
-        self._sentences = sentences
+        self.__sentences = sentences
         for i in range(len(sentences)):
             sent = sentences[i]
             words = word_tokenize(sent)
             for word in words:
-                if word in self.index:
-                    self.index[word].add(i)
+                if word in self.__index:
+                    self.__index[word].add(i)
                 else:
                     s = set()
                     s.add(i)
-                    self.index[word] = s
+                    self.__index[word] = s
         
-    def search(self, search_word) -> set:
-        if search_word not in self.index:
+    def __search(self, search_word) -> set:
+        if search_word not in self.__index:
             return {}
         else:
-            return self.index[search_word]
+            return self.__index[search_word]
         
     def searchWith(self, search_word) -> set:
-        if search_word in self.searched_words:
+        if search_word in self.__searched_words:
             return {} # TODO: мб кинуть ошибку
         
         s = set()
-        if len(self.searched_words) == 0:
-            s = self.search(search_word) # NOTE: это плохо. Возможна потеря данных!
-            self.searched_words.add(search_word)
-            self.searched_sentences = s.copy()
+        if len(self.__searched_words) == 0:
+            s = self.__search(search_word) # NOTE: это плохо. Возможна потеря данных!
+            self.__searched_words.add(search_word)
+            self.__searched_sentences = s.copy()
             return s
 
-        for x in self.searched_sentences:
-            sent = self._sentences[x]
+        for x in self.__searched_sentences:
+            sent = self.__sentences[x]
             words = word_tokenize(sent)
             if search_word in words:
                 s.add(x)
 
-        self.searched_sentences = s.copy()
-        self.searched_words.add(search_word)
+        self.__searched_sentences = s.copy()
+        self.__searched_words.add(search_word) # Нужно сделать так, чтобы при добавлении set не фильтровал слова.
         return s
     
-    def print(self):
-        print(self.index)
+    def clearState(self):
+        self.__searched_words.clear()
+        self.__searched_sentences.clear()
+
+    def printIndex(self):
+        print(self.__index)
 
     def printResult(self):
-        print(self.searched_words, self.searched_sentences)
+        print(f"{self.__searched_words}, {self.__searched_sentences}")
 
     def getSentByIndex(self, index: int) -> list:
-        return self._sentences[index].copy()
+        return self.__sentences[index].copy()
 
     def getSentByIndexes(self, indexes: set) -> list:
         sent_list = []
         for i in indexes:
-            sent_list.append(self._sentences[i].copy())
+            sent_list.append(self.__sentences[i].copy())
         return sent_list
     
 sentences = [
@@ -72,15 +76,18 @@ sentences = [
 
 # Создаем инвертированный индекс
 idx = InvertedIndex(sentences)
-idx.print()
-
-#w = idx.search("Кот")
-#print("Кот:", w)
+idx.printIndex()
 
 w = idx.searchWith("Кот")
-print("w:", w)
+#print("w:", w)
 idx.printResult()
 
 w = idx.searchWith("сидит")
-print("w:", w)
+#print("w:", w)
+idx.printResult()
+
+idx.clearState()
+idx.searchWith("Собака")
+idx.printResult()
+idx.searchWith("дом")
 idx.printResult()

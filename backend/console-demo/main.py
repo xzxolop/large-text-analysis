@@ -4,17 +4,18 @@ from invertedindex import InvertedIndex
 
 start_time = time.perf_counter()
 dataStore = DataStorage()
-dataStore.load_data()
+dataStore.load_data() # TODO: убрать постоянную загрузку
 end_time = time.perf_counter()
 
 elapsed_time = end_time - start_time
 print(f"Время выполнения: {elapsed_time:.4f} секунд")
 
-start_time = time.perf_counter()
 sentances = dataStore.get_sentances()
-index = InvertedIndex(sentances[:50])
-index.printIndex()
-end_time = time.perf_counter()
+index = InvertedIndex(sentances)
+#index.printIndex() # TODO: сделать вывод по популяронсти встреч
+res = index.searchWith("russia")
+index.printResult()
+sent = index.getSentByIndexes(res)
+print(sent)
 
-elapsed_time = end_time - start_time
-print(f"Время выполнения: {elapsed_time:.4f} секунд")
+print("end")

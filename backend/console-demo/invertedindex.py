@@ -51,6 +51,7 @@ class InvertedIndex:
         self.__searched_words.clear()
         self.__searched_sentences.clear()
 
+    # TODO: сделать вывод по популяронсти встреч
     def printIndex(self, n = None):
         if n == None or n > len(self.__index):
             print(self.__index)
@@ -62,11 +63,11 @@ class InvertedIndex:
     def printResult(self):
         print(f"{self.__searched_words}, {self.__searched_sentences}")
 
-    def getSentByIndex(self, index: int) -> list:
-        return self.__sentences[index].copy()
+    def getSentByIndex(self, index: int):
+        return self.__sentences[index]
 
     def getSentByIndexes(self, indexes: set) -> list:
         sent_list = []
         for i in indexes:
-            sent_list.append(self.__sentences[i].copy())
+            sent_list.append(self.__sentences[i])
         return sent_list

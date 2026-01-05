@@ -11,35 +11,37 @@ class DataStorage:
     __orig_sent_list = []
     __processed_sent_list = []
     __alias_list = []
+    __dataset_path = ""
 
     __stop_words = set()
 
     def get_sentances(self):
         return self.__processed_sent_list
+    
+    def get_dataset_path(self):
+        return self.__dataset_path
 
     def set_stopwords():
         return
 
     def load_data(self):
         path = kagglehub.dataset_download("pavellexyr/the-reddit-dataset-dataset")
-        path_to_comments = Path(path) / "the-reddit-dataset-dataset-comments.csv"
-        print(f"Датасет загружен в: {path_to_comments}\n")
-
-        comments_df = pd.read_csv(path_to_comments)
-        print("comments_df:\n", comments_df, "\n")
-
+        self.__dataset_path = Path(path) / "the-reddit-dataset-dataset-comments.csv"
+        
+        comments_df = pd.read_csv(self.__dataset_path)
         self.__main_text_list = comments_df["body"].to_list()
 
         nltk.download('stopwords', quiet=True)
-        
         # TODO: также в качестве стоп-слов  добавить ссылки (через рег. выражения)
         self.__stop_words = set(stopwords.words('english'))
 
         self.__fill_lists_by_main_text()
-
-        print(self.__orig_sent_list[:5])
-        print(self.__processed_sent_list[:5])
-        print(self.__alias_list[:5])
+    
+    def get_original_sentences(self, indexes: set) -> list:
+        sent_list = []
+        for i in indexes:
+            sent_list.append(self.__orig_sent_list[i])
+        return sent_list
         
     def __fill_lists_by_main_text(self):
         for i in range(len(self.__main_text_list)):

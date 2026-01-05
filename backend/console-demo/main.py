@@ -15,7 +15,7 @@ index = InvertedIndex(sentances)
 #index.printIndex() # TODO: сделать вывод по популяронсти встреч
 res = index.searchWith("russia")
 index.printResult()
-sent = index.getSentByIndexes(res)
+sent = dataStore.get_original_sentences(res)
 print(sent)
 
 print("end")

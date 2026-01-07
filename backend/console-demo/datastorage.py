@@ -31,9 +31,9 @@ class DataStorage:
         self.__main_text_list = comments_df["body"].to_list()
 
         nltk.download('stopwords', quiet=True)
+        #nltk.download('punkt', quiet=True)
         # TODO: также в качестве стоп-слов  добавить ссылки (через рег. выражения)
         self.__stop_words = set(stopwords.words('english'))
-
         self.__fill_lists_by_main_text()
 
     def get_processed_sentences(self) -> list:
@@ -74,7 +74,7 @@ class DataStorage:
         proc_sent = ""
         words = word_tokenize(sent)
         for word in words:
-            if word not in self.__stop_words:
+            if word not in self.__stop_words and word.isalnum():
                 proc_sent += word
                 proc_sent += " "
         return proc_sent   

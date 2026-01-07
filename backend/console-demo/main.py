@@ -12,15 +12,9 @@ store: {1,2,3} -> ['s1', 's2', 's3']
 
 sentances = dataStore.get_processed_sentences()
 index = InvertedIndex(sentances)
-# TODO: сделать вывод по популяронсти встреч
+
 res = index.searchWith("russia")
-
-lst = index.searched_frequency(res)
-for x in lst[:10]:
-    print(x.word, x.freq)
-
-
-
+index.printWordFrequency(20)
 index.printResult()
 sent = dataStore.get_original_sentences_by_index(res)
 print(sent)

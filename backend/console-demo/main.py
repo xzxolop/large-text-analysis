@@ -3,7 +3,8 @@ from invertedindex import InvertedIndex
 
 dataStore = DataStorage()
 dataStore.load_data() # TODO: убрать постоянную загрузку
-
+sent = dataStore.get_processed_sentences()
+print(sent[:10])
 """
 Пока работает так
 index: word -> {1,2,3}

@@ -69,12 +69,8 @@ class DataStorage:
                     self.__processed_sent_list.append(proc_sent)
                     self.__alias_list.append(i)
 
-    #TODO: переделать
     def __preprocess_sent(self, sent: str):
-        proc_sent = ""
         words = word_tokenize(sent)
-        for word in words:
-            if word not in self.__stop_words and word.isalnum():
-                proc_sent += word
-                proc_sent += " "
-        return proc_sent   
+        filtered_words = [word for word in words 
+                            if word not in self.__stop_words and word.isalnum()]
+        return " ".join(filtered_words)

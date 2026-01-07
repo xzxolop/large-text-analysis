@@ -19,19 +19,15 @@ class DataStorage:
     __processed_sent_list = []
     __alias_list = []
 
-    # TODO: Нужно устанавливать путь к http, и возвращать пусть в ОС
-    __dataset_path = ""
-
     __stop_words = set()
 
     def load_data(self):
         """Загружает данные из датасета в списки python."""
 
-
         path = kagglehub.dataset_download("pavellexyr/the-reddit-dataset-dataset")
-        self.__dataset_path = Path(path) / "the-reddit-dataset-dataset-comments.csv"
+        dataset_path = Path(path) / "the-reddit-dataset-dataset-comments.csv"
         
-        comments_df = pd.read_csv(self.__dataset_path)
+        comments_df = pd.read_csv(dataset_path)
         self.__main_text_list = comments_df["body"].to_list()
 
         nltk.download('stopwords', quiet=True)
@@ -54,9 +50,6 @@ class DataStorage:
         for i in indexes:
             sent_list.append(self.__processed_sent_list[i])
         return sent_list
-    
-    def get_dataset_path(self):
-        return self.__dataset_path
 
     def set_stopwords():
         return
@@ -76,7 +69,7 @@ class DataStorage:
                     self.__processed_sent_list.append(proc_sent)
                     self.__alias_list.append(i)
 
-#TODO: переделать
+    #TODO: переделать
     def __preprocess_sent(self, sent: str):
         proc_sent = ""
         words = word_tokenize(sent)

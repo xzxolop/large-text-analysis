@@ -1,9 +1,10 @@
 from nltk.tokenize import word_tokenize
+from sortedcontainers import SortedDict
 
 class InvertedIndex:
     """
     __index         - словарь вида <string, set<int>>, где ключ - слово, а значение - множество индексов списка предложений (__sentences).\n
-    __sentences:    - список предложений.\n
+    __sentences:    - список уже обработанных предложений.\n
 
     __searched_words        - слова по которым прошел поиск.\n
     __searched_sentences    - предложения, в которых слова встретились.\n
@@ -52,6 +53,14 @@ class InvertedIndex:
         self.__searched_sentences = s.copy()
         self.__searched_words.add(search_word) # Нужно сделать так, чтобы при добавлении set не фильтровал слова.
         return s
+    
+    #def mostPopular(self):
+    def topOfIndex(self):
+        word_frequency = SortedDict()
+        for key in self.__index:
+            word_frequency[len(self.__index[key])] = key
+        return word_frequency
+
     
     def clearState(self):
         """

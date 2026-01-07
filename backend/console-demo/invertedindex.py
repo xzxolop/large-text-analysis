@@ -1,5 +1,12 @@
 from nltk.tokenize import word_tokenize
-from sortedcontainers import SortedDict
+
+class WordFrequency:
+    word: str
+    freq: int
+
+    def __init__(self, word, freq):
+        self.word = word
+        self.freq = freq
 
 class InvertedIndex:
     """
@@ -15,19 +22,25 @@ class InvertedIndex:
 
     __searched_words = set()
     __searched_sentences = set()
+    __searched_frequency = dict()
 
     def __init__(self, sentences: list):
         self.__sentences = sentences
+        self.__index = self.create_index(sentences)
+    
+    def create_index(self, sentences: list) -> dict:
+        index = dict()
         for i in range(len(sentences)):
             sent = sentences[i]
             words = word_tokenize(sent)
             for word in words:
-                if word in self.__index:
-                    self.__index[word].add(i)
+                if word in index:
+                    index[word].add(i)
                 else:
                     s = set()
                     s.add(i)
-                    self.__index[word] = s
+                    index[word] = s
+        return index
     
     def searchWith(self, search_word) -> set:
         """
@@ -51,16 +64,28 @@ class InvertedIndex:
                 s.add(x)
 
         self.__searched_sentences = s.copy()
-        self.__searched_words.add(search_word) # Нужно сделать так, чтобы при добавлении set не фильтровал слова.
+        self.__searched_words.add(search_word) # Нужно сделать так, чтобы при добавлении set не фильтровал слова. ?
         return s
     
-    #def mostPopular(self):
-    def topOfIndex(self):
-        word_frequency = SortedDict()
-        for key in self.__index:
-            word_frequency[len(self.__index[key])] = key
-        return word_frequency
+    def searched_frequency(self, sent_numb: set):
+        sent_list = self.get_sentences_by_indexes(sent_numb)
+        index = self.create_index(sent_list)
+        return self.topOfIndex(index)
+    
+    # Дублирование кода с datastorage
+    def get_sentences_by_indexes(self, indexes: set) -> list:
+        sent_list = []
+        for i in indexes:
+            sent_list.append(self.__sentences[i])
+        return sent_list
 
+    def topOfIndex(self, index: dict) -> list: # TODO: переисать это на dict
+        word_frequency = []
+        for key in index:
+            word_freq = WordFrequency(key, [len(index[key])])
+            word_frequency.append(word_freq)
+        word_frequency.sort(key=lambda x: x.freq, reverse=True)
+        return word_frequency
     
     def clearState(self):
         """

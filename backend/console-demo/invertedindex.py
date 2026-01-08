@@ -104,6 +104,9 @@ class InvertedIndex:
         print(f"{self.__searched_words}, {self.__searched_sentences}")
     
     def printWordFrequency(self, n):
+        """
+        Выводит какие слова и насколько часто встречаются с поисковым(и) словом(ами) из __searched_words
+        """
         size = len(self.__searched_frequency)
         if (n > size):
             n = size

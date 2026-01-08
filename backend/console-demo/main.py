@@ -26,8 +26,16 @@ print("")
 
 res = index.searchWith("get")
 index.printWordFrequency(20)
-#index.printResult()
-#sent = dataStore.get_original_sentences_by_index(res)
-#print(sent)
+
+print("")
+
+index.clearState()
+index.printResult()
+index.printWordFrequency(20)
+
+print("")
+
+res = index.searchWith("data")
+index.printWordFrequency(20)
 
 print("end")

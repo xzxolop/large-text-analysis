@@ -15,6 +15,7 @@ class InvertedIndex:
 
     __searched_words        - слова по которым прошел поиск.\n
     __searched_sentences    - предложения, в которых слова встретились.\n
+    __searched_frequency    - список WordFrequency, который отражает наиболее популярные слова, который сортируется по убыванию.\n
     """
 
     __index = dict()
@@ -22,7 +23,6 @@ class InvertedIndex:
 
     __searched_words = set()
     __searched_sentences = set()
-    #__searched_frequency = dict()
     __searched_frequency = list()
 
     def __init__(self, sentences: list):
@@ -89,6 +89,7 @@ class InvertedIndex:
         """
         self.__searched_words.clear()
         self.__searched_sentences.clear()
+        self.__searched_frequency.clear()
 
     # TODO: сделать вывод по популяронсти встреч
     def printIndex(self, n = None):

@@ -1,0 +1,34 @@
+# Этот файл содержит список слов (англ.яз.), которые считаются стоп-словами 
+#  nltk по умолчанию. Пока-что этот файл никак не используется, а слова
+# Пока-что этот файл никак не используется, а слова добавлены в него вручную
+
+
+{
+'few', 'this', 'some', 'yourselves', "i'm", "it'll", 'didn', 'her',
+"he'll", 'if', "hasn't", 'shan', 'should', 'themselves', "mustn't",
+'i', 'any', 'on', 'will', 'while', 'how', 'are', "doesn't", 'further',
+'no', 'am', "they're", "you'll", 'these', 'during', "they'll", "they'd",
+'his', "we'll", 'with', 'again', 'being', 'does', 'above', 'doesn',
+"didn't", 'not', "i'd", 'myself', 'wasn', 'been', 'have', "couldn't",
+'be', 's', 'each', "it'd", "shouldn't", 'itself', 'hers', 'yourself',
+'into', "wouldn't", 'both', 'through', 'of', 'couldn', 'its', 
+'until', 'but', 'after', 'mightn', 'was', 'whom', "don't", 'we', 
+'my', "needn't", "you're", 'below', 'him', "isn't", 'about', 
+'wouldn', 'only', "we're", 'hadn', 'for', "she's", 'to', 'ain',
+'d', 'don', 'were', 'when', 'himself', "weren't", "that'll",
+'such', 'just', 'over', 'their', 'because', 'nor', 'had', 
+"won't", 'who', 'an', 'once', 'a', "he's", "wasn't", 'which', 
+'and', 'did', 'those', 'y', 'them', "she'll", 'very', 'can',
+'ourselves', "we've", 'in', 'more', 'under', 'doing', 've',
+'off', 'from', 'why', 'or', 'too', 'herself', 'do', 'all',
+"we'd", 'down', 'ours', 'they', 'the', 'needn', 'ma', 
+'that', 'between', 'at', "i've", 'won', 'where', 'your', 
+"you've", 'up', 'out', "she'd", "hadn't", 'hasn', 'o', 
+'she', "you'd", 'here', 'yours', 'mustn', 'it', 'm', 
+'there', 'so', 'most', 'haven', "i'll", 't', "shan't", 
+'before', "he'd", 'shouldn', 'other', 'isn', 'same', 
+'re', 'you', 'theirs', "mightn't", 'than', 'is', 'our',
+'having', "it's", "they've", 'has', 'as', 'then', "should've",
+'ll', 'me', 'against', 'by', 'he', 'now', 'weren', "haven't",
+'aren', 'own', 'what', "aren't"
+}

@@ -22,7 +22,16 @@ inverted_index = None
 async def startup_event():
     global text_df, inverted_index
     print("Загрузка данных...")
+
+    import time
+    start_time = time.perf_counter()
     text_df = load_data()
+    end_time = time.perf_counter()
+
+    elapsed_time = end_time - start_time
+    print(f"Время выполнения: {elapsed_time:.4f} секунд")
+
+    
     print("Создание инвертированного индекса...")
     inverted_index = create_inverted_index(text_df)
     print("Готово к работе!")

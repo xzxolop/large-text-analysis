@@ -36,6 +36,13 @@ class DataStorage:
         self.__stop_words = set(stopwords.words('english'))
         self.__fill_lists_by_main_text()
 
+    def load_text(self, text):
+        """Эта функция позволяет вместо загрузки датасета, передать строку, которая и будет исходным текстом. Функция по-большей степени нужна для тестирования."""
+        self.__main_text_list = text
+        nltk.download('stopwords', quiet=True)
+        self.__stop_words = set(stopwords.words('english'))
+        self.__fill_lists_by_main_text()
+
     def get_processed_sentences(self) -> list:
         return self.__processed_sent_list
     

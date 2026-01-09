@@ -25,9 +25,12 @@ class InvertedIndex:
     __searched_sentences = set()
     __searched_frequency = list()
 
-    def __init__(self, sentences: list):
+    def __init__(self, sentences: list, calc_word_freq = False):
         self.__sentences = sentences
         self.__index = self.create_index(sentences)
+
+        if calc_word_freq:
+            self.__searched_frequency = self.__topOfIndex(self.__index)
     
     def create_index(self, sentences: list) -> dict:
         index = dict()
@@ -52,7 +55,6 @@ class InvertedIndex:
             return {} # TODO: мб кинуть ошибку
         
         s = set()
-
 
         if len(self.__searched_words) == 0:
             s = self.__search(search_word) # NOTE: это плохо. Возможна потеря данных!
@@ -82,6 +84,9 @@ class InvertedIndex:
         for i in indexes:
             sent_list.append(self.__sentences[i])
         return sent_list
+    
+    def get_searched_frequency(self):
+        return self.__searched_frequency.copy()
     
     def clearState(self):
         """

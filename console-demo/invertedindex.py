@@ -8,6 +8,9 @@ class WordFrequency:
         self.word = word
         self.freq = freq
 
+    def __eq__(self, other):  # == (equal)
+        return self.word == other.word and self.freq == other.freq
+
 class InvertedIndex:
     """
     __index         - словарь вида <string, set<int>>, где ключ - слово, а значение - множество индексов списка предложений (__sentences).\n

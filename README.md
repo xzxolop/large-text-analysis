@@ -21,64 +21,26 @@ data
 
 Демонстрацию планируется написать с использованием streamlit.
 
-## Сборка проекта
+## Запуск проекта
 
 ### С использованием uv
 
 uv sync
 
-uv run ./backend/run.py
+uv run ./run.py
 
 ### С использованием pip
-
-pip install kagglehub pandas nltk uvicorn fastapi pydantic
-
-Если версии python и pip не совпадают то используйте
-
-python -m pip install kagglehub
-
-### Структура проекта
-
-large-text-analysis/
-├── backend/
-│   ├── the-reddit-dataset-dataset-comments.csv  # ← ПЕРЕНЕСИТЕ ФАЙЛ СЮДА
-│   ├── app/
-│   │   ├── main.py
-│   │   ├── core.py
-│   │   └── invertedindex.py
-│   └── run.py
-└── frontend/
-    ├── index.html
-    ├── style.css
-    └── script.js
-
-### Запуск проекта
-
-pip install -r ./backend/requirements.txt
-python ./backend/run.py
-python -m http.server 8080 --directory frontend
-
 Backend:
 
 bash
 ```
-cd backend
 pip install -r requirements.txt
 python run.py
 
 ```
 
-Frontend: 
-
-bash
-cd frontend
-python -m http.server 8080
-
-Перейти в папку /frontend/index.html
-
-
 ### Запуск демонстрации в консоли
 
 ```
-python .\backend\console-demo\main.py
+python .\console-demo\main.py
 ```

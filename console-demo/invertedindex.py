@@ -10,6 +10,9 @@ class WordFrequency:
 
     def __eq__(self, other):  # == (equal)
         return self.word == other.word and self.freq == other.freq
+    
+    def __str__(self):
+        return str(f"{self.word}: {self.freq}")
 
 class InvertedIndex:
     """

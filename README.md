@@ -44,3 +44,15 @@ python run.py
 ```
 python .\console-demo\main.py
 ```
+
+ИЛИ
+
+```
+uv run .\console-demo\main.py
+```
+
+### Запуск тестов
+
+```
+uv run pytest -v
+```

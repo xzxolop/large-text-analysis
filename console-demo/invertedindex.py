@@ -8,6 +8,12 @@ class WordFrequency:
         self.word = word
         self.freq = freq
 
+    def __eq__(self, other):  # == (equal)
+        return self.word == other.word and self.freq == other.freq
+    
+    def __str__(self):
+        return str(f"{self.word}: {self.freq}")
+
 class InvertedIndex:
     """
     __index         - словарь вида <string, set<int>>, где ключ - слово, а значение - множество индексов списка предложений (__sentences).\n
@@ -25,9 +31,12 @@ class InvertedIndex:
     __searched_sentences = set()
     __searched_frequency = list()
 
-    def __init__(self, sentences: list):
+    def __init__(self, sentences: list, calc_word_freq = False):
         self.__sentences = sentences
         self.__index = self.create_index(sentences)
+
+        if calc_word_freq:
+            self.__searched_frequency = self.__topOfIndex(self.__index)
     
     def create_index(self, sentences: list) -> dict:
         index = dict()
@@ -53,7 +62,6 @@ class InvertedIndex:
         
         s = set()
 
-
         if len(self.__searched_words) == 0:
             s = self.__search(search_word) # NOTE: это плохо. Возможна потеря данных!
             self.__searched_words.add(search_word)
@@ -71,17 +79,25 @@ class InvertedIndex:
         self.calculate_frequency(s) 
         return s
     
+    # TODO: сделать приватной?
     def calculate_frequency(self, sent_numb: set):
         sent_list = self.get_sentences_by_indexes(sent_numb)
         index = self.create_index(sent_list)
         self.__searched_frequency = self.__topOfIndex(index)
     
-    # Дублирование кода с datastorage
+    # NOTE: Дублирование кода с datastorage
     def get_sentences_by_indexes(self, indexes: set) -> list:
         sent_list = []
         for i in indexes:
             sent_list.append(self.__sentences[i])
         return sent_list
+    
+    def get_searched_frequency(self):
+        """
+        Возвращает список частот слов по итогу поиска, если он был. 
+        Если поиска не было, то 
+        """
+        return self.__searched_frequency.copy()
     
     def clearState(self):
         """
@@ -89,7 +105,7 @@ class InvertedIndex:
         """
         self.__searched_words.clear()
         self.__searched_sentences.clear()
-        self.__searched_frequency.clear()
+        self.__searched_frequency = self.__topOfIndex(self.__index) # TODO: это может долго пересчитываться, лучше хранить в отдельном списке
 
     # TODO: сделать вывод по популяронсти встреч
     def printIndex(self, n = None):
@@ -124,7 +140,7 @@ class InvertedIndex:
     def __topOfIndex(self, index: dict) -> list: # TODO: переписать это на dict
         word_frequency = []
         for key in index:
-            word_freq = WordFrequency(key, [len(index[key])])
+            word_freq = WordFrequency(key, len(index[key]))
             word_frequency.append(word_freq)
         word_frequency.sort(key=lambda x: x.freq, reverse=True)
         return word_frequency

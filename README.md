@@ -30,11 +30,10 @@ uv sync
 uv run ./run.py
 
 ### С использованием pip
-Backend:
 
-bash
 ```
 pip install -r requirements.txt
+
 python run.py
 
 ```
@@ -45,7 +44,7 @@ python run.py
 python .\console-demo\main.py
 ```
 
-ИЛИ
+или
 
 ```
 uv run .\console-demo\main.py

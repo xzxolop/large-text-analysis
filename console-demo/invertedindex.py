@@ -52,6 +52,7 @@ class InvertedIndex:
                     index[word] = s
         return index
     
+    # TODO: переименовать
     def searchWith(self, search_word) -> set:
         """
         Функция для последовательного поиска слов (с памятью)

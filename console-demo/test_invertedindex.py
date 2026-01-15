@@ -24,7 +24,7 @@ def test_invariant_searched_frequency1():
 
     assert sf1 == sf2
 
-def test_single_word_search1():
+def test_searchWith_result1():
     """
     Поиск существующего слова
     """
@@ -34,7 +34,7 @@ def test_single_word_search1():
     index.clearState()
     assert res == expected
 
-def test_single_word_search2():
+def test_searchWith_result2():
     """
     Поиск несуществующего слова
     """
@@ -42,4 +42,6 @@ def test_single_word_search2():
     expected = {}
     
     index.clearState()
-    assert res == expected 
+    assert res == expected
+
+

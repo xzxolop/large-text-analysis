@@ -79,12 +79,13 @@ class InvertedIndex:
         self.calculate_frequency(s) 
         return s
     
+    # TODO: сделать приватной?
     def calculate_frequency(self, sent_numb: set):
         sent_list = self.get_sentences_by_indexes(sent_numb)
         index = self.create_index(sent_list)
         self.__searched_frequency = self.__topOfIndex(index)
     
-    # Дублирование кода с datastorage
+    # NOTE: Дублирование кода с datastorage
     def get_sentences_by_indexes(self, indexes: set) -> list:
         sent_list = []
         for i in indexes:
@@ -139,7 +140,7 @@ class InvertedIndex:
     def __topOfIndex(self, index: dict) -> list: # TODO: переписать это на dict
         word_frequency = []
         for key in index:
-            word_freq = WordFrequency(key, [len(index[key])])
+            word_freq = WordFrequency(key, len(index[key]))
             word_frequency.append(word_freq)
         word_frequency.sort(key=lambda x: x.freq, reverse=True)
         return word_frequency

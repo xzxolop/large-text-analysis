@@ -18,14 +18,57 @@ sentances = sent_tokenize(text)
 
 index = InvertedIndex(sentances, calc_word_freq=True)
 
-def test1():
+def test_invariant_searched_frequency():
+    """
+    Проверка не ломается ли инвариант searched_frequency
+    """
+    sf1 = index.get_searched_frequency()
+    index.searchWith("English")
+    index.clearState()
+    sf2 = index.get_searched_frequency()
+
+    assert sf1 == sf2
+
+def test_single_word_search1():
+    """
+    Поиск одного существующего слова
+    """
     index.searchWith("English")
     sf1 = index.get_searched_frequency()
-    
     index.clearState()
 
     index.searchWith("English")
     sf2 = index.get_searched_frequency()
+    index.clearState()
 
-    # Сравнивает по месту хранения в памяти
     assert sf1 == sf2
+
+def test_single_word_search2():
+    """
+    Поиск одного несуществующего слова
+    """
+    index.searchWith("BAN_ban_BAN")
+    sf1 = index.get_searched_frequency()
+    index.clearState()
+
+    index.searchWith("BAN_ban_BAN")
+    sf2 = index.get_searched_frequency()
+    index.clearState()
+
+    assert sf1 == sf2
+
+def test_invariant_searched_frequency2():
+    """
+    Проверка не ломается ли инвариант searched_frequency
+    """
+    sf1 = index.get_searched_frequency()
+    index.searchWith("English")
+    index.clearState()
+    sf2 = index.get_searched_frequency()
+
+    assert sf1 == sf2
+
+test_invariant_searched_frequency()
+test_single_word_search1()
+test_single_word_search2()
+test_invariant_searched_frequency2()

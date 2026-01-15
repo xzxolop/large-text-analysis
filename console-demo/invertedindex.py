@@ -89,6 +89,10 @@ class InvertedIndex:
         return sent_list
     
     def get_searched_frequency(self):
+        """
+        Возвращает список частот слов по итогу поиска, если он был. 
+        Если поиска не было, то 
+        """
         return self.__searched_frequency.copy()
     
     def clearState(self):
@@ -97,7 +101,7 @@ class InvertedIndex:
         """
         self.__searched_words.clear()
         self.__searched_sentences.clear()
-        self.__searched_frequency.clear()
+        self.__searched_frequency = self.__topOfIndex(self.__index) # TODO: это может долго пересчитываться, лучше хранить в отдельном списке
 
     # TODO: сделать вывод по популяронсти встреч
     def printIndex(self, n = None):

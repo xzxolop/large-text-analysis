@@ -44,9 +44,12 @@ class SearchState:
         
         for x in self.word_frequency[:n]:
             print(x.word, x.freq)
-    
-    def size(self):
-        return len(self.word_frequency)
+
+    def printMatches(self):
+        """
+        Эта функция выводит слова которые мы искали, а также предложения в которых они встретились.
+        """
+        print(f"{self.searched_words}, {self.searched_sentences}")
 
 
 
@@ -132,15 +135,15 @@ class InvertedIndex:
 
     # TODO: сделать вывод по популяронсти встреч
     def printIndex(self, n = None):
+        """
+        Печатает весь индекс как структуру данных.
+        """
         if n == None or n > len(self.__index):
             print(self.__index)
         else:
             firstOfN = list(self.__index.items())[:n]
             for key, value in firstOfN:
                 print(f"{key}: {value}")
-
-    def printResult(self):
-        print(f"{self.__searched_words}, {self.__searched_sentences}")
     
     def printWordFrequency(self, n = None):
         """

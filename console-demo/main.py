@@ -1,41 +1,28 @@
 from datastorage import DataStorage
-from invertedindex import InvertedIndex
+from invertedindex import InvertedIndex, SearchState
 
-dataStore = DataStorage()
-dataStore.load_data() # TODO: убрать постоянную загрузку
-sent = dataStore.get_processed_sentences()
-print(sent[:10])
-"""
-Пока работает так
-index: word -> {1,2,3}
-store: {1,2,3} -> ['s1', 's2', 's3']
-"""
+#dataStore = DataStorage()
+#dataStore.load_data() # TODO: убрать постоянную загрузку
+#sentances = dataStore.get_processed_sentences()
 
-sentances = dataStore.get_processed_sentences()
-index = InvertedIndex(sentances)
+sentances = [
+    "my name is ononim",
+    "ononim is very rare name",
+    "i play in computer",
+    "computer is complex system",
+    "computer is not ononim"
+]
 
-res = index.searchWith("data")
-index.printWordFrequency(20)
+index = InvertedIndex(sentances, True)
+index.get_searched_frequency()
+print("Самые популярные слова загруженные в inverted_index:")
+index.printWordFrequency()
 
-print("")
+first_searched_word = "my"
+state = index.search(first_searched_word)
+print(f"\nСамые популярные слова поиска для слова {first_searched_word}:")
+state.printWordFrequency()
 
-res = index.searchWith("use")
-index.printWordFrequency(20)
 
-print("")
-
-res = index.searchWith("get")
-index.printWordFrequency(20)
-
-print("")
-
-index.clearState()
-index.printResult()
-index.printWordFrequency(20)
-
-print("")
-
-res = index.searchWith("data")
-index.printWordFrequency(20)
 
 print("end")

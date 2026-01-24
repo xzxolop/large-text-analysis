@@ -22,6 +22,8 @@ class SearchState:
     searched_sentences    - предложения, в которых слова встретились.\n
     searched_frequency    - список содержащий WordFrequency, который отражает наиболее популярные слова, которые сортируеются по убыванию популярности.\n
     """
+
+    # TODO: стоит ли сделать приватными?
     searched_words = set()
     searched_sentences = set()
     word_frequency = list()
@@ -50,6 +52,7 @@ class SearchState:
         Эта функция выводит слова которые мы искали, а также предложения в которых они встретились.
         """
         print(f"{self.searched_words}, {self.searched_sentences}")
+
 
 
 
@@ -84,15 +87,14 @@ class InvertedIndex:
                     index[word] = s
         return index
     
-    # TODO: переделать с searchWith(self, search_word) -> set на search(self, search)
-    def search(self, search_word: str, state = SearchState()):
+    def search(self, search_word: str, state = SearchState()) -> SearchState:
         """
         Функция для последовательного поиска слов (с памятью).
         Возвращает множество индексов предложений в которых встречалось поисковое слово.
         """
 
         if search_word in state.searched_words:
-            return {} # TODO: мб кинуть ошибку
+            return state
         
         indexes = set()
 

@@ -13,6 +13,12 @@ class WordFrequency:
     
     def __str__(self):
         return str(f"{self.word}: {self.freq}")
+    
+class SearchState:
+    __searched_words = set()
+    __searched_sentences = set()
+    __searched_frequency = list()
+
 
 class InvertedIndex:
     """
@@ -26,10 +32,6 @@ class InvertedIndex:
 
     __index = dict()
     __sentences: list
-
-    __searched_words = set()
-    __searched_sentences = set()
-    __searched_frequency = list()
 
     def __init__(self, sentences: list, calc_word_freq = False):
         self.__sentences = sentences
@@ -52,7 +54,7 @@ class InvertedIndex:
                     index[word] = s
         return index
     
-    # TODO: переименовать
+    # TODO: переделать с searchWith(self, search_word) -> set на search(self, search)
     def searchWith(self, search_word) -> set:
         """
         Функция для последовательного поиска слов (с памятью)

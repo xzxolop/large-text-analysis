@@ -11,16 +11,13 @@ sentances = [
 
 index = InvertedIndex(sentances, calc_word_freq=True)
 sf_global = index.get_searched_frequency()
-#for x in sf_global:
-#    print(x)
 
 def test_invariant_searched_frequency1():
     """
     Проверка не ломается ли инвариант searched_frequency
     """
     sf1 = index.get_searched_frequency()
-    index.searchWith("computer")
-    index.clearState()
+    index.search("computer")
     sf2 = index.get_searched_frequency()
 
     assert sf1 == sf2
@@ -29,25 +26,18 @@ def test_searchWith_word_exists():
     """
     Тест возвращаемого значения функции searchWith: Поиск существующего слова
     """
-    res = index.searchWith("computer")
+    state = index.search("computer")
     expected = {2,3,4}
-    
-    index.clearState()
-    assert res == expected
+    assert state.searched_sentences == expected
 
 def test_searchWith_word_nonexists():
     """
     Тест возвращаемого значения функции searchWith: Поиск несуществующего слова
     """
-    res = index.searchWith("non_exist_word")
-    expected = {}
+    res = index.search("non_exist_word")
+    expected = set()
     
-    index.clearState()
-    assert res == expected
-
-def test_word_frequency():
-    index.get_searched_frequency()
-
+    assert res.searched_sentences == expected
 
 def test_calculate_frequency():
     expected = []
@@ -69,11 +59,10 @@ def test_calculate_frequency():
     sf = index.get_searched_frequency()
     assert len(sf) == len(expected)
     assert sf == expected
-    index.clearState()
 
 def test_calculate_frequency_word_nonexists():
     expected = []
-    sf = index.searchWith("non_exist_word")
+    sf = index.search("non_exist_word")
     sf = index.get_searched_frequency()
     assert sf == expected
     index.clearState()
@@ -86,8 +75,7 @@ def test_calculate_frequency_word_exists():
     expected.append(WordFrequency("in", 1))
     expected.append(WordFrequency("computer", 1))
 
-    index.searchWith("play")
+    index.search("play")
     sf = index.get_searched_frequency()
 
     assert sf == expected
-    index.clearState()

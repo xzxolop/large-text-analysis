@@ -1,3 +1,12 @@
+import nltk
+
+# Скачать необходимые данные если их нет
+try:
+    nltk.data.find('tokenizers/punkt_tab')
+except LookupError:
+    nltk.download('punkt_tab')
+    nltk.download('punkt')
+
 from invertedindex import InvertedIndex
 from invertedindex import WordFrequency
 

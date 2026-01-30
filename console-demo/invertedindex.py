@@ -65,14 +65,14 @@ class InvertedIndex:
 
     __index = dict()
     __sentences = list()
-    __word_frequency = list() # нужен чтобы каждый раз не пересчитывать.
+    __word_frequency = list() # NOTE: нужен чтобы каждый раз не пересчитывать.
 
     def __init__(self, sentences: list, calc_word_freq = False):
         self.__sentences = sentences
         self.__index = self.create_index(sentences)
 
         if calc_word_freq:
-            self.__word_frequency = self.__topOfIndex(self.__index)
+            self.__word_frequency = self.__convertIndexToList(self.__index)
     
     def create_index(self, sentences: list) -> dict:
         index = dict()
@@ -99,7 +99,7 @@ class InvertedIndex:
         indexes = set()
 
         if len(state.searched_words) == 0:
-            indexes = self.__search(search_word) # NOTE: это плохо. Возможна потеря данных!
+            indexes = self.__search(search_word)
             state.searched_words.add(search_word)
             state.searched_sentences = indexes
         else:
@@ -112,14 +112,17 @@ class InvertedIndex:
             state.searched_sentences = indexes
             state.searched_words.add(search_word)
 
-        state.word_frequency = self.calculate_frequency(indexes) 
+        state.word_frequency = self.__calculate_frequency(indexes) 
         return state
     
-    # TODO: сделать приватным?
-    def calculate_frequency(self, indexes: set):
+    def __calculate_frequency(self, indexes: set) -> list:
+        """
+        Эта функция нужна, чтобы для поискового слова (например python) найти слова которые чаще всего с ним встречаются.
+        На вход принимает номера предожений в которых встречается поисковое слово.
+        """
         sent_list = self.get_sentences_by_indexes(indexes)
         index = self.create_index(sent_list)
-        return self.__topOfIndex(index)
+        return self.__convertIndexToList(index)
     
     # NOTE: Дублирование кода с datastorage
     def get_sentences_by_indexes(self, indexes: set) -> list:
@@ -165,7 +168,10 @@ class InvertedIndex:
         else:
             return self.__index[search_word]
         
-    def __topOfIndex(self, index: dict) -> list: # TODO: переписать это на dict
+    def __convertIndexToList(self, index: dict) -> list:
+        """
+        Преобразует инвертированный индекс в список, отсоритрованный по популярности встреч слова в предложениях.
+        """
         word_frequency = []
         for key in index:
             word_freq = WordFrequency(key, len(index[key]))

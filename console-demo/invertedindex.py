@@ -4,18 +4,28 @@ import math
 class MyWord:
     word: str
     freq: int
-    score: float
+    idf: float
+    tf: float
+    tf_idf: float
 
-    def __init__(self, word, freq, score):
+    def __init__(self, word, freq, tf, idf, tf_idf):
         self.word = word
-        self.freq = freq # TF
-        self.score = score # IDF
+        self.freq = freq 
+        self.tf = tf
+        self.idf = idf
+        self.tf_idf = tf_idf
 
     def __eq__(self, other):  # == (equal)
-        return self.word == other.word and self.freq == other.freq and self.score == other.score
+        return (
+            self.word == other.word and 
+            self.freq == other.freq and 
+            self.tf == other.tf and
+            self.idf == other.idf and
+            self.tf_idf == other.tf_idf
+        )
     
     def __str__(self):
-        return str(f"{self.word}: {self.freq}")
+        return str(f"{self.word}, {self.freq}, {self.tf_idf}")
     
 class SearchState:
     """
@@ -48,7 +58,7 @@ class SearchState:
             n = size
         
         for x in self.word_frequency[:n]:
-            print(x.word, x.freq)
+            print(x.word, x.freq, x.tf_idf)
 
     def printMatches(self):
         """
@@ -176,14 +186,32 @@ class InvertedIndex:
         Преобразует инвертированный индекс в список, отсоритрованный по популярности встреч слова в предложениях.
         """
         wordsList = []
-        for key in index:
-            word_freq = len(index[key])
-            myWord = MyWord(key, word_freq)
+        sent_cnt = len(self.__sentences)
+
+        for key in index: # key is word
+            sent_indexes = index[key]
+            word_freq = len(sent_indexes)
+            idf = self.__idf(sent_cnt, word_freq)
+            tf = self.__tf(key, sent_indexes)
+
+            myWord = MyWord(word= key, 
+                            freq= word_freq, 
+                            tf= tf,
+                            idf= idf,
+                            tf_idf= tf * idf
+                            )
             wordsList.append(myWord)
         wordsList.sort(key=lambda x: x.freq, reverse=True)
         return wordsList
     
-    def __idf(sent_cnt, sent_with_word_cnt):
-        return math.log(sent_cnt / sent_with_word_cnt)
+    def __idf(self, sent_cnt, cnt_sent_with_word):
+        return math.log(sent_cnt / cnt_sent_with_word)
 
+    def __tf(self, word: str, sent_indexes: set[int]) -> int:
+        tf = 0
+        for i in sent_indexes:
+            sent = self.__sentences[i]
+            words = word_tokenize(sent)
+            tf += words.count(word)
+        return tf
 

@@ -5,7 +5,13 @@ dataStore = DataStorage()
 dataStore.load_data() # TODO: убрать постоянную загрузку
 sentances = dataStore.get_processed_sentences()
 
+import time
+
+start = time.perf_counter()
 index = InvertedIndex(sentances, True)
+end = time.perf_counter()
+print(f"Время выполнения: {end - start:.6f} секунд")
+
 index.get_searched_frequency()
 print("printWordFrequency. Самые популярные слова загруженные в inverted_index:")
 index.printWordFrequency(10)

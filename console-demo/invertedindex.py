@@ -1,15 +1,18 @@
 from nltk.tokenize import word_tokenize
+import math
 
-class WordFrequency:
+class MyWord:
     word: str
     freq: int
+    score: float
 
-    def __init__(self, word, freq):
+    def __init__(self, word, freq, score):
         self.word = word
-        self.freq = freq
+        self.freq = freq # TF
+        self.score = score # IDF
 
     def __eq__(self, other):  # == (equal)
-        return self.word == other.word and self.freq == other.freq
+        return self.word == other.word and self.freq == other.freq and self.score == other.score
     
     def __str__(self):
         return str(f"{self.word}: {self.freq}")
@@ -172,9 +175,15 @@ class InvertedIndex:
         """
         Преобразует инвертированный индекс в список, отсоритрованный по популярности встреч слова в предложениях.
         """
-        word_frequency = []
+        wordsList = []
         for key in index:
-            word_freq = WordFrequency(key, len(index[key]))
-            word_frequency.append(word_freq)
-        word_frequency.sort(key=lambda x: x.freq, reverse=True)
-        return word_frequency
+            word_freq = len(index[key])
+            myWord = MyWord(key, word_freq)
+            wordsList.append(myWord)
+        wordsList.sort(key=lambda x: x.freq, reverse=True)
+        return wordsList
+    
+    def __idf(sent_cnt, sent_with_word_cnt):
+        return math.log(sent_cnt / sent_with_word_cnt)
+
+

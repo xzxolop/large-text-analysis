@@ -56,8 +56,12 @@ class SearchState:
         """
         print(f"{self.searched_words}, {self.searched_sentences}")
 
-
-
+class ClusterNode:
+    def __init__(self, split_word=None, sent_indexes=None):
+        self.split_word = split_word
+        self.sent_indexes = sent_indexes or set()
+        self.left = None
+        self.right = None
 
 class InvertedIndex:
     """
@@ -166,6 +170,78 @@ class InvertedIndex:
         
         for x in self.__word_frequency[:n]:
             print(f"{x.word} | freq={x.freq} | score={x.score:.4f}")
+
+    def get_top_words_for_cluster(self, sent_indexes: set, top_n=5):
+        index = self.create_index(self.get_sentences_by_indexes(sent_indexes))
+        words = self.__convertIndexToList(index)
+        words.sort(key=lambda x: x.score, reverse=True)
+        return words[:top_n]
+    
+    def choose_split_word(self, sent_indexes: set):
+        index = self.create_index(self.get_sentences_by_indexes(sent_indexes))
+        words = self.__convertIndexToList(index)
+
+        best_word = None
+        best_balance = 0.0
+
+        for w in words:
+            df = len(self.__index.get(w.word, []))
+            left = sent_indexes & self.__index.get(w.word, set())
+            right = sent_indexes - left
+
+            if len(left) == 0 or len(right) == 0:
+                continue
+
+            balance = 1.0 - abs(len(left) / len(sent_indexes) - 0.5)
+            score = w.score * balance
+
+            if score > best_balance:
+                best_balance = score
+                best_word = w.word
+
+        return best_word
+
+    def build_cluster_tree(self, sent_indexes: set, min_size=30):
+        node = ClusterNode(sent_indexes=sent_indexes)
+
+        if len(sent_indexes) <= min_size:
+            return node
+
+        split_word = self.choose_split_word(sent_indexes)
+        if split_word is None:
+            return node
+
+        node.split_word = split_word
+        left = sent_indexes & self.__index.get(split_word, set())
+        right = sent_indexes - left
+
+        if len(left) == 0 or len(right) == 0:
+            return node
+
+        node.left = self.build_cluster_tree(left, min_size)
+        node.right = self.build_cluster_tree(right, min_size)
+        return node
+    
+    def print_cluster_tree(self, node, depth=0):
+        indent = "  " * depth
+
+        print(f"{indent}Cluster size: {len(node.sent_indexes)}")
+
+        top_words = self.get_top_words_for_cluster(node.sent_indexes)
+        if top_words:
+            print(f"{indent}Top words: {', '.join(w.word for w in top_words)}")
+
+        if node.split_word:
+            print(f"{indent}Split by: '{node.split_word}'")
+
+        if node.left:
+            print(f"{indent}Left:")
+            self.print_cluster_tree(node.left, depth + 1)
+
+        if node.right:
+            print(f"{indent}Right:")
+            self.print_cluster_tree(node.right, depth + 1)
+
 
 
     def __search(self, search_word) -> set:

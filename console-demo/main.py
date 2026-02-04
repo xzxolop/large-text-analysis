@@ -3,27 +3,26 @@ from invertedindex import InvertedIndex, SearchState
 
 dataStore = DataStorage()
 dataStore.load_data() # TODO: убрать постоянную загрузку
-sentances = dataStore.get_processed_sentences()
+#sentences = dataStore.get_processed_sentences()
+sentences = [
+    "I like Python and data science",
+    "Python is great for machine learning",
+    "I use Python for scripting",
+    "Data science uses statistics",
+    "Big data and analytics",
+    "Java is used in enterprise",
+    "Java and Spring framework",
+    "Python scripts automate tasks",
+    "Machine learning with Python",
+    "Statistics and probability for data science",
+]
 
-index = InvertedIndex(sentances, True)
-index.get_searched_frequency()
-print("printWordFrequency. Самые популярные слова загруженные в inverted_index:")
-index.printWordFrequency(10)
-#print("\nprintIndex")
-#index.printIndex()
 
-first_searched_word = "data"
-state = index.search(first_searched_word)
-print(f"\nСамые популярные слова поиска для слова {first_searched_word}:")
-state.printWordFrequency(10)
-#print("Поисковые слова и предожения")
-#state.printMatches()
+index = InvertedIndex(sentences, calc_word_freq=True)
 
-second_searched_word = "python"
-state = index.search(second_searched_word, state)
-print(f"\nСамые популярные слова поиска для слова {second_searched_word}:")
-state.printWordFrequency(10)
-#print("Поисковые слова и предожения")
-#state.printMatches()
+all_sentences = set(range(len(sentences)))
+tree = index.build_cluster_tree(all_sentences, min_size=3)
+
+index.print_cluster_tree(tree)
 
 print("end")

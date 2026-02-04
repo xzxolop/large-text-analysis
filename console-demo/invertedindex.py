@@ -8,8 +8,8 @@ class MyWord:
 
     def __init__(self, word, freq, score):
         self.word = word
-        self.freq = freq # TF
-        self.score = score # IDF
+        self.freq = freq
+        self.score = score # TF-IDF * balance
 
     def __eq__(self, other):  # == (equal)
         return self.word == other.word and self.freq == other.freq and self.score == other.score
@@ -69,9 +69,12 @@ class InvertedIndex:
     __index = dict()
     __sentences = list()
     __word_frequency = list() # NOTE: нужен чтобы каждый раз не пересчитывать.
+    
+    __total_docs: int
 
     def __init__(self, sentences: list, calc_word_freq = False):
         self.__sentences = sentences
+        self.__total_docs = len(sentences)
         self.__index = self.create_index(sentences)
 
         if calc_word_freq:
@@ -162,7 +165,7 @@ class InvertedIndex:
             n = size
         
         for x in self.__word_frequency[:n]:
-            print(x.word, x.freq)
+            print(f"{x.word} | freq={x.freq} | score={x.score:.4f}")
 
 
     def __search(self, search_word) -> set:
@@ -176,14 +179,27 @@ class InvertedIndex:
         Преобразует инвертированный индекс в список, отсоритрованный по популярности встреч слова в предложениях.
         """
         wordsList = []
-        for key in index:
-            word_freq = len(index[key])
-            myWord = MyWord(key, word_freq)
+        for word in index:
+            word_freq = len(index[word])
+            
+            if word_freq == 0:
+                continue
+
+            idf = self.__idf(word_freq)
+            balance = self.__balance_score(word_freq)
+            score = word_freq * idf * balance
+
+            myWord = MyWord(word, word_freq, score)
             wordsList.append(myWord)
         wordsList.sort(key=lambda x: x.freq, reverse=True)
         return wordsList
-    
-    def __idf(sent_cnt, sent_with_word_cnt):
-        return math.log(sent_cnt / sent_with_word_cnt)
+
+    def __idf(self, df: int) -> float:
+        return math.log((self.__total_docs + 1) / (df + 1))
+
+    def __balance_score(self, df: int) -> float:
+        p = df / self.__total_docs
+        return 1.0 - abs(p - 0.5)
+
 
 

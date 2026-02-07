@@ -1,5 +1,7 @@
 from nltk.tokenize import word_tokenize
 import math
+from graphviz import Digraph
+
 
 class MyWord:
     word: str
@@ -276,6 +278,37 @@ class InvertedIndex:
     def __balance_score(self, df: int) -> float:
         p = df / self.__total_docs
         return 1.0 - abs(p - 0.5)
+
+    def visualize_cluster_tree_graphviz(self, root):
+        dot = Digraph("ClusterTree")
+        dot.attr(rankdir="TB", nodesep="0.6", ranksep="0.8")
+
+        node_id = 0
+
+        def visit(node):
+            nonlocal node_id
+            current_id = node_id
+            node_id += 1
+
+            if node.split_word:
+                label = f"{node.split_word}\nsize={len(node.sent_indexes)}"
+            else:
+                label = f"LEAF\nsize={len(node.sent_indexes)}"
+
+            dot.node(str(current_id), label, shape="ellipse")
+
+            if node.left:
+                left_id = visit(node.left)
+                dot.edge(str(current_id), str(left_id), label="yes")
+
+            if node.right:
+                right_id = visit(node.right)
+                dot.edge(str(current_id), str(right_id), label="no")
+
+            return current_id
+
+        visit(root)
+        return dot
 
 
 

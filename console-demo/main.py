@@ -3,7 +3,7 @@ from invertedindex import InvertedIndex, SearchState
 
 dataStore = DataStorage()
 dataStore.load_data() # TODO: убрать постоянную загрузку
-#sentences = dataStore.get_processed_sentences()
+
 sentences = [
     "I like Python and data science",
     "Python is great for machine learning",
@@ -17,15 +17,7 @@ sentences = [
     "Statistics and probability for data science",
 ]
 
+sentences = dataStore.get_processed_sentences()
 
 index = InvertedIndex(sentences, calc_word_freq=True)
-
-all_sentences = set(range(len(sentences)))
-tree = index.build_cluster_tree(all_sentences, min_size=1)
-
-index.print_cluster_tree(tree)
-
-dot = index.visualize_cluster_tree_graphviz(tree)
-dot.render("cluster_tree", format="png", cleanup=True)
-
-print("end")
+index.printWordFrequency(n = 20)

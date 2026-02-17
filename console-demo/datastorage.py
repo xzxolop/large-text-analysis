@@ -2,6 +2,7 @@ import nltk
 import kagglehub
 from pathlib import Path
 import pandas as pd
+import re
 
 from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
@@ -20,6 +21,8 @@ class DataStorage:
     __alias_list = []
 
     __stop_words = set()
+    __url_pattern = re.compile(r'https?://\S+|www\.\S+')
+
 
     def load_data(self):
         """Загружает данные из датасета в списки python."""
@@ -77,7 +80,18 @@ class DataStorage:
                     self.__alias_list.append(i)
 
     def __preprocess_sent(self, sent: str):
+        # 1. Удаляем ссылки
+        sent = re.sub(self.__url_pattern, '', sent)
+
+        # 2. Токенизация
         words = word_tokenize(sent)
-        filtered_words = [word for word in words 
-                            if word not in self.__stop_words and word.isalnum()]
+
+        # 3. Фильтрация
+        filtered_words = [
+            word.lower()
+            for word in words
+            if word.lower() not in self.__stop_words
+            and word.isalnum()
+        ]
+
         return " ".join(filtered_words)

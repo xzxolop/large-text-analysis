@@ -2,6 +2,11 @@ from nltk.tokenize import word_tokenize
 import math
 from graphviz import Digraph
 
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.cluster import MiniBatchKMeans
+
+
 
 class MyWord:
     word: str
@@ -77,14 +82,22 @@ class InvertedIndex:
     __word_frequency = list() # NOTE: нужен чтобы каждый раз не пересчитывать.
     
     __total_docs: int
+    # ===== TF-IDF + KMeans =====
+    __tfidf_vectorizer = None
+    __tfidf_matrix = None
+    __kmeans_model = None
+    __kmeans_labels = None
 
-    def __init__(self, sentences: list, calc_word_freq = False):
+
+    def __init__(self, sentences: list, calc_word_freq=False, use_fast_tokenizer=False):
         self.__sentences = sentences
         self.__total_docs = len(sentences)
+        self.__use_fast_tokenizer = use_fast_tokenizer
         self.__index = self.create_index(sentences)
 
         if calc_word_freq:
             self.__word_frequency = self.__convertIndexToList(self.__index)
+
     
     def create_index(self, sentences: list) -> dict:
         index = dict()
@@ -311,4 +324,79 @@ class InvertedIndex:
         return dot
 
 
+    def build_kmeans_clusters(self, n_clusters=20, max_features=5000):
+        """
+        TF-IDF + MiniBatchKMeans кластеризация.
+        Подходит для 100k+ предложений.
+        """
 
+        print("\nBuilding TF-IDF matrix...")
+
+        self.__tfidf_vectorizer = TfidfVectorizer(
+            stop_words="english",
+            max_features=max_features
+        )
+
+        self.__tfidf_matrix = self.__tfidf_vectorizer.fit_transform(self.__sentences)
+
+        print("TF-IDF shape:", self.__tfidf_matrix.shape)
+
+        print("Clustering with MiniBatchKMeans...")
+
+        self.__kmeans_model = MiniBatchKMeans(
+            n_clusters=n_clusters,
+            random_state=42,
+            batch_size=1000,
+            n_init=10
+        )
+
+        self.__kmeans_labels = self.__kmeans_model.fit_predict(self.__tfidf_matrix)
+
+        print("Clustering finished.\n")
+
+    def get_kmeans_top_words(self, cluster_id: int, top_n=10):
+        if self.__kmeans_model is None:
+            return []
+
+        centroid = self.__kmeans_model.cluster_centers_[cluster_id]
+        feature_names = self.__tfidf_vectorizer.get_feature_names_out()
+
+        top_indices = centroid.argsort()[-top_n:][::-1]
+        return [feature_names[i] for i in top_indices]
+
+    def get_kmeans_cluster_sentences(self, cluster_id: int, limit=None):
+        if self.__kmeans_labels is None:
+            return []
+
+        indexes = np.where(self.__kmeans_labels == cluster_id)[0]
+
+        if limit:
+            indexes = indexes[:limit]
+
+        return [self.__sentences[i] for i in indexes]
+
+    def print_kmeans_clusters(self, top_n=10, show_examples=False, example_limit=3):
+        if self.__kmeans_model is None:
+            print("KMeans not built yet.")
+            return
+
+        print("=" * 60)
+        print("KMEANS CLUSTER SUMMARY")
+        print("=" * 60)
+
+        for cluster_id in range(self.__kmeans_model.n_clusters):
+
+            size = np.sum(self.__kmeans_labels == cluster_id)
+            top_words = self.get_kmeans_top_words(cluster_id, top_n)
+
+            print(f"\nCluster {cluster_id}")
+            print(f"Size: {size}")
+            print("Top words:", ", ".join(top_words))
+
+            if show_examples:
+                print("Examples:")
+                examples = self.get_kmeans_cluster_sentences(cluster_id, example_limit)
+                for s in examples:
+                    print("  -", s)
+
+        print("\nDone.\n")

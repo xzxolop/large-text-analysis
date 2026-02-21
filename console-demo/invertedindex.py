@@ -3,19 +3,16 @@ import math
 from sklearn.feature_extraction.text import TfidfVectorizer
 import numpy as np
 
-
 class MyWord:
     word: str
     freq: int
-    score: float
 
-    def __init__(self, word, freq, score):
+    def __init__(self, word, freq):
         self.word = word
         self.freq = freq
-        self.score = score # TF-IDF * balance
 
     def __eq__(self, other):  # == (equal)
-        return self.word == other.word and self.freq == other.freq and self.score == other.score
+        return self.word == other.word and self.freq == other.freq
     
     def __str__(self):
         return str(f"{self.word}: {self.freq}")
@@ -58,9 +55,6 @@ class SearchState:
         Эта функция выводит слова которые мы искали, а также предложения в которых они встретились.
         """
         print(f"{self.searched_words}, {self.searched_sentences}")
-
-
-
 
 class InvertedIndex:
     """
@@ -216,21 +210,7 @@ class InvertedIndex:
             if word_freq == 0:
                 continue
 
-            idf = self.__idf(word_freq)
-            balance = self.__balance_score(word_freq)
-            score = word_freq * idf * balance
-
-            myWord = MyWord(word, word_freq, score)
+            myWord = MyWord(word, word_freq)
             wordsList.append(myWord)
         wordsList.sort(key=lambda x: x.freq, reverse=True)
         return wordsList
-
-    def __idf(self, df: int) -> float:
-        return math.log((self.__total_docs + 1) / (df + 1))
-
-    def __balance_score(self, df: int) -> float:
-        p = df / self.__total_docs
-        return 1.0 - abs(p - 0.5)
-
-
-

@@ -8,7 +8,7 @@ except LookupError:
     nltk.download('punkt')
 
 from invertedindex import InvertedIndex
-from invertedindex import WordFrequency
+from invertedindex import MyWord
 
 sentances = [
     "my name is ononim",
@@ -51,19 +51,19 @@ def test_searchWith_word_nonexists():
 def test_calculate_frequency():
     expected = []
     # TODO: можно сделать <число встреч, список слов> чтобы не зависить от порядка
-    expected.append(WordFrequency("is", 4))
-    expected.append(WordFrequency("ononim", 3))
-    expected.append(WordFrequency("computer", 3))
-    expected.append(WordFrequency("name", 2))
-    expected.append(WordFrequency("my", 1))
-    expected.append(WordFrequency("very", 1))
-    expected.append(WordFrequency("rare", 1))
-    expected.append(WordFrequency("i", 1))
-    expected.append(WordFrequency("play", 1))
-    expected.append(WordFrequency("in", 1))
-    expected.append(WordFrequency("complex", 1))
-    expected.append(WordFrequency("system", 1))
-    expected.append(WordFrequency("not", 1))
+    expected.append(MyWord("is", 4))
+    expected.append(MyWord("ononim", 3))
+    expected.append(MyWord("computer", 3))
+    expected.append(MyWord("name", 2))
+    expected.append(MyWord("my", 1))
+    expected.append(MyWord("very", 1))
+    expected.append(MyWord("rare", 1))
+    expected.append(MyWord("i", 1))
+    expected.append(MyWord("play", 1))
+    expected.append(MyWord("in", 1))
+    expected.append(MyWord("complex", 1))
+    expected.append(MyWord("system", 1))
+    expected.append(MyWord("not", 1))
 
     sf = index.get_searched_frequency()
     assert len(sf) == len(expected)
@@ -79,10 +79,10 @@ def test_calculate_frequency():
 #def test_calculate_frequency_word_exists():
 #    expected = []
 #    
-#    expected.append(WordFrequency("i", 1))
-#    expected.append(WordFrequency("play", 1))
-#    expected.append(WordFrequency("in", 1))
-#    expected.append(WordFrequency("computer", 1))
+#    expected.append(MyWord("i", 1))
+#    expected.append(MyWord("play", 1))
+#    expected.append(MyWord("in", 1))
+#    expected.append(MyWord("computer", 1))
 #
 #    index.search("play")
 #    sf = index.get_searched_frequency()

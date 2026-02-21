@@ -1,6 +1,9 @@
 from nltk.tokenize import word_tokenize
+import math
+from sklearn.feature_extraction.text import TfidfVectorizer
+import numpy as np
 
-class WordFrequency:
+class MyWord:
     word: str
     freq: int
 
@@ -53,9 +56,6 @@ class SearchState:
         """
         print(f"{self.searched_words}, {self.searched_sentences}")
 
-
-
-
 class InvertedIndex:
     """
     __index         - словарь вида <string, set<int>>, где ключ - слово, а значение - множество индексов списка предложений (__sentences).\n
@@ -65,14 +65,22 @@ class InvertedIndex:
 
     __index = dict()
     __sentences = list()
-    __word_frequency = list() # нужен чтобы каждый раз не пересчитывать.
+    __word_frequency = list() # NOTE: нужен чтобы каждый раз не пересчитывать.
+    
+    __total_docs: int
+    __tfidf_matrix = None
+    __vectorizer = None
 
     def __init__(self, sentences: list, calc_word_freq = False):
         self.__sentences = sentences
+        self.__total_docs = len(sentences)
         self.__index = self.create_index(sentences)
+        
+        self.__vectorizer = TfidfVectorizer(stop_words='english', min_df=2)
+        self.__tfidf_matrix = self.__vectorizer.fit_transform(self.__sentences)
 
         if calc_word_freq:
-            self.__word_frequency = self.__topOfIndex(self.__index)
+            self.__word_frequency = self.__convertIndexToList(self.__index)
     
     def create_index(self, sentences: list) -> dict:
         index = dict()
@@ -99,7 +107,7 @@ class InvertedIndex:
         indexes = set()
 
         if len(state.searched_words) == 0:
-            indexes = self.__search(search_word) # NOTE: это плохо. Возможна потеря данных!
+            indexes = self.__search(search_word)
             state.searched_words.add(search_word)
             state.searched_sentences = indexes
         else:
@@ -112,14 +120,17 @@ class InvertedIndex:
             state.searched_sentences = indexes
             state.searched_words.add(search_word)
 
-        state.word_frequency = self.calculate_frequency(indexes) 
+        state.word_frequency = self.__calculate_frequency(indexes) 
         return state
     
-    # TODO: сделать приватным?
-    def calculate_frequency(self, indexes: set):
+    def __calculate_frequency(self, indexes: set) -> list:
+        """
+        Эта функция нужна, чтобы для поискового слова (например python) найти слова которые чаще всего с ним встречаются.
+        На вход принимает номера предожений в которых встречается поисковое слово.
+        """
         sent_list = self.get_sentences_by_indexes(indexes)
         index = self.create_index(sent_list)
-        return self.__topOfIndex(index)
+        return self.__convertIndexToList(index)
     
     # NOTE: Дублирование кода с datastorage
     def get_sentences_by_indexes(self, indexes: set) -> list:
@@ -147,7 +158,7 @@ class InvertedIndex:
             for key, value in firstOfN:
                 print(f"{key}: {value}")
     
-    def printWordFrequency(self, n = None):
+    def printTopWordFrequency(self, n = None):
         """
         Выводит наиболее популярные слова среди загруженных предложений.
         """
@@ -156,7 +167,30 @@ class InvertedIndex:
             n = size
         
         for x in self.__word_frequency[:n]:
-            print(x.word, x.freq)
+            print(f"{x.word} | freq={x.freq} | score={x.score:.4f}")
+    
+    def getMeanTfidf(self):
+        matrix = self.__tfidf_matrix
+        feature_names = self.__vectorizer.get_feature_names_out()
+        
+        # Вместо toarray() используем сумму по разреженной матрице
+        sum_tfidf = np.array(matrix.sum(axis=0)).flatten()
+        
+        # Получаем частоту слов через bincount (очень быстро)
+        rows, cols = matrix.nonzero()
+        word_frequencies = np.bincount(cols, minlength=len(feature_names))
+        
+        # Избегаем деления на ноль
+        word_frequencies_safe = np.where(word_frequencies == 0, 1, word_frequencies)
+        
+        # Векторизованное деление
+        normalized_scores = sum_tfidf / word_frequencies_safe
+        
+        # Создаем список результатов
+        result = list(zip(feature_names, normalized_scores))
+        result.sort(key=lambda x: x[1], reverse=True)
+        
+        return result
 
 
     def __search(self, search_word) -> set:
@@ -165,10 +199,18 @@ class InvertedIndex:
         else:
             return self.__index[search_word]
         
-    def __topOfIndex(self, index: dict) -> list: # TODO: переписать это на dict
-        word_frequency = []
-        for key in index:
-            word_freq = WordFrequency(key, len(index[key]))
-            word_frequency.append(word_freq)
-        word_frequency.sort(key=lambda x: x.freq, reverse=True)
-        return word_frequency
+    def __convertIndexToList(self, index: dict) -> list:
+        """
+        Преобразует инвертированный индекс в список, отсоритрованный по популярности встреч слова в предложениях.
+        """
+        wordsList = []
+        for word in index:
+            word_freq = len(index[word])
+            
+            if word_freq == 0:
+                continue
+
+            myWord = MyWord(word, word_freq)
+            wordsList.append(myWord)
+        wordsList.sort(key=lambda x: x.freq, reverse=True)
+        return wordsList

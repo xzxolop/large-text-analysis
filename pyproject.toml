@@ -6,10 +6,12 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.121.1",
+    "graphviz>=0.21",
     "kagglehub>=0.3.13",
     "nltk>=3.9.2",
     "numpy>=2.2.6",
     "pandas>=2.3.3",
     "pytest>=9.0.2",
+    "scikit-learn>=1.7.2",
     "uvicorn>=0.38.0",
 ]

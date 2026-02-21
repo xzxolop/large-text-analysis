@@ -34,33 +34,12 @@ data
 Также можно выбрать интерпретатор виртуального окружения  (по желанию)
 
 Запуск проекта
+```cd ./src```
+
 ```uv run main.py```
 Или
 ```python main.py```
 
-### С использованием pip
-
-```
-pip install -r requirements.txt
-
-python run.py
-
-```
-
-### Запуск демонстрации в консоли
-
-```
-python .\console-demo\main.py
-```
-
-или
-
-```
-uv run .\console-demo\main.py
-```
-
 ### Запуск тестов
 
-```
-uv run pytest -v
-```
+```uv run pytest -v```

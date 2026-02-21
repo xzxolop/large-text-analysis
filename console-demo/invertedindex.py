@@ -1,5 +1,8 @@
 from nltk.tokenize import word_tokenize
 import math
+from sklearn.feature_extraction.text import TfidfVectorizer
+import numpy as np
+
 
 class MyWord:
     word: str
@@ -71,11 +74,16 @@ class InvertedIndex:
     __word_frequency = list() # NOTE: нужен чтобы каждый раз не пересчитывать.
     
     __total_docs: int
+    __tfidf_matrix = None
+    __vectorizer = None
 
     def __init__(self, sentences: list, calc_word_freq = False):
         self.__sentences = sentences
         self.__total_docs = len(sentences)
         self.__index = self.create_index(sentences)
+        
+        self.__vectorizer = TfidfVectorizer()
+        self.__tfidf_matrix = self.__vectorizer.fit_transform(self.__sentences)
 
         if calc_word_freq:
             self.__word_frequency = self.__convertIndexToList(self.__index)
@@ -156,7 +164,7 @@ class InvertedIndex:
             for key, value in firstOfN:
                 print(f"{key}: {value}")
     
-    def printWordFrequency(self, n = None):
+    def printTopWordFrequency(self, n = None):
         """
         Выводит наиболее популярные слова среди загруженных предложений.
         """
@@ -166,6 +174,29 @@ class InvertedIndex:
         
         for x in self.__word_frequency[:n]:
             print(f"{x.word} | freq={x.freq} | score={x.score:.4f}")
+    
+    def getMeanTfidf(self):
+        matrix = self.__tfidf_matrix
+        feature_names = self.__vectorizer.get_feature_names_out()
+        
+        # Вместо toarray() используем сумму по разреженной матрице
+        sum_tfidf = np.array(matrix.sum(axis=0)).flatten()
+        
+        # Получаем частоту слов через bincount (очень быстро)
+        rows, cols = matrix.nonzero()
+        word_frequencies = np.bincount(cols, minlength=len(feature_names))
+        
+        # Избегаем деления на ноль
+        word_frequencies_safe = np.where(word_frequencies == 0, 1, word_frequencies)
+        
+        # Векторизованное деление
+        normalized_scores = sum_tfidf / word_frequencies_safe
+        
+        # Создаем список результатов
+        result = list(zip(feature_names, normalized_scores))
+        result.sort(key=lambda x: x[1], reverse=True)
+        
+        return result
 
 
     def __search(self, search_word) -> set:

@@ -3,6 +3,7 @@ import kagglehub
 from pathlib import Path
 import pandas as pd
 import re
+import os
 
 from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
@@ -35,15 +36,16 @@ class DataStorage:
         self.__stop_words = set(stopwords.words('english'))
         self.__fill_lists_by_main_text()
 
-    def save_text_list_to_file(self, filename="output.txt"):
-        """Сохраняет элементы __main_text_list в текстовый файл."""
+    def writeProcessedTextToFile(self, filename="output.txt"):
+        """Сохраняет элементы __processed_text_list в текстовый файл."""
         
-        with open(filename, 'w', encoding='utf-8') as f:
-            # Преобразуем каждый элемент в строку
+        filepath = os.path.join("files", filename)
+        
+        with open(filepath, 'w', encoding='utf-8') as f:
             text_lines = [str(item) for item in self.__processed_sent_list]
             f.write('\n'.join(text_lines))
         
-        print(f"Сохранено {len(self.__processed_sent_list)} строк в {filename}")
+        print(f"Сохранено {len(self.__processed_sent_list)} строк в {filepath}")
 
     def load_text(self, text):
         """Эта функция позволяет вместо загрузки датасета, передать строку, которая и будет исходным текстом. Функция по-большей степени нужна для тестирования."""

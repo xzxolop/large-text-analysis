@@ -11,4 +11,8 @@ index = InvertedIndex(sentances)
 #index.printTopWordFrequency(10)
 
 res = index.getMeanTfidf()
+index.writeMeanTfidfToFile(res)
+
 print(res[:20])
+
+dataStore.writeProcessedTextToFile()

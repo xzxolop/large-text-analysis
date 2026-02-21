@@ -19,3 +19,5 @@ with open('tfidf_results.txt', 'w', encoding='utf-8') as f:
         f.write(f"{word}: {score:.6f}\n")
 
 print("Результаты сохранены в tfidf_results.txt")
+
+dataStore.save_text_list_to_file()

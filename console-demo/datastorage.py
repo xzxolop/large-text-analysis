@@ -2,6 +2,7 @@ import nltk
 import kagglehub
 from pathlib import Path
 import pandas as pd
+import re
 
 from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
@@ -31,10 +32,18 @@ class DataStorage:
         self.__main_text_list = comments_df["body"].to_list()
 
         nltk.download('stopwords', quiet=True)
-        #nltk.download('punkt', quiet=True)
-        # TODO: также в качестве стоп-слов  добавить ссылки (через рег. выражения)
         self.__stop_words = set(stopwords.words('english'))
         self.__fill_lists_by_main_text()
+
+    def save_text_list_to_file(self, filename="output.txt"):
+        """Сохраняет элементы __main_text_list в текстовый файл."""
+        
+        with open(filename, 'w', encoding='utf-8') as f:
+            # Преобразуем каждый элемент в строку
+            text_lines = [str(item) for item in self.__processed_sent_list]
+            f.write('\n'.join(text_lines))
+        
+        print(f"Сохранено {len(self.__processed_sent_list)} строк в {filename}")
 
     def load_text(self, text):
         """Эта функция позволяет вместо загрузки датасета, передать строку, которая и будет исходным текстом. Функция по-большей степени нужна для тестирования."""
@@ -77,7 +86,43 @@ class DataStorage:
                     self.__alias_list.append(i)
 
     def __preprocess_sent(self, sent: str):
-        words = word_tokenize(sent)
+        sent_without_links = self.__delete_links(sent)
+
+        words = word_tokenize(sent_without_links)
         filtered_words = [word for word in words 
                             if word not in self.__stop_words and word.isalnum()]
         return " ".join(filtered_words)
+    
+    def __delete_links(self, text):
+        """Очищает текст от ссылок."""
+        if pd.isna(text):
+            return ""
+        
+        # Преобразуем в строку
+        text = str(text)
+        
+        # Удаляем URL (http/https/ftp)
+        url_pattern = r'https?://\S+|ftp://\S+'
+        text = re.sub(url_pattern, '', text)
+        
+        # Удаляем URL без протокола (начинающиеся с www.)
+        www_pattern = r'www\.\S+'
+        text = re.sub(www_pattern, '', text)
+        
+        # Удаляем URL в скобках
+        bracket_pattern = r'\(https?://\S+\)|\(www\.\S+\)'
+        text = re.sub(bracket_pattern, '', text)
+        
+        # Удаляем URL в квадратных скобках
+        square_bracket_pattern = r'\[https?://\S+\]|\[www\.\S+\]'
+        text = re.sub(square_bracket_pattern, '', text)
+        
+        # Удаляем URL в угловых скобках
+        angle_bracket_pattern = r'<https?://\S+>|<www\.\S+>'
+        text = re.sub(angle_bracket_pattern, '', text)
+        
+        # Удаляем ссылки формата [text](url)
+        markdown_pattern = r'\[.*?\]\(https?://\S+\)'
+        text = re.sub(markdown_pattern, '', text)
+        
+        return text

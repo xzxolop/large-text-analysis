@@ -82,7 +82,7 @@ class InvertedIndex:
         self.__total_docs = len(sentences)
         self.__index = self.create_index(sentences)
         
-        self.__vectorizer = TfidfVectorizer()
+        self.__vectorizer = TfidfVectorizer(stop_words='english', min_df=2)
         self.__tfidf_matrix = self.__vectorizer.fit_transform(self.__sentences)
 
         if calc_word_freq:

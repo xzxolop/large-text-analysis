@@ -5,13 +5,13 @@ dataStore = DataStorage()
 dataStore.load_data() # TODO: убрать постоянную загрузку
 sentances = dataStore.get_processed_sentences()
 
-index = InvertedIndex(sentances, True)
+index = InvertedIndex(sentances)
 #index.get_searched_frequency()
 #print("printWordFrequency. Самые популярные слова загруженные в inverted_index:")
 #index.printTopWordFrequency(10)
 
 res = index.getMeanTfidf()
-print(res)
+#print(res)
 
 # Запись в текстовый файл
 with open('tfidf_results.txt', 'w', encoding='utf-8') as f:

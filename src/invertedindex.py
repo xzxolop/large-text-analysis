@@ -134,6 +134,14 @@ class InvertedIndex:
         Если поиска не было, то пустой список.
         """
         return self.__word_frequency.copy()
+    
+    # NOTE: по функционалу похожа на get_searched_frequency
+    def getTopWordFrequency(self, n = None):
+        size = len(self.__word_frequency)
+        if (n == None or size < n):
+            n = size
+        
+        return self.__word_frequency[:n]
 
     # TODO: сделать вывод по популяронсти встреч
     def printIndex(self, n = None):
@@ -146,7 +154,7 @@ class InvertedIndex:
             firstOfN = list(self.__index.items())[:n]
             for key, value in firstOfN:
                 print(f"{key}: {value}")
-    
+
     def printTopWordFrequency(self, n = None):
         """
         Выводит наиболее популярные слова среди загруженных предложений.
@@ -156,7 +164,7 @@ class InvertedIndex:
             n = size
         
         for x in self.__word_frequency[:n]:
-            print(f"{x.word} | freq={x.freq} | score={x.score:.4f}")
+            print(x)
     
     def getMeanTfidf(self) -> list:
         matrix = self.__tfidf_matrix
@@ -173,8 +181,37 @@ class InvertedIndex:
         
         return result
     
+    def getWordTfidf(self, word: str) -> float:
+        feature_names = self.__vectorizer.get_feature_names_out()
+        
+        try:
+            word_index = np.where(feature_names == word)[0][0]
+        except IndexError:
+            print(f"Слово '{word}' не найдено в словаре")
+            return 0.0
+        
+        word_tfidf = self.__tfidf_matrix[:, word_index].toarray().flatten()
+        nonzero_values = word_tfidf[word_tfidf > 0]
+        
+        if len(nonzero_values) == 0:
+            return 0.0
+        
+        return np.mean(nonzero_values)
+    
+    def getWordsTfidf(self, words: list[MyWord]) -> list:
+        res = []
+        for i in range(len(words)):
+            res.append(self.getWordTfidf(words[i].word))
+        return res
+    
+    # TODO: вынести это из этого класса, т.к. это не его зона ответственности, создать новый класс для этих целей
     def writeMeanTfidfToFile(self, tfidf_list: list, filename="tfidf_results.txt"):
-        filepath = os.path.join("files", filename)
+        folder_path = "files"
+        
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+
+        filepath = os.path.join(folder_path, filename)
 
         with open(filepath, 'w', encoding='utf-8') as f:
             for word, score in tfidf_list:

@@ -60,18 +60,18 @@ class InvertedIndex:
     __word_frequency    - список содержащий WordFrequency, который отражает наиболее популярные слова нашего датасета, которые сортируеются по убыванию популярности.\n
     """
 
-    __index = dict()
+    __index = dict[str, set[int]]()
     __sentences = list()
-    __word_frequency = list()  # NOTE: нужен чтобы каждый раз не пересчитывать.
+    __word_frequency = list[MyWord]()  # NOTE: нужен чтобы каждый раз не пересчитывать.
 
     def __init__(self, sentences: list, calc_word_freq: bool = False):
         self.__sentences = sentences
-        self.__index = self.create_index(sentences)
+        self.__index = self.__create_index(sentences)
 
         if calc_word_freq:
             self.__word_frequency = self.__convertIndexToList(self.__index)
     
-    def create_index(self, sentences: list) -> dict:
+    def __create_index(self, sentences: list) -> dict:
         index = dict()
         for i in range(len(sentences)):
             sent = sentences[i]
@@ -111,13 +111,6 @@ class InvertedIndex:
 
         state.word_frequency = self.__calculate_frequency(indexes) 
         return state
-    
-    # NOTE: Дублирование кода с datastorage
-    def get_sentences_by_indexes(self, indexes: set) -> list:
-        sent_list = []
-        for i in indexes:
-            sent_list.append(self.__sentences[i])
-        return sent_list
     
     def get_searched_frequency(self):
         """
@@ -163,7 +156,7 @@ class InvertedIndex:
         На вход принимает номера предожений в которых встречается поисковое слово.
         """
         sent_list = self.get_sentences_by_indexes(indexes)
-        index = self.create_index(sent_list)
+        index = self.__create_index(sent_list)
         return self.__convertIndexToList(index)
     
     def __search(self, search_word) -> set:

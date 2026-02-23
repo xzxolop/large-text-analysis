@@ -88,7 +88,7 @@ class DataStorage:
                     self.__alias_list.append(i)
 
     def __preprocess_sent(self, sent: str):
-        sent_without_links = self.__delete_links(sent)
+        sent_without_links = self.__delete_links(sent.lower())
 
         words = word_tokenize(sent_without_links)
         filtered_words = [word for word in words 

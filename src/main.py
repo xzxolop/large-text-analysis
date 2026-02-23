@@ -10,10 +10,10 @@ sentences = data_store.get_processed_sentences()
 engine = SearchEngine(sentences, calc_word_freq=True)
 
 most_popular_words = engine.index.getTopWordFrequency(20)
-print(most_popular_words)
+#print(most_popular_words)
 
 words_tfidf = engine.tfidf.get_words_tfidf(w.word for w in most_popular_words)
-print(words_tfidf)
+#print(words_tfidf)
 
 result = list(zip(most_popular_words, words_tfidf))
 for elem in result:

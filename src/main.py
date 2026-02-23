@@ -13,6 +13,5 @@ engine = SearchEngine(sentences, calc_word_freq=True)
 tfidf_for_top_words(engine, top_n=20)
 
 # Пример использования DataExporter (пока не обязателен для основной логики):
-# exporter = DataExporter()
-# filepath = exporter.write_mean_tfidf_to_file(engine.tfidf.get_mean_tfidf())
-# print(f\"TF-IDF результаты сохранены в {filepath}\")
+exporter = DataExporter()
+filepath = exporter.write_mean_tfidf_to_file(engine.get_top_words_with_tfidf(n=20))

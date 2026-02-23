@@ -112,14 +112,6 @@ class InvertedIndex:
         state.word_frequency = self.__calculate_frequency(indexes) 
         return state
     
-    def get_searched_frequency(self):
-        """
-        Возвращает список частот слов по итогу загрузки датасета и если при загрузке был указан флаг calc_word_freq = False.
-        Если поиска не было, то пустой список.
-        """
-        return self.__word_frequency.copy()
-    
-    # NOTE: по функционалу похожа на get_searched_frequency
     def getTopWordFrequency(self, n = None):
         size = len(self.__word_frequency)
         if (n == None or size < n):
@@ -127,7 +119,17 @@ class InvertedIndex:
         
         return self.__word_frequency[:n]
 
-    # TODO: сделать вывод по популяронсти встреч
+    # NOTE: как будто не сильно нужно. Эту ответственность можно возлажить на пользователя
+    def printTopWordFrequency(self, n = None):
+        """
+        Выводит наиболее популярные слова среди загруженных предложений.
+        """
+        lst = self.getTopWordFrequency(n)
+
+        for x in lst:
+            print(x)
+
+    # NOTE: как будто не сильно нужен. Можно оставить для дебага.
     def printIndex(self, n = None):
         """
         Печатает весь индекс как структуру данных.
@@ -138,17 +140,6 @@ class InvertedIndex:
             firstOfN = list(self.__index.items())[:n]
             for key, value in firstOfN:
                 print(f"{key}: {value}")
-
-    def printTopWordFrequency(self, n = None):
-        """
-        Выводит наиболее популярные слова среди загруженных предложений.
-        """
-        size = len(self.__word_frequency)
-        if (n == None or size < n):
-            n = size
-        
-        for x in self.__word_frequency[:n]:
-            print(x)
 
     def __calculate_frequency(self, indexes: set) -> list:
         """

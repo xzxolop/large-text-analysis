@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple
 
 from invertedindex import InvertedIndex, SearchState, MyWord
 from tfidf_model import TfidfModel
@@ -17,7 +17,9 @@ class SearchEngine:
         tfidf_vectorizer=None,
     ) -> None:
         self._index = InvertedIndex(sentences, calc_word_freq=calc_word_freq)
-        self.tfidf = TfidfModel(sentences, vectorizer=tfidf_vectorizer)
+        self._tfidf = TfidfModel(sentences, vectorizer=tfidf_vectorizer)
+
+# Функции из класса InvertedIndex
 
     def search(self, search_word: str, state: Optional[SearchState] = None) -> SearchState:
         """Поиск с использованием InvertedIndex и состояния SearchState."""
@@ -33,9 +35,18 @@ class SearchEngine:
         """Печатает top-N самых частых слов по индексу."""
         self._index.printTopWordFrequency(n)
 
+# Функции из класса TfidfModel
+
     def get_top_words_with_tfidf(self, n: int) -> List[Tuple[MyWord, float]]:
         """Top-N слов по частоте + соответствующие им TF-IDF значения."""
         top_words: List[MyWord] = self._index.getTopWordFrequency(n)
-        scores = self.tfidf.get_words_tfidf(w.word for w in top_words)
+        scores = self._tfidf.get_words_tfidf(w.word for w in top_words)
         return list(zip(top_words, scores))
 
+    def get_word_tfidf(self, word: str) -> float:
+        """TF-IDF для одного слова."""
+        return self._tfidf.get_word_tfidf(word)
+
+    def get_words_tfidf(self, words: Iterable[str]) -> List[float]:
+        """TF-IDF для набора слов."""
+        return self._tfidf.get_words_tfidf(words)

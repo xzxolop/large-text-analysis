@@ -63,7 +63,7 @@ class TfidfModel:
 
     def get_words_tfidf(self, words: Iterable[str]) -> List[float]:
         """
-        TF-IDF для набора слов (список средних значений).
+        Возвращает TF-IDF для набора слов (список средних значений).
         """
         return [self.get_word_tfidf(w) for w in words]
 

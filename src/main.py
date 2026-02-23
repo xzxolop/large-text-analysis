@@ -13,15 +13,10 @@ engine = SearchEngine(sentences, calc_word_freq=True)
 most_popular_words = engine.get_top_word_frequency(20)
 words_tfidf = engine.tfidf.get_words_tfidf(w.word for w in most_popular_words)
 
-print("Top words (freq + TF-IDF):")
-for word_obj, score in zip(most_popular_words, words_tfidf):
-    print(word_obj.word, score)
+print(f"\nMost popular words\n{most_popular_words}")
 
-# То же самое, что и код строчкой выше, но короче
-# Демонстрация высокоуровневого метода SearchEngine.get_top_words_with_tfidf
-print("\nTop words via get_top_words_with_tfidf:")
-for word_obj, score in engine.get_top_words_with_tfidf(20):
-    print(word_obj.word, score)
+top_tfidf = engine.get_top_words_with_tfidf(20)
+print(f"\nTf-idf for most popular words\n{top_tfidf}")
 
 # Пример использования DataExporter (пока не обязателен для основной логики):
 # exporter = DataExporter()

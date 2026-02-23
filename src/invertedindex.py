@@ -13,6 +13,10 @@ class MyWord:
     
     def __str__(self):
         return str(f"{self.word}: {self.freq}")
+
+    def __repr__(self):
+        # Чтобы при печати списков/словарей (используют repr) отображалось человекочитаемо
+        return f"{self.word}: {self.freq}"
     
 class SearchState:
     """

@@ -1,7 +1,4 @@
 from nltk.tokenize import word_tokenize
-from sklearn.feature_extraction.text import TfidfVectorizer
-import numpy as np
-import os
 
 class MyWord:
     word: str
@@ -65,17 +62,11 @@ class InvertedIndex:
 
     __index = dict()
     __sentences = list()
-    __word_frequency = list() # NOTE: нужен чтобы каждый раз не пересчитывать.
+    __word_frequency = list()  # NOTE: нужен чтобы каждый раз не пересчитывать.
 
-    __tfidf_matrix = None
-    __vectorizer = None
-
-    def __init__(self, sentences: list, calc_word_freq = False):
+    def __init__(self, sentences: list, calc_word_freq: bool = False):
         self.__sentences = sentences
         self.__index = self.create_index(sentences)
-        
-        self.__vectorizer = TfidfVectorizer(stop_words='english', min_df=2)
-        self.__tfidf_matrix = self.__vectorizer.fit_transform(self.__sentences)
 
         if calc_word_freq:
             self.__word_frequency = self.__convertIndexToList(self.__index)
@@ -165,59 +156,6 @@ class InvertedIndex:
         
         for x in self.__word_frequency[:n]:
             print(x)
-    
-    def getMeanTfidf(self) -> list:
-        matrix = self.__tfidf_matrix
-        feature_names = self.__vectorizer.get_feature_names_out()
-        sum_tfidf = np.array(matrix.sum(axis=0)).flatten()
-        
-        rows, cols = matrix.nonzero()
-        word_frequencies = np.bincount(cols, minlength=len(feature_names))
-        word_frequencies_safe = np.where(word_frequencies == 0, 1, word_frequencies)
-
-        normalized_scores = sum_tfidf / word_frequencies_safe
-        result = list(zip(feature_names, normalized_scores))
-        result.sort(key=lambda x: x[1], reverse=True)
-        
-        return result
-    
-    def getWordTfidf(self, word: str) -> float:
-        feature_names = self.__vectorizer.get_feature_names_out()
-        
-        try:
-            word_index = np.where(feature_names == word)[0][0]
-        except IndexError:
-            print(f"Слово '{word}' не найдено в словаре")
-            return 0.0
-        
-        word_tfidf = self.__tfidf_matrix[:, word_index].toarray().flatten()
-        nonzero_values = word_tfidf[word_tfidf > 0]
-        
-        if len(nonzero_values) == 0:
-            return 0.0
-        
-        return np.mean(nonzero_values)
-    
-    def getWordsTfidf(self, words: list[MyWord]) -> list:
-        res = []
-        for i in range(len(words)):
-            res.append(self.getWordTfidf(words[i].word))
-        return res
-    
-    # TODO: вынести это из этого класса, т.к. это не его зона ответственности, создать новый класс для этих целей
-    def writeMeanTfidfToFile(self, tfidf_list: list, filename="tfidf_results.txt"):
-        folder_path = "files"
-        
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
-
-        filepath = os.path.join(folder_path, filename)
-
-        with open(filepath, 'w', encoding='utf-8') as f:
-            for word, score in tfidf_list:
-                f.write(f"{word}: {score:.6f}\n")
-        print("Результаты сохранены в tfidf_results.txt")
-
 
     def __calculate_frequency(self, indexes: set) -> list:
         """

@@ -1,18 +1,19 @@
-from datastorage import DataStorage
-from invertedindex import InvertedIndex, SearchState
+from data.data_storage import DataStorage
+from search.search_engine import SearchEngine
+from data.data_exporter import DataExporter
+import demo
 
-dataStore = DataStorage()
-dataStore.load_data() # TODO: убрать постоянную загрузку
-sentances = dataStore.get_processed_sentences()
 
-index = InvertedIndex(sentances)
-#index.get_searched_frequency()
-#print("printWordFrequency. Самые популярные слова загруженные в inverted_index:")
-#index.printTopWordFrequency(10)
+data_store = DataStorage()
+data_store.load_data()  # TODO: убрать постоянную загрузку
+sentences = data_store.get_processed_sentences()
 
-res = index.getMeanTfidf()
-index.writeMeanTfidfToFile(res)
+engine = SearchEngine(sentences, calc_word_freq=True)
 
-print(res[:20])
+demo.tfidf_for_top_words(engine, top_n=20)
 
-dataStore.writeProcessedTextToFile()
+# Пример использования DataExporter (пока не обязателен для основной логики):
+exporter = DataExporter()
+filepath = exporter.write_mean_tfidf_to_file(engine.get_top_words_with_tfidf(n=20))
+
+demo.search_words_sequentially(engine, ["russia", "china"])

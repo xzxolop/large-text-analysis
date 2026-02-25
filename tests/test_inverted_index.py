@@ -7,10 +7,9 @@ except LookupError:
     nltk.download('punkt_tab')
     nltk.download('punkt')
 
-from invertedindex import InvertedIndex
-from invertedindex import MyWord
+from src.core.inverted_index import InvertedIndex, MyWord
 
-sentances = [
+sentences = [
     "my name is ononim",
     "ononim is very rare name",
     "i play in computer",
@@ -18,34 +17,34 @@ sentances = [
     "computer is not ononim"
 ]
 
-index = InvertedIndex(sentances, calc_word_freq=True)
-sf_global = index.get_searched_frequency()
+index = InvertedIndex(sentences, calc_word_freq=True)
+sf_global = index.get_top_word_frequency()
 
 def test_invariant_searched_frequency1():
     """
     Проверка не ломается ли инвариант searched_frequency
     """
-    sf1 = index.get_searched_frequency()
+    sf1 = index.get_top_word_frequency()
     index.search("computer")
-    sf2 = index.get_searched_frequency()
+    sf2 = index.get_top_word_frequency()
 
     assert sf1 == sf2
 
-def test_searchWith_word_exists():
+def test_search_with_word_exists():
     """
     Тест возвращаемого значения функции searchWith: Поиск существующего слова
     """
     state = index.search("computer")
-    expected = {2,3,4}
+    expected = {2, 3, 4}
     assert state.searched_sentences == expected
 
-def test_searchWith_word_nonexists():
+def test_search_with_word_nonexists():
     """
     Тест возвращаемого значения функции searchWith: Поиск несуществующего слова
     """
     res = index.search("non_exist_word")
     expected = set()
-    
+
     assert res.searched_sentences == expected
 
 def test_calculate_frequency():
@@ -65,7 +64,7 @@ def test_calculate_frequency():
     expected.append(MyWord("system", 1))
     expected.append(MyWord("not", 1))
 
-    sf = index.get_searched_frequency()
+    sf = index.get_top_word_frequency()
     assert len(sf) == len(expected)
     assert sf == expected
 
@@ -78,7 +77,7 @@ def test_calculate_frequency():
 
 #def test_calculate_frequency_word_exists():
 #    expected = []
-#    
+#
 #    expected.append(MyWord("i", 1))
 #    expected.append(MyWord("play", 1))
 #    expected.append(MyWord("in", 1))

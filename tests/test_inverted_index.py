@@ -7,7 +7,7 @@ except LookupError:
     nltk.download('punkt_tab')
     nltk.download('punkt')
 
-from core.inverted_index import InvertedIndex, MyWord
+from src.core.inverted_index import InvertedIndex, MyWord
 
 sentences = [
     "my name is ononim",

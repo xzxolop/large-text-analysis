@@ -39,7 +39,7 @@ class SearchEngine:
 
     def get_top_words_with_tfidf(self, n: int) -> List[Tuple[MyWord, float]]:
         """Top-N слов по частоте + соответствующие им TF-IDF значения."""
-        top_words: List[MyWord] = self._index.getTopWordFrequency(n)
+        top_words: List[MyWord] = self._index.get_top_word_frequency(n)
         scores = self._tfidf.get_words_tfidf(w.word for w in top_words)
         return list(zip(top_words, scores))
 

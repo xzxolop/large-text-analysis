@@ -18,12 +18,18 @@ class DataStorage:
     __processed_sent_list   - список обработаных предложений (равно числу оригинальных.\n
     __alias_list            - список связей, где index соответствует оригинальному и обработаному предожению, а value - документу датасета.\n
     """
-    __main_text_list = []  #TODO: rename to documents_list
-    __orig_sent_list = []
-    __processed_sent_list = []
-    __alias_list = []
+    __main_text_list: list[str]  #TODO: rename to documents_list
+    __orig_sent_list: list[str]
+    __processed_sent_list: list[str]
+    __alias_list: list[int]
+    __stop_words: set[str]
 
-    __stop_words = set()
+    def __init__(self) -> None:
+        self.__main_text_list = []
+        self.__orig_sent_list = []
+        self.__processed_sent_list = []
+        self.__alias_list = []
+        self.__stop_words = set()
 
     def load_data(self):
         """Загружает данные из датасета в списки python."""

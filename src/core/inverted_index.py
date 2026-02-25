@@ -20,17 +20,22 @@ class MyWord:
 
 class SearchState:
     """
-    Docstring for SearchState
+    Состояние поиска: хранит слова, предложения и связанные слова.
 
-    searched_words        - слова по которым прошел поиск.\n
-    searched_sentences    - предложения, в которых слова встретились.\n
-    searched_frequency    - список содержащий WordFrequency, который отражает наиболее популярные слова, которые сортируеются по убыванию популярности.\n
+    Attributes:
+        searched_words: Слова, по которым был выполнен поиск.
+        searched_sentences: Индексы предложений, где найдены слова.
+        word_frequency: Список связанных слов, отсортированный по частоте.
     """
 
-    # TODO: стоит ли сделать приватными?
-    searched_words = set()
-    searched_sentences = set()
-    word_frequency = list()
+    searched_words: set[str]
+    searched_sentences: set[int]
+    word_frequency: list[MyWord]
+
+    def __init__(self) -> None:
+        self.searched_words = set()
+        self.searched_sentences = set()
+        self.word_frequency = []
 
     def clear_state(self):
         """
@@ -48,8 +53,7 @@ class SearchState:
         if (n == None or size < n):
             n = size
 
-        for x in self.word_frequency[:n]:
-            print(x.word, x.freq)
+        print(self.word_frequency[:n])
 
     def print_matches(self):
         """
@@ -64,13 +68,14 @@ class InvertedIndex:
     __word_frequency    - список содержащий WordFrequency, который отражает наиболее популярные слова нашего датасета, которые сортируеются по убыванию популярности.\n
     """
 
-    __index = dict[str, set[int]]()
-    __sentences = list()
-    __word_frequency = list[MyWord]()  # NOTE: нужен чтобы каждый раз не пересчитывать.
+    __index: dict[str, set[int]]
+    __sentences: list[str]
+    __word_frequency: list[MyWord]  # NOTE: нужен чтобы каждый раз не пересчитывать.
 
     def __init__(self, sentences: list, calc_word_freq: bool = False):
         self.__sentences = sentences
         self.__index = self.__create_index(sentences)
+        self.__word_frequency = []
 
         if calc_word_freq:
             self.__word_frequency = self.__convertIndexToList(self.__index)

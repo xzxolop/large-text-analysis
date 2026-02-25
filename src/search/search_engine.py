@@ -31,6 +31,14 @@ class SearchEngine:
         """Top-N самых частых слов по индексу."""
         return self._index.get_top_word_frequency(n)
 
+    def get_least_frequent_words(self, n: int | None = None):
+        """Top-N наименее частых слов по индексу."""
+        return self._index.get_least_frequent_words(n)
+
+    def get_words_by_frequency(self, freq: int) -> list[MyWord]:
+        """Вернуть все слова с указанной частотой."""
+        return self._index.get_words_by_frequency(freq)
+
     def print_top_word_frequency(self, n: int | None = None) -> None:
         """Печатает top-N самых частых слов по индексу."""
         self._index.print_top_word_frequency(n)

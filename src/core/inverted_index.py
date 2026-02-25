@@ -128,6 +128,33 @@ class InvertedIndex:
 
         return self.__word_frequency[:n]
 
+    def get_least_frequent_words(self, n: int | None = None) -> list[MyWord]:
+        """
+        Вернуть N наименее частых слов.
+        
+        Args:
+            n: Количество слов. Если None — вернуть все слова в порядке возрастания частоты.
+        """
+        if not self.__word_frequency:
+            return []
+        
+        if n is None:
+            return self.__word_frequency[::-1]
+        
+        return self.__word_frequency[-n:][::-1]
+
+    def get_words_by_frequency(self, freq: int) -> list[MyWord]:
+        """
+        Вернуть все слова с указанной частотой.
+        
+        Args:
+            freq: Частота слова (количество вхождений).
+        
+        Returns:
+            Список слов с заданной частотой.
+        """
+        return [w for w in self.__word_frequency if w.freq == freq]
+
     # NOTE: как будто не сильно нужно. Эту ответственность можно возлажить на пользователя
     def print_top_word_frequency(self, n = None):
         """

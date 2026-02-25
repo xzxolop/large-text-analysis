@@ -18,15 +18,13 @@ filepath = exporter.write_mean_tfidf_to_file(engine.get_top_words_with_tfidf(n=2
 
 demo.search_words_sequentially(engine, ["russia", "china"])
 
-# Анализ наименее частых слов:
-print("\n" + "="*50)
-print("Анализ наименее частых слов")
-print("="*50)
-
-least_frequent = engine.get_least_frequent_words(n=20)
-print(f"\n20 наименее частых слов:\n{least_frequent}")
-
+# Анализ наименее частых слов
 # Поиск слов с конкретной частотой
 print("Поиск слов по частоте")
-words = engine.get_words_by_frequency(freq=1)
-print(words)
+words = engine.get_words_by_frequency(freq=2)
+print(f"Найдено слов с частотой 1: {len(words)}")
+
+tfidf = engine.get_words_tfidf(words)
+words_and_tfidf = list(zip(words, tfidf))
+exporter.write_mean_tfidf_to_file(tfidf_list=words_and_tfidf, filename="wf1tfidf.txt")
+print(f"Результат сохранён в файл: files/wf1tfidf.txt")

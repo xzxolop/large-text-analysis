@@ -64,5 +64,23 @@ class TfidfModel:
     def get_words_tfidf(self, words: Iterable[str]) -> List[float]:
         """
         Возвращает TF-IDF для набора слов (список средних значений).
+        Оптимизированная версия с векторизованным вычислением.
         """
-        return [self.get_word_tfidf(w) for w in words]
+        feature_names = self._vectorizer.get_feature_names_out()
+        feature_to_idx = {name: idx for idx, name in enumerate(feature_names)}
+        
+        scores = []
+        for word in words:
+            if word in feature_to_idx:
+                word_index = feature_to_idx[word]
+                word_tfidf = self._matrix[:, word_index].toarray().flatten()
+                nonzero_values = word_tfidf[word_tfidf > 0]
+                if len(nonzero_values) > 0:
+                    scores.append(float(np.mean(nonzero_values)))
+                else:
+                    scores.append(0.0)
+            else:
+                # Слово не в словаре (например, min_df=2 и слово встречается 1 раз)
+                scores.append(0.0)
+        
+        return scores

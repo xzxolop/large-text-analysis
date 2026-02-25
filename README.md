@@ -42,4 +42,4 @@ data
 
 ### Запуск тестов
 
-```uv run pytest tests/ -v```
+```uv run pytest -v```

@@ -36,7 +36,7 @@ class DataStorage:
         self.__stop_words = set(stopwords.words('english'))
         self.__fill_lists_by_main_text()
 
-    def writeProcessedTextToFile(self, filename="output.txt"):
+    def write_processed_text_to_file(self, filename="output.txt"):
         """Сохраняет элементы __processed_text_list в текстовый файл."""
 
         filepath = os.path.join("files", filename)

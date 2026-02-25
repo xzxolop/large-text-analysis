@@ -29,11 +29,11 @@ class SearchEngine:
 
     def get_top_word_frequency(self, n: int | None = None):
         """Top-N самых частых слов по индексу."""
-        return self._index.getTopWordFrequency(n)
+        return self._index.get_top_word_frequency(n)
 
     def print_top_word_frequency(self, n: int | None = None) -> None:
         """Печатает top-N самых частых слов по индексу."""
-        self._index.printTopWordFrequency(n)
+        self._index.print_top_word_frequency(n)
 
 # Функции из класса TfidfModel
 

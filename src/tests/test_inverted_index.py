@@ -18,19 +18,19 @@ sentences = [
 ]
 
 index = InvertedIndex(sentences, calc_word_freq=True)
-sf_global = index.getTopWordFrequency()
+sf_global = index.get_top_word_frequency()
 
 def test_invariant_searched_frequency1():
     """
     Проверка не ломается ли инвариант searched_frequency
     """
-    sf1 = index.getTopWordFrequency()
+    sf1 = index.get_top_word_frequency()
     index.search("computer")
-    sf2 = index.getTopWordFrequency()
+    sf2 = index.get_top_word_frequency()
 
     assert sf1 == sf2
 
-def test_searchWith_word_exists():
+def test_search_with_word_exists():
     """
     Тест возвращаемого значения функции searchWith: Поиск существующего слова
     """
@@ -38,7 +38,7 @@ def test_searchWith_word_exists():
     expected = {2, 3, 4}
     assert state.searched_sentences == expected
 
-def test_searchWith_word_nonexists():
+def test_search_with_word_nonexists():
     """
     Тест возвращаемого значения функции searchWith: Поиск несуществующего слова
     """
@@ -64,7 +64,7 @@ def test_calculate_frequency():
     expected.append(MyWord("system", 1))
     expected.append(MyWord("not", 1))
 
-    sf = index.getTopWordFrequency()
+    sf = index.get_top_word_frequency()
     assert len(sf) == len(expected)
     assert sf == expected
 

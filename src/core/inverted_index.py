@@ -32,7 +32,7 @@ class SearchState:
     searched_sentences = set()
     word_frequency = list()
 
-    def clearState(self):
+    def clear_state(self):
         """
         Очистить состояние поиска.
         """
@@ -40,7 +40,7 @@ class SearchState:
         self.searched_sentences.clear()
         self.word_frequency.clear()
 
-    def printWordFrequency(self, n = None):
+    def print_word_frequency(self, n = None):
         """
         Выводит какие слова и насколько часто встречаются с поисковым(и) словом(ами)
         """
@@ -51,7 +51,7 @@ class SearchState:
         for x in self.word_frequency[:n]:
             print(x.word, x.freq)
 
-    def printMatches(self):
+    def print_matches(self):
         """
         Эта функция выводит слова которые мы искали, а также предложения в которых они встретились.
         """
@@ -116,7 +116,7 @@ class InvertedIndex:
         state.word_frequency = self.__calculate_frequency(indexes)
         return state
 
-    def getTopWordFrequency(self, n = None):
+    def get_top_word_frequency(self, n = None):
         size = len(self.__word_frequency)
         if (n == None or size < n):
             n = size
@@ -124,17 +124,17 @@ class InvertedIndex:
         return self.__word_frequency[:n]
 
     # NOTE: как будто не сильно нужно. Эту ответственность можно возлажить на пользователя
-    def printTopWordFrequency(self, n = None):
+    def print_top_word_frequency(self, n = None):
         """
         Выводит наиболее популярные слова среди загруженных предложений.
         """
-        lst = self.getTopWordFrequency(n)
+        lst = self.get_top_word_frequency(n)
 
         for x in lst:
             print(x)
 
     # NOTE: как будто не сильно нужен. Можно оставить для дебага.
-    def printIndex(self, n = None):
+    def print_index(self, n = None):
         """
         Печатает весь индекс как структуру данных.
         """

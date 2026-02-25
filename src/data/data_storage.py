@@ -8,6 +8,10 @@ import os
 from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
 
+# Путь к корню проекта (на уровень выше src/)
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+
+
 class DataStorage:
     """
     Хранит данные датасета в списках python.
@@ -39,7 +43,12 @@ class DataStorage:
     def write_processed_text_to_file(self, filename="output.txt"):
         """Сохраняет элементы __processed_text_list в текстовый файл."""
 
-        filepath = os.path.join("files", filename)
+        files_dir = PROJECT_ROOT / "files"
+        
+        if not files_dir.exists():
+            files_dir.mkdir(parents=True)
+
+        filepath = files_dir / filename
 
         with open(filepath, 'w', encoding='utf-8') as f:
             text_lines = [str(item) for item in self.__processed_sent_list]

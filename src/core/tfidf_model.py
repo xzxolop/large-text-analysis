@@ -16,7 +16,7 @@ class TfidfModel:
         vectorizer: Optional[TfidfVectorizer] = None,
     ) -> None:
         self._vectorizer = vectorizer or TfidfVectorizer(
-            stop_words="english",
+            #stop_words="english",
             min_df=2,
         )
         self._matrix = self._vectorizer.fit_transform(sentences)

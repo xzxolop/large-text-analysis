@@ -3,13 +3,11 @@ import kagglehub
 from pathlib import Path
 import pandas as pd
 import re
-import os
 
 from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
 
-# Путь к корню проекта (на уровень выше src/)
-PROJECT_ROOT = Path(__file__).parent.parent.parent
+from config import PROJECT_ROOT, FILES_DIR
 
 
 class DataStorage:

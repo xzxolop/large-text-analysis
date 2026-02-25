@@ -1,10 +1,7 @@
-import os
 from pathlib import Path
 from typing import Iterable, Tuple
 
-
-# Путь к корню проекта (на уровень выше src/)
-PROJECT_ROOT = Path(__file__).parent.parent.parent
+from config import PROJECT_ROOT, FILES_DIR
 
 
 class DataExporter:
@@ -16,14 +13,17 @@ class DataExporter:
         self,
         tfidf_list: Iterable[Tuple[str, float]],
         filename: str = "tfidf_results.txt",
-        folder_path: str = "files",
+        folder_path: str = None,
     ) -> str:
         """
         Записывает пары (слово, score) в текстовый файл и возвращает путь.
         """
         # Используем абсолютный путь относительно корня проекта
-        files_dir = PROJECT_ROOT / folder_path
+        if folder_path is None:
+            folder_path = FILES_DIR
         
+        files_dir = PROJECT_ROOT / folder_path
+
         if not files_dir.exists():
             files_dir.mkdir(parents=True)
 

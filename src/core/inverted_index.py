@@ -10,18 +10,18 @@ class MyWord:
 
     def __eq__(self, other):  # == (equal)
         return self.word == other.word and self.freq == other.freq
-    
+
     def __str__(self):
         return str(f"{self.word}: {self.freq}")
 
     def __repr__(self):
         # Чтобы при печати списков/словарей (используют repr) отображалось человекочитаемо
         return f"{self.word}: {self.freq}"
-    
+
 class SearchState:
     """
     Docstring for SearchState
-    
+
     searched_words        - слова по которым прошел поиск.\n
     searched_sentences    - предложения, в которых слова встретились.\n
     searched_frequency    - список содержащий WordFrequency, который отражает наиболее популярные слова, которые сортируеются по убыванию популярности.\n
@@ -47,7 +47,7 @@ class SearchState:
         size = len(self.word_frequency)
         if (n == None or size < n):
             n = size
-        
+
         for x in self.word_frequency[:n]:
             print(x.word, x.freq)
 
@@ -74,7 +74,7 @@ class InvertedIndex:
 
         if calc_word_freq:
             self.__word_frequency = self.__convertIndexToList(self.__index)
-    
+
     def __create_index(self, sentences: list) -> dict:
         index = dict()
         for i in range(len(sentences)):
@@ -87,7 +87,7 @@ class InvertedIndex:
                     s = {i}
                     index[word] = s
         return index
-    
+
     def search(self, search_word: str, state = SearchState()) -> SearchState:
         """
         Функция для последовательного поиска слов (с памятью).
@@ -96,7 +96,7 @@ class InvertedIndex:
 
         if search_word in state.searched_words:
             return state
-        
+
         indexes = set()
 
         if len(state.searched_words) == 0:
@@ -113,14 +113,14 @@ class InvertedIndex:
             state.searched_sentences = indexes
             state.searched_words.add(search_word)
 
-        state.word_frequency = self.__calculate_frequency(indexes) 
+        state.word_frequency = self.__calculate_frequency(indexes)
         return state
-    
+
     def getTopWordFrequency(self, n = None):
         size = len(self.__word_frequency)
         if (n == None or size < n):
             n = size
-        
+
         return self.__word_frequency[:n]
 
     # NOTE: как будто не сильно нужно. Эту ответственность можно возлажить на пользователя
@@ -153,13 +153,19 @@ class InvertedIndex:
         sent_list = self.get_sentences_by_indexes(indexes)
         index = self.__create_index(sent_list)
         return self.__convertIndexToList(index)
-    
+
     def __search(self, search_word) -> set:
         if search_word not in self.__index:
             return {}
         else:
             return self.__index[search_word]
-        
+
+    def get_sentences_by_indexes(self, indexes: set) -> list:
+        """
+        Возвращает список предложений по набору индексов.
+        """
+        return [self.__sentences[i] for i in indexes]
+
     def __convertIndexToList(self, index: dict) -> list:
         """
         Преобразует инвертированный индекс в список, отсоритрованный по популярности встреч слова в предложениях.
@@ -167,7 +173,7 @@ class InvertedIndex:
         wordsList = []
         for word in index:
             word_freq = len(index[word])
-            
+
             if word_freq == 0:
                 continue
 

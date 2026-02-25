@@ -1,4 +1,4 @@
-from search_engine import SearchEngine
+from search.search_engine import SearchEngine
 
 
 def tfidf_for_top_words(engine: SearchEngine, top_n: int = 20) -> None:
@@ -7,4 +7,3 @@ def tfidf_for_top_words(engine: SearchEngine, top_n: int = 20) -> None:
 
     top_tfidf = engine.get_top_words_with_tfidf(top_n)
     print(f"\nTf-idf for most popular words\n{top_tfidf}")
-

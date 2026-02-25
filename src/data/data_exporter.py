@@ -26,4 +26,3 @@ class DataExporter:
                 f.write(f"{word}: {score:.6f}\n")
 
         return filepath
-

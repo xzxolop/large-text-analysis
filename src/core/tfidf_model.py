@@ -66,4 +66,3 @@ class TfidfModel:
         Возвращает TF-IDF для набора слов (список средних значений).
         """
         return [self.get_word_tfidf(w) for w in words]
-

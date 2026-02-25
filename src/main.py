@@ -1,6 +1,6 @@
-from datastorage import DataStorage
-from search_engine import SearchEngine
-from data_exporter import DataExporter
+from data.data_storage import DataStorage
+from search.search_engine import SearchEngine
+from data.data_exporter import DataExporter
 from demo import tfidf_for_top_words
 
 

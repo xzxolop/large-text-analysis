@@ -1,7 +1,7 @@
 from typing import Iterable, List, Optional, Tuple
 
-from invertedindex import InvertedIndex, SearchState, MyWord
-from tfidf_model import TfidfModel
+from core.inverted_index import InvertedIndex, SearchState, MyWord
+from core.tfidf_model import TfidfModel
 
 
 class SearchEngine:

@@ -143,7 +143,7 @@ class InvertedIndex:
         
         return self.__word_frequency[-n:][::-1]
 
-    def get_words_by_frequency(self, freq: int) -> list[MyWord]:
+    def get_words_by_frequency(self, freq: int) -> list[str]:
         """
         Вернуть все слова с указанной частотой.
         
@@ -153,7 +153,7 @@ class InvertedIndex:
         Returns:
             Список слов с заданной частотой.
         """
-        return [w for w in self.__word_frequency if w.freq == freq]
+        return [w.word for w in self.__word_frequency if w.freq == freq]
 
     # NOTE: как будто не сильно нужно. Эту ответственность можно возлажить на пользователя
     def print_top_word_frequency(self, n = None):

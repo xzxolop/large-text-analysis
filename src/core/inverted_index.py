@@ -150,7 +150,7 @@ class InvertedIndex:
         Эта функция нужна, чтобы для поискового слова (например python) найти слова которые чаще всего с ним встречаются.
         На вход принимает номера предожений в которых встречается поисковое слово.
         """
-        sent_list = self.get_sentences_by_indexes(indexes)
+        sent_list = self.__get_sentences_by_indexes(indexes)
         index = self.__create_index(sent_list)
         return self.__convertIndexToList(index)
 
@@ -160,7 +160,7 @@ class InvertedIndex:
         else:
             return self.__index[search_word]
 
-    def get_sentences_by_indexes(self, indexes: set) -> list:
+    def __get_sentences_by_indexes(self, indexes: set) -> list:
         """
         Возвращает список предложений по набору индексов.
         """

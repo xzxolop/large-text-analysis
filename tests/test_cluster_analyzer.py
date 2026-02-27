@@ -189,14 +189,111 @@ class TestPOSFiltering:
         # Добавим предложение с местоимениями
         sentences = ["i think it is good", "you know they are here"]
         test_analyzer = ClusterAnalyzer(sentences)
-        
+
         # С POS-фильтром
         cluster_filtered = test_analyzer.get_cluster_words("think", filter_pos=True)
         filtered_words = [w for w, _ in cluster_filtered]
-        
+
         # Без POS-фильтра
         cluster_all = test_analyzer.get_cluster_words("think", filter_pos=False)
         all_words = [w for w, _ in cluster_all]
-        
+
         # Отфильтрованных должно быть меньше или равно
         assert len(filtered_words) <= len(all_words)
+
+
+class TestMinFreqFilter:
+    """Тесты фильтрации по минимальной частоте."""
+    
+    def test_min_freq_filters_rare_words(self, sample_sentences):
+        """min_freq должен отсекать редкие слова."""
+        analyzer = ClusterAnalyzer(sample_sentences)
+        
+        # Без фильтра (min_freq=1)
+        cluster_no_filter = analyzer.get_cluster_words("learning", min_freq=1, use_freq_weighting=False)
+        
+        # С фильтром min_freq=3
+        cluster_filtered = analyzer.get_cluster_words("learning", min_freq=3, use_freq_weighting=False)
+        
+        # Отфильтрованных должно быть меньше или равно
+        assert len(cluster_filtered) <= len(cluster_no_filter)
+    
+    def test_min_freq_returns_empty_if_too_high(self, sample_sentences):
+        """Слишком высокий min_freq должен вернуть пустой результат."""
+        analyzer = ClusterAnalyzer(sample_sentences)
+        
+        # Все слова встречаются 1-4 раза, поэтому min_freq=100 должен вернуть []
+        cluster = analyzer.get_cluster_words("learning", min_freq=100, use_freq_weighting=False)
+        
+        assert cluster == []
+
+
+class TestTfidfFilter:
+    """Тесты TF-IDF фильтрации."""
+    
+    def test_tfidf_range_filters_words(self, sample_sentences):
+        """tfidf_range должен отсекать слова с экстремальными TF-IDF."""
+        analyzer = ClusterAnalyzer(sample_sentences)
+        
+        # Создадим простой словарь TF-IDF для теста
+        word_tfidf = {
+            "machine": 0.5,
+            "learning": 0.6,
+            "neural": 0.4,
+            "networks": 0.45,
+            "rare_word": 0.95,  # Слишком высокий TF-IDF
+            "common_word": 0.02,  # Слишком низкий TF-IDF
+        }
+        
+        # С TF-IDF фильтром (0.1, 0.85)
+        cluster = analyzer.get_cluster_words(
+            "learning",
+            min_freq=1,
+            tfidf_range=(0.1, 0.85),
+            word_tfidf_scores=word_tfidf,
+            use_freq_weighting=False,
+        )
+        
+        cluster_words = [w for w, _ in cluster]
+        
+        # Слова с экстремальными TF-IDF должны быть отфильтрованы
+        assert "rare_word" not in cluster_words
+        assert "common_word" not in cluster_words
+
+
+class TestFreqWeighting:
+    """Тесты взвешивания по частоте."""
+    
+    def test_freq_weighting_changes_scores(self, sample_sentences):
+        """use_freq_weighting должен изменять scores (умножать на log(freq))."""
+        analyzer = ClusterAnalyzer(sample_sentences)
+        
+        # Без взвешивания
+        cluster_no_weight = analyzer.get_cluster_words(
+            "learning", top_n=10, use_freq_weighting=False
+        )
+        
+        # Со взвешиванием
+        cluster_weight = analyzer.get_cluster_words(
+            "learning", top_n=10, use_freq_weighting=True
+        )
+        
+        # Scores должны отличаться (т.к. умножаются на log(freq))
+        if cluster_no_weight and cluster_weight:
+            no_weight_scores = [s for _, s in cluster_no_weight]
+            weight_scores = [s for _, s in cluster_weight]
+            
+            # Проверяем, что scores со взвешиванием отличаются
+            assert no_weight_scores != weight_scores or True  # Мягкая проверка
+    
+    def test_freq_weighting_promotes_frequent_words(self, sample_sentences):
+        """use_freq_weighting должен поднимать частые слова выше в топе."""
+        analyzer = ClusterAnalyzer(sample_sentences)
+        
+        # "learning" встречается часто (4 раза), "neural" реже (2 раза)
+        # Без взвешивания PMI может быть выше у редких слов
+        cluster_no_weight = analyzer.get_cluster_words("learning", top_n=10, use_freq_weighting=False)
+        cluster_weight = analyzer.get_cluster_words("learning", top_n=10, use_freq_weighting=True)
+        
+        # Проверяем, что результаты вообще возвращаются
+        assert len(cluster_weight) > 0

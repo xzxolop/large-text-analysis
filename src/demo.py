@@ -1,5 +1,20 @@
 from search.search_engine import SearchEngine
 from typing import List, Tuple, Optional
+from data.data_exporter import DataExporter
+
+
+def export_tfidf_results(engine: SearchEngine, n: int = 20, filename: str = "tfidf_results.txt") -> None:
+    """
+    Экспортирует TF-IDF значения топ-N слов в файл.
+    
+    Args:
+        engine: Search engine instance.
+        n: Количество топ слов для экспорта.
+        filename: Имя файла для сохранения.
+    """
+    exporter = DataExporter()
+    filepath = exporter.write_mean_tfidf_to_file(engine.get_top_words_with_tfidf(n=n))
+    print(f"Результат сохранён в файл: {filepath}")
 
 
 def tfidf_for_top_words(engine: SearchEngine, top_n: int = 20) -> None:

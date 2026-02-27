@@ -41,14 +41,14 @@ class ClusterAnalyzer:
         self.sentences = sentences
         self.n_docs = len(sentences)
         
-        # Частота слов (в скольких документах встречается)
+        # Частота слов (в скольких документах встречается, все равно что сумма значений для ключа в inverted index)
         self.word_doc_freq: Counter = Counter()
+
+        # Общая частота слов (для нормализации)
+        self.word_total_freq: Counter = Counter()
         
         # Частота совместной встречаемости пар слов
         self.cooccurrence: Counter = Counter()
-        
-        # Общая частота слов (для нормализации)
-        self.word_total_freq: Counter = Counter()
         
         self._precompute()
     
@@ -98,7 +98,7 @@ class ClusterAnalyzer:
         p2 = self.word_doc_freq.get(word2, 0) / self.n_docs
         
         # Совместная вероятность P(word1, word2)
-        key = (min(word1, word2), max(word1, word2))
+        key = (min(word1, word2), max(word1, word2)) # min, max нужны в таком порядке т.к. мы сравнивали w1 < w2 в методе _precompute
         cooccur = self.cooccurrence.get(key, 0)
         p_joint = cooccur / self.n_docs
         

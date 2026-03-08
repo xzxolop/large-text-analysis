@@ -162,10 +162,11 @@ class ClusterAnalyzer:
         tfidf_range: Optional[Tuple[float, float]] = None,
         word_tfidf_scores: Optional[dict] = None,
         use_freq_weighting: bool = True,
+        min_score_percent: float = 0.0,
     ) -> List[Tuple[str, float]]:
         """
         Получить слова кластера для заданного слова.
-        
+
         Args:
             seed_word: Исходное слово (запрос пользователя).
             top_n: Количество возвращаемых результатов.
@@ -173,60 +174,70 @@ class ClusterAnalyzer:
             filter_pos: Фильтровать по частям речи (существительные, глаголы, прилагательные).
             use_npmi: Использовать Normalized PMI вместо обычного.
             min_freq: Минимальная частота слова (в скольких документах встречается).
-            tfidf_range: Диапазон TF-IDF (min, max) для фильтрации. 
+            tfidf_range: Диапазон TF-IDF (min, max) для фильтрации.
                          Например, (0.1, 0.85) отсечет нерелевантные слова.
             word_tfidf_scores: Словарь {слово: tfidf_score} для TF-IDF фильтрации.
             use_freq_weighting: Если True, использовать комбинированный скор PMI × log(freq).
-            
+            min_score_percent: Минимальный процент от максимального score для фильтрации.
+                              Например, 30.0 оставит слова с score >= 30% от максимального.
+                              0.0 отключает фильтрацию по проценту.
+
         Returns:
             Список кортежей (слово, score), отсортированный по убыванию score.
         """
         seed_word = seed_word.lower()
-        
+
         # Проверяем, есть ли слово в корпусе
         if seed_word not in self.word_doc_freq:
             return []
-        
+
         scores = []
-        
+
         for word in self.word_doc_freq:
             if word == seed_word:
                 continue
-            
+
             # Фильтр по минимальной частоте (мягкий, по умолчанию = 1)
             if self.word_doc_freq[word] < min_freq:
                 continue
-            
+
             # POS-фильтр
             if filter_pos:
                 tagged = pos_tag([word])
                 if tagged[0][1] not in self.USEFUL_POS:
                     continue
-            
+
             # TF-IDF фильтр
             if tfidf_range is not None and word_tfidf_scores is not None:
                 tfidf = word_tfidf_scores.get(word, 0.0)
                 tfidf_min, tfidf_max = tfidf_range
                 if tfidf < tfidf_min or tfidf > tfidf_max:
                     continue
-            
+
             # Вычисляем PMI
             if use_npmi:
                 score = self.npmi(seed_word, word)
             else:
                 score = self.pmi(seed_word, word)
-            
+
             # Комбинированный скор: PMI × log(freq)
             if use_freq_weighting:
                 freq = self.word_doc_freq[word]
                 score = score * math.log(freq + 1)
-            
+
             if score >= min_pmi:
                 scores.append((word, score))
-        
+
         # Сортировка по убыванию
         scores.sort(key=lambda x: x[1], reverse=True)
-        
+
+        # Фильтр по проценту от максимального score
+        if min_score_percent > 0 and scores:
+            max_score = scores[0][1]
+            if max_score > 0:
+                threshold = max_score * (min_score_percent / 100.0)
+                scores = [(word, score) for word, score in scores if score >= threshold]
+
         return scores[:top_n]
     
     def get_cluster_with_frequency(

@@ -297,3 +297,86 @@ class TestFreqWeighting:
         
         # Проверяем, что результаты вообще возвращаются
         assert len(cluster_weight) > 0
+
+
+class TestMinScorePercent:
+    """Тесты фильтрации по проценту от максимального score."""
+
+    def test_min_score_percent_filters_words(self, sample_sentences):
+        """min_score_percent должен отсекать слова с низким score."""
+        analyzer = ClusterAnalyzer(sample_sentences)
+
+        # Без фильтра
+        cluster_no_filter = analyzer.get_cluster_words(
+            "learning", min_score_percent=0.0, use_freq_weighting=False
+        )
+
+        # С фильтром 50%
+        cluster_filtered = analyzer.get_cluster_words(
+            "learning", min_score_percent=50.0, use_freq_weighting=False
+        )
+
+        # Отфильтрованных должно быть меньше или равно
+        assert len(cluster_filtered) <= len(cluster_no_filter)
+
+    def test_min_score_percent_returns_empty_if_too_high(self, sample_sentences):
+        """Слишком высокий min_score_percent должен вернуть пустой результат."""
+        analyzer = ClusterAnalyzer(sample_sentences)
+
+        # 100% порог (только слово с максимальным score)
+        cluster = analyzer.get_cluster_words(
+            "learning", min_score_percent=100.0, use_freq_weighting=False
+        )
+
+        # Должно остаться 0-1 слов
+        assert len(cluster) <= 1
+
+    def test_min_score_percent_zero_disables_filter(self, sample_sentences):
+        """min_score_percent=0 должен отключать фильтрацию."""
+        analyzer = ClusterAnalyzer(sample_sentences)
+
+        # С фильтром 0% (по умолчанию)
+        cluster_zero = analyzer.get_cluster_words(
+            "learning", min_score_percent=0.0, use_freq_weighting=False
+        )
+
+        # Должно вернуть результаты
+        assert len(cluster_zero) > 0
+
+    def test_min_score_percent_preserves_order(self, sample_sentences):
+        """Результаты должны оставаться отсортированными по убыванию score."""
+        analyzer = ClusterAnalyzer(sample_sentences)
+
+        cluster = analyzer.get_cluster_words(
+            "learning", top_n=10, min_score_percent=10.0, use_freq_weighting=False
+        )
+
+        scores = [score for _, score in cluster]
+        assert scores == sorted(scores, reverse=True)
+
+    def test_min_score_percent_with_freq_weighting(self, sample_sentences):
+        """min_score_percent должен работать вместе с use_freq_weighting."""
+        analyzer = ClusterAnalyzer(sample_sentences)
+
+        # Без фильтра
+        cluster_no_filter = analyzer.get_cluster_words(
+            "learning", min_score_percent=0.0, use_freq_weighting=True
+        )
+
+        # С фильтром 30%
+        cluster_filtered = analyzer.get_cluster_words(
+            "learning", min_score_percent=30.0, use_freq_weighting=True
+        )
+
+        # Отфильтрованных должно быть меньше или равно
+        assert len(cluster_filtered) <= len(cluster_no_filter)
+
+    def test_min_score_percent_nonexistent_word(self, sample_sentences):
+        """Для несуществующего слова должен вернуть пустой список."""
+        analyzer = ClusterAnalyzer(sample_sentences)
+
+        cluster = analyzer.get_cluster_words(
+            "nonexistent_xyz", min_score_percent=50.0
+        )
+
+        assert cluster == []

@@ -77,10 +77,11 @@ class SearchEngine:
         min_freq: int = 1,
         tfidf_range: Optional[Tuple[float, float]] = None,
         use_freq_weighting: bool = True,
+        min_score_percent: float = 0.0,
     ) -> List[Tuple[str, float]]:
         """
         Получить слова кластера для заданного слова (PMI-based).
-        
+
         Args:
             seed_word: Исходное слово (запрос пользователя).
             top_n: Количество возвращаемых результатов.
@@ -90,17 +91,20 @@ class SearchEngine:
             min_freq: Минимальная частота слова (в скольких документах встречается).
             tfidf_range: Диапазон TF-IDF (min, max) для фильтрации.
             use_freq_weighting: Если True, использовать комбинированный скор PMI × log(freq).
-            
+            min_score_percent: Минимальный процент от максимального score для фильтрации.
+                              Например, 30.0 оставит слова с score >= 30% от максимального.
+                              0.0 отключает фильтрацию по проценту.
+
         Returns:
             Список кортежей (слово, score), отсортированный по убыванию score.
-            
+
         Raises:
             RuntimeError: Если кластерный анализ не включён.
         """
         if self._cluster_analyzer is None:
             raise RuntimeError("Cluster analysis is not enabled. "
                                "Set enable_cluster_analysis=True when creating SearchEngine.")
-        
+
         # Получаем TF-IDF для всех слов для фильтрации (с кэшированием)
         word_tfidf_scores = None
         if tfidf_range is not None:
@@ -109,10 +113,10 @@ class SearchEngine:
                 tfidf_values = self._tfidf.get_words_tfidf(all_words)
                 self._tfidf_cache = dict(zip(all_words, tfidf_values))
             word_tfidf_scores = self._tfidf_cache
-        
+
         return self._cluster_analyzer.get_cluster_words(
             seed_word, top_n, min_pmi, filter_pos, use_npmi,
-            min_freq, tfidf_range, word_tfidf_scores, use_freq_weighting
+            min_freq, tfidf_range, word_tfidf_scores, use_freq_weighting, min_score_percent
         )
     
     def get_cluster_with_frequency(

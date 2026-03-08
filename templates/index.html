@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Large Text Analysis — Word Cluster</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .search-box {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+        .form-group {
+            display: flex;
+            gap: 10px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 15px 20px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus {
+            border-color: #667eea;
+        }
+        input[type="text"]::placeholder {
+            color: #aaa;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .results {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .results-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+        }
+        .results-header h2 {
+            font-size: 1.5rem;
+        }
+        .results-header p {
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 15px 30px;
+            text-align: left;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        .rank {
+            color: #999;
+            font-weight: 600;
+        }
+        .word {
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1rem;
+        }
+        .freq, .score {
+            color: #666;
+            font-family: 'Consolas', monospace;
+        }
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .error {
+            background: #fee;
+            color: #c00;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Word Cluster Analysis</h1>
+        
+        <div class="search-box">
+            <form id="searchForm">
+                <div class="form-group">
+                    <input 
+                        type="text" 
+                        id="wordInput" 
+                        placeholder="Enter a word (e.g., data, python, machine)"
+                        autocomplete="off"
+                        required
+                    >
+                    <button type="submit" id="searchBtn">Find Cluster</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('searchForm');
+        const wordInput = document.getElementById('wordInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const resultsDiv = document.getElementById('results');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const word = wordInput.value.trim().toLowerCase();
+            if (!word) return;
+
+            setLoading(true);
+            resultsDiv.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/cluster', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ word: word }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to fetch cluster');
+                }
+
+                renderResults(data);
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        function setLoading(loading) {
+            searchBtn.disabled = loading;
+            if (loading) {
+                searchBtn.textContent = 'Searching...';
+            } else {
+                searchBtn.textContent = 'Find Cluster';
+            }
+        }
+
+        function renderResults(data) {
+            if (!data.cluster || data.cluster.length === 0) {
+                resultsDiv.innerHTML = `
+                    <div class="results">
+                        <div class="empty">
+                            <p>No related words found for "${data.word}"</p>
+                            <p style="margin-top: 10px; font-size: 0.9rem;">Try another word or check spelling</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const stats = data.stats;
+            const clusterHtml = data.cluster.map((item, index) => `
+                <tr>
+                    <td><span class="rank">#${index + 1}</span></td>
+                    <td><span class="word">${escapeHtml(item.word)}</span></td>
+                    <td><span class="freq">${item.freq.toLocaleString()}</span></td>
+                    <td><span class="score">${item.score.toFixed(4)}</span></td>
+                </tr>
+            `).join('');
+
+            resultsDiv.innerHTML = `
+                <div class="results">
+                    <div class="results-header">
+                        <h2>📊 Cluster for "${escapeHtml(data.word)}"</h2>
+                        <p>Words sorted by frequency (PMI × log(freq) scoring)</p>
+                    </div>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-value">${stats.count}</div>
+                            <div class="stat-label">Words Found</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${stats.max_score.toFixed(4)}</div>
+                            <div class="stat-label">Max Score</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${stats.mean_score.toFixed(4)}</div>
+                            <div class="stat-label">Avg Score</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${stats.min_score.toFixed(4)}</div>
+                            <div class="stat-label">Min Score</div>
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Word</th>
+                                <th>Frequency</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${clusterHtml}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

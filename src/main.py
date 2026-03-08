@@ -45,3 +45,5 @@ print("=" * 50)
 demo.show_word_cluster_by_frequency(engine, "data", top_n=20, min_freq=1, min_score_percent=30.0)
 
 demo.show_word_cluster_by_frequency(engine, "python", top_n=20, min_freq=1, min_score_percent=30.0)
+
+demo.show_word_cluster_by_frequency(engine, "russia", top_n=20, min_freq=1, min_score_percent=30.0)

@@ -148,3 +148,58 @@ class SearchEngine:
     def is_cluster_analysis_enabled(self) -> bool:
         """Проверить, включён ли кластерный анализ."""
         return self._cluster_analyzer is not None
+
+    def get_cluster_sentences(
+        self,
+        seed_word: str,
+        top_n: int = 20,
+        min_pmi: float = 0.0,
+        filter_pos: bool = True,
+        use_npmi: bool = False,
+        min_freq: int = 1,
+        tfidf_range: Optional[Tuple[float, float]] = None,
+        use_freq_weighting: bool = True,
+        min_score_percent: float = 0.0,
+    ) -> Tuple[List[Tuple[str, int, float]], List[int]]:
+        """
+        Получить слова кластера и индексы предложений с seed_word.
+
+        Args:
+            seed_word: Исходное слово (запрос пользователя).
+            top_n: Количество возвращаемых результатов.
+            min_pmi: Минимальный PMI для фильтрации.
+            filter_pos: Фильтровать по частям речи (существительные, глаголы, прилагательные).
+            use_npmi: Использовать Normalized PMI вместо обычного.
+            min_freq: Минимальная частота слова (в скольких документах встречается).
+            tfidf_range: Диапазон TF-IDF (min, max) для фильтрации.
+            use_freq_weighting: Если True, использовать комбинированный скор PMI × log(freq).
+            min_score_percent: Минимальный процент от максимального score для фильтрации.
+                              Например, 30.0 оставит слова с score >= 30% от максимального.
+                              0.0 отключает фильтрацию по проценту.
+
+        Returns:
+            Кортеж из двух элементов:
+            - Список кортежей (слово, частота, score), отсортированный по убыванию score.
+            - Список индексов предложений, содержащих seed_word.
+
+        Raises:
+            RuntimeError: Если кластерный анализ не включён.
+        """
+        # Получаем кластер
+        cluster = self.get_cluster_words(
+            seed_word, top_n, min_pmi, filter_pos, use_npmi,
+            min_freq, tfidf_range, word_tfidf_scores=None,
+            use_freq_weighting=use_freq_weighting, min_score_percent=min_score_percent
+        )
+
+        # Получаем индексы предложений через InvertedIndex
+        state = self.search(seed_word)
+        sentence_indexes = list(state.searched_sentences)
+
+        # Добавляем частоту к каждому слову кластера
+        cluster_with_freq = [
+            (word, self._cluster_analyzer.word_doc_freq.get(word.lower(), 0), score)
+            for word, score in cluster
+        ]
+
+        return cluster_with_freq, sentence_indexes

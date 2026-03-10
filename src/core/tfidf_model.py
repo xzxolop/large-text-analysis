@@ -68,7 +68,7 @@ class TfidfModel:
         """
         feature_names = self._vectorizer.get_feature_names_out()
         feature_to_idx = {name: idx for idx, name in enumerate(feature_names)}
-        
+
         scores = []
         for word in words:
             if word in feature_to_idx:
@@ -82,5 +82,28 @@ class TfidfModel:
             else:
                 # Слово не в словаре (например, min_df=2 и слово встречается 1 раз)
                 scores.append(0.0)
-        
+
         return scores
+
+    def get_word_tfidf_in_sentence(self, word: str, sentence_index: int) -> float:
+        """
+        Возвращает TF-IDF конкретного слова в конкретном предложении.
+
+        Args:
+            word: Слово для поиска.
+            sentence_index: Индекс предложения (0-based).
+
+        Returns:
+            TF-IDF вес слова в указанном предложении, или 0.0 если слово не найдено.
+        """
+        feature_names = self._vectorizer.get_feature_names_out()
+
+        try:
+            word_index = np.where(feature_names == word)[0][0]
+        except IndexError:
+            return 0.0
+
+        if sentence_index < 0 or sentence_index >= self._matrix.shape[0]:
+            return 0.0
+
+        return float(self._matrix[sentence_index, word_index])

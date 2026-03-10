@@ -121,6 +121,9 @@ class InvertedIndex:
         state.word_frequency = self.__calculate_frequency(indexes)
         return state
 
+    def get_word_freq(self, word):
+        return len(self.__index[word])
+
     def get_top_word_frequency(self, n = None):
         size = len(self.__word_frequency)
         if (n == None or size < n):

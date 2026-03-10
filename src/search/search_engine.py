@@ -1,9 +1,11 @@
 from typing import Iterable, List, Optional, Tuple
 
+from nltk import word_tokenize
+import math
+
 from core.inverted_index import InvertedIndex, SearchState, MyWord
 from core.tfidf_model import TfidfModel
 from analysis.cluster_analyzer import ClusterAnalyzer
-
 
 class SearchEngine:
     """
@@ -24,6 +26,7 @@ class SearchEngine:
             ClusterAnalyzer(sentences) if enable_cluster_analysis else None
         )
         self._tfidf_cache: Optional[dict] = None
+        self._sentences = sentences
 
 # Функции из класса InvertedIndex
 
@@ -203,3 +206,34 @@ class SearchEngine:
         ]
 
         return cluster_with_freq, sentence_indexes
+
+# Непересекающаяся кластеризация
+
+    def exclusive_clustering(self, n):
+        index = dict()
+        for i in range(len(self._sentences[:n])):
+            sent = self._sentences[i]
+            word = self._best_word(sent, i)
+            if word in index:
+                index[word].add(i)
+            else:
+                s = {i}
+                index[word] = s
+        return index
+
+    
+    def _best_word(self, sent, idx):
+        words = word_tokenize(sent)
+        best_word = ""
+        max_score = 0
+        for w in words:
+            tf_idf = self._tfidf.get_word_tfidf_in_sentence(w,idx)
+            freq = self._index.get_word_freq(w)
+            score = tf_idf * math.log(freq + 1)
+            if max_score < score:
+                max_score = score
+                best_word = w
+        return best_word
+        
+
+        

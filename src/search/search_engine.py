@@ -344,10 +344,12 @@ class SearchEngine:
         2. Находим кластер с именем seed_words[0] (например, "python").
         3. Берём ТОЛЬКО предложения из этого кластера.
         4. Проводим новую exclusive clustering для этих предложений (пересчитываем релевантные слова).
+           При этом seed_words исключаются из кандидатов — они не могут снова стать кластерами.
         5. Находим кластер seed_words[1] (например, "data") в новых кластерах.
         6. Повторяем для всех seed_words.
 
         Таким образом, каждый следующий поиск сужает предыдущий результат и пересчитывает кластеры.
+        Слова из seed_words не могут быть назначены предложениям повторно.
 
         Args:
             seed_words: Список слов для последовательной кластеризации.
@@ -368,11 +370,14 @@ class SearchEngine:
         if self._exclusive_clusterer is None:
             raise RuntimeError("Exclusive clustering is not enabled.")
 
+        # Нормализуем seed_words для исключения
+        excluded_words = {word.lower() for word in seed_words}
+
         # Начинаем со всех предложений
         current_indices: Set[int] = set(range(len(self._sentences)))
 
         # Последовательно сужаем для каждого seed слова
-        for seed_word in seed_words:
+        for i, seed_word in enumerate(seed_words):
             if not current_indices:
                 return {}
 
@@ -390,13 +395,14 @@ class SearchEngine:
             # Получаем кластеры для подмножества
             temp_clusters = temp_engine.exclusive_clustering()
 
-            # Находим кластер с именем seed_word
+            # На шаге 0 ищем кластер seed_word, на шагах >0 тоже ищем seed_word
+            # Но исключаем seed_words из результатов для финального вывода
             if seed_word.lower() not in temp_clusters:
                 # Если такого кластера нет, пробуем найти слово в любом виде
                 found = False
                 for word, indices in temp_clusters.items():
                     if word.lower() == seed_word.lower():
-                        current_indices = {sorted_indices[i] for i in indices}
+                        current_indices = {sorted_indices[j] for j in indices}
                         found = True
                         break
                 
@@ -405,7 +411,7 @@ class SearchEngine:
             else:
                 # Берём предложения из кластера seed_word
                 cluster_indices = temp_clusters[seed_word.lower()]
-                current_indices = {sorted_indices[i] for i in cluster_indices}
+                current_indices = {sorted_indices[j] for j in cluster_indices}
 
         # Финальная кластеризация для оставшихся предложений
         if not current_indices:
@@ -422,11 +428,18 @@ class SearchEngine:
 
         temp_clusters = temp_engine.exclusive_clustering()
 
+        # Исключаем seed_words из финальных кластеров
+        filtered_clusters = {
+            word: indices
+            for word, indices in temp_clusters.items()
+            if word.lower() not in excluded_words
+        }
+
         # Маппинг индексов обратно к оригинальным
         index_mapping = {i: orig_idx for i, orig_idx in enumerate(sorted_indices)}
 
         result: Dict[str, Set[int]] = {}
-        for word, indices in temp_clusters.items():
+        for word, indices in filtered_clusters.items():
             original_indices = {index_mapping[i] for i in indices}
             result[word] = original_indices
 

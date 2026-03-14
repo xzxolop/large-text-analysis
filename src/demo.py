@@ -3,7 +3,7 @@ from typing import List, Tuple, Optional
 from data.data_exporter import DataExporter
 import math
 import time
-
+from interface.invindex import InvIndex
 
 def export_tfidf_results(engine: SearchEngine, n: int = 20, filename: str = "tfidf_results.txt") -> None:
     """
@@ -246,83 +246,34 @@ def show_exclusive_clustering(
 ) -> None:
     """
     Показать результаты непересекающейся кластеризации.
-
-    Args:
-        engine: Search engine instance.
-        n: Количество предложений для кластеризации.
-        top_n: Количество топ кластеров для отображения.
-        metric: Метрика релевантности.
     """
-    print("\n" + "=" * 50)
-    print("ДЕМО: Непересекающаяся кластеризация (векторизованная версия)")
-    print("=" * 50)
+    dict = engine.exclusive_clustering(n=n, metric=metric)
+    index = InvIndex(dict)
+    top_words = index.get_top_word_frequency(top_n)
+    print(f"\nTop {top_n} exclusive clusters\n{top_words}")
 
+def show_iterative_exclusive_clustering(
+    engine: SearchEngine,
+    seed_words: List[str],
+    top_n: int = 20,
+    metric: str = "tfidf_logfreq",
+    min_score_percent: float = 30.0,
+) -> None:
+    """
+    Показать результаты итеративной непересекающейся кластеризации.
+    """
     # Замеряем время выполнения
     start_time = time.time()
-    index = engine.exclusive_clustering(n=n, metric=metric)
+    dict = engine.iterative_exclusive_clustering(
+        seed_words=seed_words,
+        metric=metric,
+        min_score_percent=min_score_percent,
+    )
     elapsed_time = time.time() - start_time
 
     print(f"\n⏱️ Время выполнения: {elapsed_time:.3f} сек")
 
-    # Сортируем слова по количеству предложений (по популярности)
-    sorted_words = sorted(index.items(), key=lambda x: len(x[1]), reverse=True)
+    index = InvIndex(dict)
+    top_words = index.get_top_word_frequency(top_n)
+    print(f"\nTop {top_n} exclusive clusters\n{top_words}")
 
-    print("\n" + "=" * 50)
-    print(f"Кластеры слов (топ-{top_n}, отсортировано по популярности)")
-    print("=" * 50)
-
-    for word, sentence_indexes in sorted_words[:top_n]:
-        print(f"\n{word}: {len(sentence_indexes)} предл.")
-
-
-def compare_exclusive_clustering_metrics(
-    engine: SearchEngine,
-    n: int = 1000,
-    top_n: int = 5,
-) -> None:
-    """
-    Сравнить разные метрики релевантности для непересекающейся кластеризации.
-
-    Args:
-        engine: Search engine instance.
-        n: Количество предложений для кластеризации.
-        top_n: Количество топ кластеров для отображения.
-    """
-    print("\n" + "=" * 50)
-    print("Сравнение метрик релевантности (top-5 кластеров)")
-    print("=" * 50)
-
-    metrics = ["tfidf_logfreq", "tfidf", "tfidf_div_logfreq"]
-    for metric in metrics:
-        clusters = engine.exclusive_clustering(n=n, metric=metric)
-        sorted_clusters = sorted(clusters.items(), key=lambda x: len(x[1]), reverse=True)[:top_n]
-        top_words = [word for word, _ in sorted_clusters]
-        print(f"\n{metric}:")
-        print(f"  Top-{top_n}: {', '.join(top_words)}")
-        print(f"  Всего кластеров: {len(clusters)}")
-
-
-def show_exclusive_clustering_with_stats(
-    engine: SearchEngine,
-    n: int = 1000,
-    top_n: int = 5,
-) -> None:
-    """
-    Показать статистику по крупнейшим кластерам.
-
-    Args:
-        engine: Search engine instance.
-        n: Количество предложений для кластеризации.
-        top_n: Количество топ кластеров для отображения.
-    """
-    print("\n" + "=" * 50)
-    print("Статистика по крупнейшим кластерам")
-    print("=" * 50)
-
-    clusters, stats = engine.exclusive_clustering_with_stats(n=n)
-
-    # Показываем топ-N кластеров со статистикой
-    sorted_stats = sorted(stats.items(), key=lambda x: x[1]["count"], reverse=True)[:top_n]
-    for word, stat in sorted_stats:
-        print(f"\n{word}:")
-        print(f"  Предложений: {stat['count']} ({stat['percentage']:.1f}%)")

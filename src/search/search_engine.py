@@ -363,6 +363,168 @@ class SearchEngine:
                 max_score = score
                 best_word = w
         return best_word
+
+# ========== Итеративная непересекающаяся кластеризация ==========
+
+    def iterative_exclusive_clustering(
+        self,
+        seed_words: List[str],
+        metric: Literal["tfidf_logfreq", "tfidf", "tfidf_div_logfreq"] = "tfidf_logfreq",
+        min_score_percent: float = 30.0,
+        use_freq_weighting: bool = True,
+    ) -> Dict[str, Set[int]]:
+        """
+        Итеративная непересекающаяся кластеризация по кластерам заданных слов.
+
+        Последовательно строит кластеры для каждого слова из списка и объединяет
+        результаты для проведения exclusive clustering.
+
+        Логика работы:
+        1. Для первого слова seed_words[0] находится кластер ассоциативных слов (PMI-based).
+        2. Получаются индексы предложений, где встречается seed_words[0].
+        3. Для второго слова seed_words[1] находится кластер, но только среди предложений,
+           которые ещё не были отнесены к первому кластеру.
+        4. Процесс повторяется для всех слов.
+        5. На финале проводится непересекающаяся кластеризация на объединённом наборе предложений.
+
+        Args:
+            seed_words: Список слов для итеративной кластеризации.
+                       Например, ["python", "data"] построит кластеры сначала для python,
+                       затем для data среди оставшихся предложений.
+            metric: Метрика релевантности для exclusive clustering.
+            min_score_percent: Минимальный процент от максимального score для фильтрации кластера.
+            use_freq_weighting: Использовать ли взвешивание по частоте (PMI × log(freq)).
+
+        Returns:
+            Словарь {слово: множество индексов предложений}.
+            Каждое предложение принадлежит только одному кластеру.
+
+        Raises:
+            RuntimeError: Если exclusive clustering или cluster analysis не включены.
+
+        Пример:
+            >>> clusters = engine.iterative_exclusive_clustering(["python", "data"])
+            >>> # Кластеризация только по предложениям из кластеров python и data
+        """
+        if self._exclusive_clusterer is None:
+            raise RuntimeError("Exclusive clustering is not enabled.")
+        if self._cluster_analyzer is None:
+            raise RuntimeError("Cluster analysis is not enabled.")
+
+        # Собираем индексы предложений для каждого seed слова через PMI-кластеризацию
+        all_sentence_indices: Set[int] = set()
+        word_to_indices: Dict[str, Set[int]] = {}
+
+        for seed_word in seed_words:
+            # Получаем кластер слов для seed_word
+            cluster = self.get_cluster_words(
+                seed_word=seed_word.lower(),
+                top_n=50,  # Берём с запасом
+                min_score_percent=min_score_percent,
+                use_freq_weighting=use_freq_weighting,
+            )
+
+            # Получаем индексы предложений через InvertedIndex
+            state = self.search(seed_word.lower())
+            sentence_indices = set(state.searched_sentences)
+
+            # Исключаем предложения, которые уже были отнесены к предыдущим кластерам
+            sentence_indices = sentence_indices - all_sentence_indices
+
+            if sentence_indices:
+                word_to_indices[seed_word.lower()] = sentence_indices
+                all_sentence_indices.update(sentence_indices)
+
+        if not all_sentence_indices:
+            return {}
+
+        # Проводим exclusive clustering только на отобранных предложениях
+        # Для этого создаём временный кластеризатор с подмножеством данных
+        sorted_indices = sorted(all_sentence_indices)
+        subset_sentences = [self._sentences[i] for i in sorted_indices]
+
+        # Создаём временный SearchEngine для подмножества
+        temp_engine = SearchEngine(
+            sentences=subset_sentences,
+            calc_word_freq=True,
+            enable_cluster_analysis=False,  # Не нужен для exclusive clustering
+        )
+
+        # Получаем кластеры для подмножества
+        temp_clusters = temp_engine.exclusive_clustering(metric=metric)
+
+        # Маппинг индексов из временного движка обратно в оригинальные индексы
+        index_mapping = {i: orig_idx for i, orig_idx in enumerate(sorted_indices)}
+
+        # Конвертируем кластеры обратно к оригинальным индексам
+        result: Dict[str, Set[int]] = {}
+        for word, indices in temp_clusters.items():
+            original_indices = {index_mapping[i] for i in indices}
+            result[word] = original_indices
+
+        return result
+
+    def iterative_exclusive_clustering_with_stats(
+        self,
+        seed_words: List[str],
+        metric: Literal["tfidf_logfreq", "tfidf", "tfidf_div_logfreq"] = "tfidf_logfreq",
+        min_score_percent: float = 30.0,
+        use_freq_weighting: bool = True,
+    ) -> Tuple[Dict[str, Set[int]], Dict[str, dict]]:
+        """
+        Итеративная непересекающаяся кластеризация со статистикой.
+
+        Args:
+            seed_words: Список слов для итеративной кластеризации.
+            metric: Метрика релевантности.
+            min_score_percent: Минимальный процент от максимального score.
+            use_freq_weighting: Использовать ли взвешивание по частоте.
+
+        Returns:
+            Кортеж из:
+            - Словарь {слово: множество индексов предложений}
+            - Словарь {слово: статистика} со статистикой по каждому кластеру
+        """
+        clusters = self.iterative_exclusive_clustering(
+            seed_words=seed_words,
+            metric=metric,
+            min_score_percent=min_score_percent,
+            use_freq_weighting=use_freq_weighting,
+        )
+
+        # Создаём временный кластеризатор для статистики
+        if not clusters:
+            return {}, {}
+
+        # Собираем все индексы
+        all_indices = set()
+        for indices in clusters.values():
+            all_indices.update(indices)
+
+        sorted_indices = sorted(all_indices)
+        subset_sentences = [self._sentences[i] for i in sorted_indices]
+
+        temp_engine = SearchEngine(
+            sentences=subset_sentences,
+            calc_word_freq=True,
+            enable_cluster_analysis=False,
+        )
+
+        _, temp_stats = temp_engine.exclusive_clustering_with_stats(metric=metric)
+
+        # Конвертируем статистику к оригинальным индексам
+        index_mapping = {i: orig_idx for i, orig_idx in enumerate(sorted_indices)}
+
+        result_stats: Dict[str, dict] = {}
+        for word, stat in temp_stats.items():
+            original_indices = [index_mapping[i] for i in stat["indices"]]
+            result_stats[word] = {
+                "count": stat["count"],
+                "percentage": stat["percentage"],
+                "indices": original_indices,
+            }
+
+        return clusters, result_stats
         
 
         

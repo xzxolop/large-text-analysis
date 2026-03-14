@@ -43,4 +43,5 @@ demo.tfidf_for_top_words(engine, top_n=20)
 
 n = None
 demo.show_exclusive_clustering(engine, n=n, top_n=20)
+demo.show_iterative_exclusive_clustering(engine, seed_words=["python"], top_n=20)
 demo.show_iterative_exclusive_clustering(engine, seed_words=["python", "data"], top_n=20)

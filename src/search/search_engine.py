@@ -1,4 +1,4 @@
-from typing import Iterable, List, Literal, Optional, Tuple, Union, Dict, Set
+from typing import Iterable, List, Optional, Dict, Set, Tuple
 
 from nltk import word_tokenize
 import math
@@ -75,7 +75,7 @@ class SearchEngine:
 
 # Функции из класса TfidfModel
 
-    def get_top_words_with_tfidf(self, n: int) -> List[Tuple[MyWord, float]]:
+    def get_top_words_with_tfidf(self, n: int):
         """Top-N слов по частоте + соответствующие им TF-IDF значения."""
         top_words: List[MyWord] = self._index.get_top_word_frequency(n)
         scores = self._tfidf.get_words_tfidf(w.word for w in top_words)
@@ -233,20 +233,16 @@ class SearchEngine:
     def exclusive_clustering(
         self,
         n: Optional[int] = None,
-        metric: Literal["tfidf_logfreq", "tfidf", "tfidf_div_logfreq"] = "tfidf_logfreq",
     ) -> Dict[str, Set[int]]:
         """
         Непересекающаяся кластеризация: каждое предложение получает одно релевантное слово.
 
         Использует векторизованные операции для высокой производительности.
         Для 100 000 предложений работает за ~1-5 секунд.
+        Использует метрику TF-IDF × log(freq).
 
         Args:
             n: Количество предложений для обработки. Если None — все предложения.
-            metric: Метрика релевантности:
-                - "tfidf_logfreq": TF-IDF × log(freq) — баланс важности и частоты (по умолчанию)
-                - "tfidf": чистый TF-IDF — только важность слова в предложении
-                - "tfidf_div_logfreq": TF-IDF / log(freq+1) — подъём редких слов
 
         Returns:
             Словарь {слово: множество индексов предложений}.
@@ -265,41 +261,12 @@ class SearchEngine:
                 "Set enable_exclusive_clustering=True when creating SearchEngine."
             )
 
-        return self._exclusive_clusterer.cluster(n=n, metric=metric)
-
-    def exclusive_clustering_with_stats(
-        self,
-        n: Optional[int] = None,
-        metric: Literal["tfidf_logfreq", "tfidf", "tfidf_div_logfreq"] = "tfidf_logfreq",
-    ) -> Tuple[Dict[str, Set[int]], Dict[str, dict]]:
-        """
-        Непересекающаяся кластеризация со статистикой по кластерам.
-
-        Args:
-            n: Количество предложений для обработки.
-            metric: Метрика релевантности.
-
-        Returns:
-            Кортеж из:
-            - Словарь {слово: множество индексов предложений}
-            - Словарь {слово: статистика} со статистикой по каждому кластеру
-
-        Raises:
-            RuntimeError: Если exclusive clustering не включён.
-        """
-        if self._exclusive_clusterer is None:
-            raise RuntimeError("Exclusive clustering is not enabled.")
-
-        clusters = self._exclusive_clusterer.cluster(n=n, metric=metric)
-        stats = self._exclusive_clusterer.get_cluster_stats(clusters)
-
-        return clusters, stats
+        return self._exclusive_clusterer.cluster(n=n)
 
     def get_top_exclusive_clusters(
         self,
         top_n: int = 20,
         min_cluster_size: int = 1,
-        metric: Literal["tfidf_logfreq", "tfidf", "tfidf_div_logfreq"] = "tfidf_logfreq",
     ) -> Dict[str, Set[int]]:
         """
         Получить топ-N крупнейших кластеров.
@@ -307,7 +274,6 @@ class SearchEngine:
         Args:
             top_n: Количество кластеров для возврата.
             min_cluster_size: Минимальный размер кластера для фильтрации.
-            metric: Метрика релевантности.
 
         Returns:
             Словарь {слово: множество индексов} для топ-N кластеров.
@@ -369,7 +335,6 @@ class SearchEngine:
     def iterative_exclusive_clustering(
         self,
         seed_words: List[str],
-        metric: Literal["tfidf_logfreq", "tfidf", "tfidf_div_logfreq"] = "tfidf_logfreq",
         min_score_percent: float = 30.0,
         use_freq_weighting: bool = True,
     ) -> Dict[str, Set[int]]:
@@ -391,7 +356,6 @@ class SearchEngine:
             seed_words: Список слов для итеративной кластеризации.
                        Например, ["python", "data"] построит кластеры сначала для python,
                        затем для data среди оставшихся предложений.
-            metric: Метрика релевантности для exclusive clustering.
             min_score_percent: Минимальный процент от максимального score для фильтрации кластера.
             use_freq_weighting: Использовать ли взвешивание по частоте (PMI × log(freq)).
 
@@ -413,7 +377,6 @@ class SearchEngine:
 
         # Собираем индексы предложений для каждого seed слова через PMI-кластеризацию
         all_sentence_indices: Set[int] = set()
-        word_to_indices: Dict[str, Set[int]] = {}
 
         for seed_word in seed_words:
             # Получаем кластер слов для seed_word
@@ -432,7 +395,6 @@ class SearchEngine:
             sentence_indices = sentence_indices - all_sentence_indices
 
             if sentence_indices:
-                word_to_indices[seed_word.lower()] = sentence_indices
                 all_sentence_indices.update(sentence_indices)
 
         if not all_sentence_indices:
@@ -451,7 +413,7 @@ class SearchEngine:
         )
 
         # Получаем кластеры для подмножества
-        temp_clusters = temp_engine.exclusive_clustering(metric=metric)
+        temp_clusters = temp_engine.exclusive_clustering()
 
         # Маппинг индексов из временного движка обратно в оригинальные индексы
         index_mapping = {i: orig_idx for i, orig_idx in enumerate(sorted_indices)}
@@ -463,68 +425,6 @@ class SearchEngine:
             result[word] = original_indices
 
         return result
-
-    def iterative_exclusive_clustering_with_stats(
-        self,
-        seed_words: List[str],
-        metric: Literal["tfidf_logfreq", "tfidf", "tfidf_div_logfreq"] = "tfidf_logfreq",
-        min_score_percent: float = 30.0,
-        use_freq_weighting: bool = True,
-    ) -> Tuple[Dict[str, Set[int]], Dict[str, dict]]:
-        """
-        Итеративная непересекающаяся кластеризация со статистикой.
-
-        Args:
-            seed_words: Список слов для итеративной кластеризации.
-            metric: Метрика релевантности.
-            min_score_percent: Минимальный процент от максимального score.
-            use_freq_weighting: Использовать ли взвешивание по частоте.
-
-        Returns:
-            Кортеж из:
-            - Словарь {слово: множество индексов предложений}
-            - Словарь {слово: статистика} со статистикой по каждому кластеру
-        """
-        clusters = self.iterative_exclusive_clustering(
-            seed_words=seed_words,
-            metric=metric,
-            min_score_percent=min_score_percent,
-            use_freq_weighting=use_freq_weighting,
-        )
-
-        # Создаём временный кластеризатор для статистики
-        if not clusters:
-            return {}, {}
-
-        # Собираем все индексы
-        all_indices = set()
-        for indices in clusters.values():
-            all_indices.update(indices)
-
-        sorted_indices = sorted(all_indices)
-        subset_sentences = [self._sentences[i] for i in sorted_indices]
-
-        temp_engine = SearchEngine(
-            sentences=subset_sentences,
-            calc_word_freq=True,
-            enable_cluster_analysis=False,
-        )
-
-        _, temp_stats = temp_engine.exclusive_clustering_with_stats(metric=metric)
-
-        # Конвертируем статистику к оригинальным индексам
-        index_mapping = {i: orig_idx for i, orig_idx in enumerate(sorted_indices)}
-
-        result_stats: Dict[str, dict] = {}
-        for word, stat in temp_stats.items():
-            original_indices = [index_mapping[i] for i in stat["indices"]]
-            result_stats[word] = {
-                "count": stat["count"],
-                "percentage": stat["percentage"],
-                "indices": original_indices,
-            }
-
-        return clusters, result_stats
         
 
         

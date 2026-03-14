@@ -6,7 +6,7 @@
 на основе TF-IDF метрики.
 """
 
-from typing import Literal, Optional, Tuple, Dict, Set
+from typing import Optional, Dict, Set
 import numpy as np
 from scipy.sparse import csr_matrix
 
@@ -16,7 +16,7 @@ class ExclusiveClusterer:
     Непересекающаяся кластеризация предложений по релевантным словам.
 
     Каждому предложению назначается ровно одно слово-представитель,
-    выбранное на основе TF-IDF и частоты слова.
+    выбранное на основе TF-IDF × log(freq).
 
     Пример использования:
         clusterer = ExclusiveClusterer(tfidf_matrix, feature_names, word_freqs)
@@ -62,17 +62,14 @@ class ExclusiveClusterer:
     def cluster(
         self,
         n: Optional[int] = None,
-        metric: Literal["tfidf_logfreq", "tfidf", "tfidf_div_logfreq"] = "tfidf_logfreq",
     ) -> Dict[str, Set[int]]:
         """
         Выполнить непересекающуюся кластеризацию.
 
+        Использует метрику TF-IDF × log(freq) для релевантности.
+
         Args:
             n: Количество предложений для обработки. Если None — все.
-            metric: Метрика релевантности:
-                - "tfidf_logfreq": TF-IDF × log(freq) — баланс важности и частоты (по умолчанию)
-                - "tfidf": чистый TF-IDF — только важность слова в предложении
-                - "tfidf_div_logfreq": TF-IDF / log(freq+1) — подъём редких слов
 
         Returns:
             Словарь {слово: множество индексов предложений}.
@@ -86,28 +83,13 @@ class ExclusiveClusterer:
         # Берём подмножество матрицы
         matrix = self._tfidf_matrix[:n_docs]
 
-        # Вычисляем скоры в зависимости от метрики
-        if metric == "tfidf_logfreq":
-            # TF-IDF × log(freq) — подъём частых слов
-            scores = matrix.multiply(self._word_weights).tocsr()
-        elif metric == "tfidf":
-            # Чистый TF-IDF
-            scores = matrix.tocsr()
-        elif metric == "tfidf_div_logfreq":
-            # TF-IDF / log(freq+1) — подъём редких слов
-            weights = self._word_weights.copy()
-            weights[weights == 0] = 1  # защита от деления на 0
-            scores = matrix.multiply(1.0 / weights).tocsr()
-        else:
-            raise ValueError(
-                f"Unknown metric: {metric}. "
-                f"Choose from: 'tfidf_logfreq', 'tfidf', 'tfidf_div_logfreq'"
-            )
+        # Вычисляем скоры: TF-IDF × log(freq)
+        scores = matrix.multiply(self._word_weights).tocsr()
 
         # Находим слово с максимальным скором для каждого предложения
         best_word_indices = np.asarray(scores.argmax(axis=1)).flatten()
 
-        # Получаем максимальные скоры для проверки (конвертируем в numpy массив)
+        # Получаем максимальные скоры для проверки
         max_scores = np.asarray(scores.max(axis=1).toarray()).flatten()
 
         # Собираем результат: слово -> множество индексов предложений
@@ -121,88 +103,6 @@ class ExclusiveClusterer:
                 clusters[word].add(doc_idx)
 
         return dict(clusters)
-
-    def cluster_with_scores(
-        self,
-        n: Optional[int] = None,
-        metric: Literal["tfidf_logfreq", "tfidf", "tfidf_div_logfreq"] = "tfidf_logfreq",
-    ) -> Tuple[Dict[str, Set[int]], np.ndarray]:
-        """
-        Выполнить кластеризацию и вернуть скоры для каждого предложения.
-
-        Args:
-            n: Количество предложений для обработки.
-            metric: Метрика релевантности.
-
-        Returns:
-            Кортеж из:
-            - Словарь {слово: множество индексов предложений}
-            - Массив скоров размера (n_docs,) — скор лучшего слова для каждого предложения
-        """
-        n_docs = n if n is not None else self._n_docs
-
-        if n_docs == 0 or self._n_features == 0:
-            return {}, np.array([])
-
-        matrix = self._tfidf_matrix[:n_docs]
-
-        # Вычисляем скоры
-        if metric == "tfidf_logfreq":
-            scores = matrix.multiply(self._word_weights).tocsr()
-        elif metric == "tfidf":
-            scores = matrix.tocsr()
-        elif metric == "tfidf_div_logfreq":
-            weights = self._word_weights.copy()
-            weights[weights == 0] = 1
-            scores = matrix.multiply(1.0 / weights).tocsr()
-        else:
-            raise ValueError(f"Unknown metric: {metric}")
-
-        # Лучшие индексы и их скоры
-        best_word_indices = np.asarray(scores.argmax(axis=1)).flatten()
-        best_scores = np.asarray(scores.max(axis=1).toarray()).flatten()
-
-        # Собираем кластеры
-        from collections import defaultdict
-        clusters = defaultdict(set)
-
-        for doc_idx, word_idx in enumerate(best_word_indices):
-            if best_scores[doc_idx] > 0:
-                word = self._feature_names[word_idx]
-                clusters[word].add(doc_idx)
-
-        return dict(clusters), best_scores
-
-    def get_cluster_stats(
-        self,
-        clusters: Dict[str, Set[int]],
-    ) -> Dict[str, dict]:
-        """
-        Получить статистику по кластерам.
-
-        Args:
-            clusters: Словарь {слово: множество индексов предложений}.
-
-        Returns:
-            Словарь {слово: статистика}, где статистика включает:
-            - count: количество предложений в кластере
-            - percentage: процент от общего числа предложений
-        """
-        n_total = sum(len(indices) for indices in clusters.values())
-
-        stats = {}
-        for word, indices in clusters.items():
-            count = len(indices)
-            stats[word] = {
-                "count": count,
-                "percentage": (count / n_total * 100) if n_total > 0 else 0.0,
-                "indices": sorted(indices),
-            }
-
-        # Сортируем по размеру кластера
-        stats = dict(sorted(stats.items(), key=lambda x: x[1]["count"], reverse=True))
-
-        return stats
 
     def get_top_clusters(
         self,

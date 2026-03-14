@@ -9,7 +9,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 import sys
 from pathlib import Path
 
@@ -52,6 +52,19 @@ class ClusterResponse(BaseModel):
     stats: ClusterStats
 
 
+class ExclusiveClusterItem(BaseModel):
+    word: str
+    freq: int
+
+
+class ExclusiveClusterResponse(BaseModel):
+    clusters: list[ExclusiveClusterItem]
+
+
+class IterativeRequest(BaseModel):
+    seed_words: List[str]
+
+
 # ============================================
 # Инициализация приложения
 # ============================================
@@ -84,16 +97,16 @@ state = AppState()
 async def startup_event():
     """Загружает данные и инициализирует SearchEngine при старте приложения."""
     print("🔄 Loading dataset and initializing SearchEngine...")
-    
+
     data_store = DataStorage()
     data_store.load_data()  # Загрузка Reddit dataset
     sentences = data_store.get_processed_sentences()
-    
+
     print(f"📄 Loaded {len(sentences)} sentences")
-    
+
     state.engine = SearchEngine(sentences, calc_word_freq=True)
     state.loaded = True
-    
+
     print("✅ SearchEngine ready!")
 
 
@@ -103,41 +116,41 @@ async def startup_event():
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
-    """Главная страница с формой поиска."""
+    """Главная страница с формой поиска (PMI clustering)."""
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/exclusive", response_class=HTMLResponse)
+async def read_exclusive(request: Request):
+    """Страница exclusive clustering."""
+    return templates.TemplateResponse("exclusive.html", {"request": request})
 
 
 @app.post("/api/cluster", response_model=ClusterResponse)
 async def get_cluster(request: ClusterRequest):
     """
-    Получить кластер слов для заданного слова.
-    
-    Использует логику show_word_cluster_by_frequency из demo.py:
-    - PMI × log(freq) для scoring
-    - Сортировка по частоте
-    - Фильтр по min_score_percent
+    Получить кластер слов для заданного слова (PMI-based).
     """
     if not state.loaded or state.engine is None:
         raise HTTPException(status_code=503, detail="Service not ready. Please wait for startup.")
-    
+
     engine = state.engine
     word = request.word.lower().strip()
-    
+
     if not word:
         raise HTTPException(status_code=400, detail="Word cannot be empty")
-    
+
     # Получаем кластер с использованием параметров по умолчанию
-    # (аналогично show_word_cluster_by_frequency в demo.py)
     cluster = engine.get_cluster_words(
         seed_word=word,
-        top_n=20 * 5,  # Берём с запасом, т.к. потом отфильтруем
+        top_n=20 * 5,
         use_npmi=False,
         min_freq=request.min_freq or 1,
         tfidf_range=None,
-        use_freq_weighting=True,  # PMI × log(freq)
+        use_freq_weighting=True,
         min_score_percent=request.min_score_percent or 30.0,
     )
-    
+
     if not cluster:
         return ClusterResponse(
             word=word,
@@ -150,24 +163,24 @@ async def get_cluster(request: ClusterRequest):
                 min_score=0.0,
             ),
         )
-    
+
     # Добавляем частоту к каждому слову
     cluster_with_freq = []
     for cluster_word, score in cluster:
         freq = engine._cluster_analyzer.word_doc_freq.get(cluster_word.lower(), 0)
         cluster_with_freq.append((cluster_word, freq, score))
-    
-    # Сортируем по убыванию частоты (как в show_word_cluster_by_frequency)
+
+    # Сортируем по убыванию частоты
     cluster_with_freq.sort(key=lambda x: x[1], reverse=True)
-    
+
     # Берём топ-20
     cluster_with_freq = cluster_with_freq[:20]
-    
+
     # Рассчитываем статистику
     scores = [s for _, _, s in cluster_with_freq]
     n = len(scores)
     scores_sorted = sorted(scores)
-    
+
     stats = ClusterStats(
         count=n,
         max_score=max(scores),
@@ -175,7 +188,7 @@ async def get_cluster(request: ClusterRequest):
         median_score=(scores_sorted[n // 2 - 1] + scores_sorted[n // 2]) / 2 if n % 2 == 0 else scores_sorted[n // 2],
         min_score=min(scores),
     )
-    
+
     return ClusterResponse(
         word=word,
         cluster=[
@@ -184,6 +197,60 @@ async def get_cluster(request: ClusterRequest):
         ],
         stats=stats,
     )
+
+
+@app.get("/api/exclusive", response_model=ExclusiveClusterResponse)
+async def get_exclusive_clustering():
+    """
+    Получить результаты непересекающейся кластеризации.
+    """
+    if not state.loaded or state.engine is None:
+        raise HTTPException(status_code=503, detail="Service not ready. Please wait for startup.")
+
+    engine = state.engine
+    
+    # Получаем топ-50 кластеров
+    clusters = engine.get_top_exclusive_clusters(top_n=50, min_cluster_size=1)
+    
+    # Сортируем по размеру
+    sorted_clusters = sorted(clusters.items(), key=lambda x: len(x[1]), reverse=True)
+    
+    # Формируем ответ
+    cluster_list = [
+        ExclusiveClusterItem(word=word, freq=len(indices))
+        for word, indices in sorted_clusters
+    ]
+    
+    return ExclusiveClusterResponse(clusters=cluster_list)
+
+
+@app.post("/api/exclusive/iterative", response_model=ExclusiveClusterResponse)
+async def get_iterative_exclusive_clustering(request: IterativeRequest):
+    """
+    Получить результаты итеративной непересекающейся кластеризации.
+    """
+    if not state.loaded or state.engine is None:
+        raise HTTPException(status_code=503, detail="Service not ready. Please wait for startup.")
+
+    engine = state.engine
+    seed_words = [w.lower().strip() for w in request.seed_words if w.strip()]
+    
+    if not seed_words:
+        raise HTTPException(status_code=400, detail="seed_words cannot be empty")
+    
+    # Получаем итеративную кластеризацию
+    clusters = engine.iterative_exclusive_clustering(seed_words=seed_words)
+    
+    # Сортируем по размеру
+    sorted_clusters = sorted(clusters.items(), key=lambda x: len(x[1]), reverse=True)
+    
+    # Формируем ответ
+    cluster_list = [
+        ExclusiveClusterItem(word=word, freq=len(indices))
+        for word, indices in sorted_clusters
+    ]
+    
+    return ExclusiveClusterResponse(clusters=cluster_list)
 
 
 @app.get("/api/health")

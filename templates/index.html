@@ -23,9 +23,31 @@
         h1 {
             color: white;
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 10px;
             font-size: 2.5rem;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .subtitle {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        .nav-links {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+            transition: background 0.3s;
+            margin: 0 10px;
+        }
+        .nav-links a:hover {
+            background: rgba(255,255,255,0.3);
         }
         .search-box {
             background: white;
@@ -181,14 +203,19 @@
 </head>
 <body>
     <div class="container">
-        <h1>🔍 Word Cluster Analysis</h1>
-        
+        <h1>🔍 PMI Word Cluster Analysis</h1>
+        <p class="subtitle">Find associated words using Pointwise Mutual Information</p>
+
+        <div class="nav-links">
+            <a href="/exclusive">📊 Exclusive Clustering</a>
+        </div>
+
         <div class="search-box">
             <form id="searchForm">
                 <div class="form-group">
-                    <input 
-                        type="text" 
-                        id="wordInput" 
+                    <input
+                        type="text"
+                        id="wordInput"
                         placeholder="Enter a word (e.g., data, python, machine)"
                         autocomplete="off"
                         required

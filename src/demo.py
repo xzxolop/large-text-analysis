@@ -151,6 +151,7 @@ def show_exclusive_clustering(
     """
     Показать результаты непересекающейся кластеризации.
     """
+    # TODO: сразу создавать invertedindex но с возможностью вкл/выкл word_freq если он нам не нужен.
     clusters = engine.exclusive_clustering(n=n)
     index = InvIndex(clusters)
     top_words = index.get_top_word_frequency(top_n)
@@ -161,7 +162,6 @@ def show_iterative_exclusive_clustering(
     engine: SearchEngine,
     seed_words: List[str],
     top_n: int = 20,
-    min_score_percent: float = 30.0,
 ) -> None:
     """
     Показать результаты итеративной непересекающейся кластеризации.
@@ -169,7 +169,6 @@ def show_iterative_exclusive_clustering(
     start_time = time.time()
     clusters = engine.iterative_exclusive_clustering(
         seed_words=seed_words,
-        min_score_percent=min_score_percent,
     )
     elapsed_time = time.time() - start_time
 

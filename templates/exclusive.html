@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exclusive Clustering — Large Text Analysis</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .subtitle {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        .nav-links {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+            transition: background 0.3s;
+            margin: 0 10px;
+            display: inline-block;
+        }
+        .nav-links a:hover { background: rgba(255,255,255,0.3); }
+        .results {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+            padding: 0;
+        }
+        .results-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+        }
+        .loading { text-align: center; padding: 60px 20px; color: #666; }
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error {
+            background: #fee;
+            color: #c00;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin: 20px;
+        }
+        
+        /* Cluster list with nesting */
+        .cluster-list {
+            list-style: none;
+        }
+        .cluster-item {
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .cluster-word {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+            position: relative;
+        }
+        .cluster-word:hover { background: #f8f9fa; }
+        .cluster-word.loading {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        .word-text {
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: #333;
+        }
+        .word-freq {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .expand-icon {
+            margin-right: 10px;
+            transition: transform 0.3s;
+            display: inline-block;
+            width: 20px;
+            text-align: center;
+        }
+        .expand-icon.expanded {
+            transform: rotate(90deg);
+        }
+        
+        /* Nested content with indentation */
+        .nested-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+            background: #fafbfc;
+        }
+        .nested-content.open {
+            max-height: 3000px;
+            transition: max-height 0.6s ease-in;
+        }
+        .nested-list {
+            list-style: none;
+            padding-left: 30px;
+            border-left: 3px solid #e0e0e0;
+            margin: 10px 20px;
+        }
+        .nested-list .word-text {
+            font-size: 0.95rem;
+        }
+        .nested-list .word-freq {
+            background: #e0e0e0;
+            color: #666;
+            font-size: 0.75rem;
+        }
+        .nested-list .cluster-word {
+            padding: 10px 15px;
+        }
+        
+        /* Deeper nesting levels */
+        .nested-list .nested-list {
+            padding-left: 25px;
+            border-left-color: #d0d0d0;
+        }
+        .nested-list .nested-list .nested-list {
+            border-left-color: #c0c0c0;
+        }
+        
+        .show-more { text-align: center; padding: 20px; }
+        .show-more button {
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+            padding: 10px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .show-more button:hover { background: #667eea; color: white; }
+        
+        .reset-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+        }
+        .reset-btn:hover { background: rgba(255,255,255,0.3); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Exclusive Clustering</h1>
+        <p class="subtitle">Click on a word to expand sub-clusters (nested view)</p>
+        
+        <div class="nav-links">
+            <a href="/">🔍 PMI Cluster Analysis</a>
+            <button class="reset-btn" onclick="resetToInitial()">🔄 Reset</button>
+        </div>
+        
+        <div id="results" class="results">
+            <div class="loading">Loading initial clustering</div>
+        </div>
+    </div>
+
+    <script>
+        // Store the tree structure of expanded clusters
+        let clusterTree = null;
+        let visibleCount = 20;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadInitialClustering();
+        });
+        
+        async function loadInitialClustering() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="loading">Loading initial clustering</div>';
+            visibleCount = 20;
+            
+            try {
+                const response = await fetch('/api/exclusive');
+                const data = await response.json();
+                
+                if (!response.ok) throw new Error(data.detail || 'Failed to fetch');
+                
+                // Build tree structure with seedWords path
+                clusterTree = {
+                    word: 'root',
+                    freq: data.clusters.reduce((sum, c) => sum + c.freq, 0),
+                    seedWords: [],
+                    children: data.clusters.map(c => ({
+                        ...c,
+                        seedWords: [c.word],  // Path to this node
+                        expanded: false,
+                        loading: false,
+                        children: null
+                    })),
+                    expanded: true
+                };
+                
+                renderTree();
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function expandCluster(node) {
+            if (node.loading || node.expanded) return;
+            
+            node.loading = true;
+            renderTree();
+            
+            try {
+                // Use the seedWords path stored in the node
+                const seedWords = node.seedWords || [node.word];
+                
+                const response = await fetch('/api/exclusive/iterative', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ seed_words: seedWords }),
+                });
+                
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || 'Failed to fetch');
+                
+                // Add children to node with updated seedWords path
+                node.children = data.clusters.map(c => ({
+                    ...c,
+                    seedWords: [...seedWords, c.word],  // Extend the path
+                    expanded: false,
+                    loading: false,
+                    children: null
+                }));
+                node.expanded = true;
+                node.loading = false;
+                
+                renderTree();
+            } catch (error) {
+                node.loading = false;
+                renderTree();
+                alert(`Error loading sub-clusters: ${error.message}`);
+            }
+        }
+        
+        function collapseCluster(node) {
+            node.expanded = false;
+            // Don't clear children - keep them for faster re-expand
+            renderTree();
+        }
+        
+        function toggleCluster(node) {
+            if (node.expanded) {
+                collapseCluster(node);
+            } else {
+                expandCluster(node);
+            }
+        }
+        
+        function renderTree() {
+            const resultsDiv = document.getElementById('results');
+            
+            if (!clusterTree || !clusterTree.children) {
+                resultsDiv.innerHTML = '<div class="error">No clusters loaded</div>';
+                return;
+            }
+            
+            const visibleChildren = clusterTree.children.slice(0, visibleCount);
+            
+            let html = `
+                <div class="results-header">
+                    <h2>📊 Clustering Results</h2>
+                    <p>Click on any word to expand sub-clusters</p>
+                </div>
+                <ul class="cluster-list">
+            `;
+            
+            visibleChildren.forEach((item) => {
+                html += renderClusterItem(item, 0);
+            });
+            
+            html += '</ul>';
+            
+            if (clusterTree.children.length > visibleCount) {
+                html += `<div class="show-more"><button onclick="showMore()">Show more (${clusterTree.children.length - visibleCount} more)</button></div>`;
+            }
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        function renderClusterItem(item, depth) {
+            const indent = depth * 30;
+            const isExpanded = item.expanded;
+            const isLoading = item.loading;
+            const hasChildren = item.children && item.children.length > 0;
+            const seedWordsJson = JSON.stringify(item.seedWords || []).replace(/"/g, '&quot;');
+            
+            let html = `
+                <li class="cluster-item" style="margin-left: ${indent}px;">
+                    <div class="cluster-word ${isLoading ? 'loading' : ''}" onclick="onClusterClick('${escapeHtml(item.word)}', ${seedWordsJson})">
+                        <span class="word-text">
+                            <span class="expand-icon ${isExpanded ? 'expanded' : ''}">▶</span>
+                            ${escapeHtml(item.word)}
+                        </span>
+                        <span class="word-freq">${item.freq.toLocaleString()} sentences</span>
+                    </div>
+            `;
+            
+            if (hasChildren && isExpanded) {
+                html += `<div class="nested-content open"><ul class="nested-list">`;
+                item.children.forEach(child => {
+                    html += renderClusterItem(child, depth + 1);
+                });
+                html += `</ul></div>`;
+            }
+            
+            html += `</li>`;
+            return html;
+        }
+        
+        function onClusterClick(word, seedWords) {
+            // Find the node in the current visible list
+            function findNodeInList(list, targetWord) {
+                for (const item of list) {
+                    if (item.word === targetWord) return item;
+                    if (item.children) {
+                        const found = findNodeInList(item.children, targetWord);
+                        if (found) return found;
+                    }
+                }
+                return null;
+            }
+            
+            // Search in root children first
+            let node = findNodeInList(clusterTree.children, word);
+            
+            if (node) {
+                toggleCluster(node);
+            }
+        }
+        
+        function showMore() {
+            visibleCount += 20;
+            renderTree();
+        }
+        
+        function resetToInitial() {
+            loadInitialClustering();
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

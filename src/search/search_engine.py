@@ -339,22 +339,20 @@ class SearchEngine:
         """
         Последовательная непересекающаяся кластеризация по кластерам заданных слов.
 
-        Логика работы (последовательное сужение через пересчёт кластеров):
-        1. Проводим exclusive clustering для всех предложений.
-        2. Находим кластер с именем seed_words[0] (например, "python").
-        3. Берём ТОЛЬКО предложения из этого кластера.
-        4. Проводим новую exclusive clustering для этих предложений (пересчитываем релевантные слова).
-           При этом seed_words исключаются из кандидатов — они не могут снова стать кластерами.
-        5. Находим кластер seed_words[1] (например, "data") в новых кластерах.
-        6. Повторяем для всех seed_words.
+        Логика работы (последовательное сужение):
+        1. Находим все предложения, где seed_words[0] является наиболее релевантным (exclusive clustering).
+        2. Берём эти предложения и сужаем до тех, где seed_words[1] является наиболее релевантным.
+        3. Повторяем для всех seed_words.
+        4. В финале проводим exclusive clustering для оставшихся предложений, исключая seed_words из кандидатов.
 
-        Таким образом, каждый следующий поиск сужает предыдущий результат и пересчитывает кластеры.
-        Слова из seed_words не могут быть назначены предложениям повторно.
+        Таким образом, каждый следующий поиск сужает предыдущий результат.
+        В финале seed_words исключаются из кандидатов — для каждого предложения берётся
+        первое по релевантности слово, которого нет в seed_words.
 
         Args:
             seed_words: Список слов для последовательной кластеризации.
                        Например, ["python", "data"] сначала найдёт кластер python,
-                       затем сузит до предложений из кластера python, где релевантным стало data.
+                       затем сузит до предложений из кластера python, где есть data.
 
         Returns:
             Словарь {слово: множество индексов предложений} — финальные кластеры после всех сужений.
@@ -364,8 +362,8 @@ class SearchEngine:
 
         Пример:
             >>> clusters = engine.iterative_exclusive_clustering(["python", "data"])
-            >>> # Кластеризация только по предложениям, которые были в кластере python,
-            >>> # а после пересчёта стали кластером data
+            >>> # Кластеризация только по предложениям, которые были в кластере python и data,
+            >>> # с финальным пересчётом релевантности (исключая python и data)
         """
         if self._exclusive_clusterer is None:
             raise RuntimeError("Exclusive clustering is not enabled.")
@@ -377,13 +375,13 @@ class SearchEngine:
         current_indices: Set[int] = set(range(len(self._sentences)))
 
         # Последовательно сужаем для каждого seed слова
-        for i, seed_word in enumerate(seed_words):
+        for seed_word in seed_words:
             if not current_indices:
                 return {}
 
-            # Проводим exclusive clustering для текущего набора предложений
+            # Проводим exclusive clustering для текущего набора предложений (без исключений!)
             sorted_indices = sorted(current_indices)
-            subset_sentences = [self._sentences[i] for i in sorted_indices]
+            subset_sentences = [self._sentences[j] for j in sorted_indices]
 
             # Создаём временный SearchEngine для подмножества
             temp_engine = SearchEngine(
@@ -392,11 +390,10 @@ class SearchEngine:
                 enable_cluster_analysis=False,
             )
 
-            # Получаем кластеры для подмножества
+            # Получаем кластеры без исключений - ищем seed_word
             temp_clusters = temp_engine.exclusive_clustering()
 
-            # На шаге 0 ищем кластер seed_word, на шагах >0 тоже ищем seed_word
-            # Но исключаем seed_words из результатов для финального вывода
+            # Находим кластер с именем seed_word
             if seed_word.lower() not in temp_clusters:
                 # Если такого кластера нет, пробуем найти слово в любом виде
                 found = False
@@ -418,7 +415,7 @@ class SearchEngine:
             return {}
 
         sorted_indices = sorted(current_indices)
-        subset_sentences = [self._sentences[i] for i in sorted_indices]
+        subset_sentences = [self._sentences[j] for j in sorted_indices]
 
         temp_engine = SearchEngine(
             sentences=subset_sentences,
@@ -426,21 +423,17 @@ class SearchEngine:
             enable_cluster_analysis=False,
         )
 
-        temp_clusters = temp_engine.exclusive_clustering()
-
-        # Исключаем seed_words из финальных кластеров
-        filtered_clusters = {
-            word: indices
-            for word, indices in temp_clusters.items()
-            if word.lower() not in excluded_words
-        }
+        # Финальная кластеризация с исключением всех seed_words
+        temp_clusters = temp_engine._exclusive_clusterer.cluster(
+            excluded_words=excluded_words
+        )
 
         # Маппинг индексов обратно к оригинальным
-        index_mapping = {i: orig_idx for i, orig_idx in enumerate(sorted_indices)}
+        index_mapping = {j: orig_idx for j, orig_idx in enumerate(sorted_indices)}
 
         result: Dict[str, Set[int]] = {}
-        for word, indices in filtered_clusters.items():
-            original_indices = {index_mapping[i] for i in indices}
+        for word, indices in temp_clusters.items():
+            original_indices = {index_mapping[j] for j in indices}
             result[word] = original_indices
 
         return result

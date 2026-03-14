@@ -62,6 +62,7 @@ class ExclusiveClusterer:
     def cluster(
         self,
         n: Optional[int] = None,
+        excluded_words: Optional[Set[str]] = None,
     ) -> Dict[str, Set[int]]:
         """
         Выполнить непересекающуюся кластеризацию.
@@ -70,6 +71,8 @@ class ExclusiveClusterer:
 
         Args:
             n: Количество предложений для обработки. Если None — все.
+            excluded_words: Множество слов для исключения из кандидатов.
+                           Если для предложения лучшее слово исключено, берётся следующее.
 
         Returns:
             Словарь {слово: множество индексов предложений}.
@@ -86,9 +89,6 @@ class ExclusiveClusterer:
         # Вычисляем скоры: TF-IDF × log(freq)
         scores = matrix.multiply(self._word_weights).tocsr()
 
-        # Находим слово с максимальным скором для каждого предложения
-        best_word_indices = np.asarray(scores.argmax(axis=1)).flatten()
-
         # Получаем максимальные скоры для проверки
         max_scores = np.asarray(scores.max(axis=1).toarray()).flatten()
 
@@ -96,11 +96,40 @@ class ExclusiveClusterer:
         from collections import defaultdict
         clusters = defaultdict(set)
 
-        for doc_idx, word_idx in enumerate(best_word_indices):
+        # Индексы исключённых слов для быстрого доступа
+        excluded_indices = set()
+        if excluded_words:
+            for i, word in enumerate(self._feature_names):
+                if word.lower() in {w.lower() for w in excluded_words}:
+                    excluded_indices.add(i)
+
+        for doc_idx in range(n_docs):
             # Проверяем, что в предложении есть хоть одно слово
-            if max_scores[doc_idx] > 0:
-                word = self._feature_names[word_idx]
-                clusters[word].add(doc_idx)
+            if max_scores[doc_idx] == 0:
+                continue
+
+            # Получаем все слова и их скоры для этого предложения
+            row = scores.getrow(doc_idx)
+            word_indices = row.indices
+            word_scores = row.data
+
+            if len(word_indices) == 0:
+                continue
+
+            # Сортируем по убыванию скора
+            sorted_order = np.argsort(word_scores)[::-1]
+
+            # Находим первое слово, которое не исключено
+            assigned = False
+            for idx in sorted_order:
+                word_idx = word_indices[idx]
+                if word_idx not in excluded_indices:
+                    word = self._feature_names[word_idx]
+                    clusters[word].add(doc_idx)
+                    assigned = True
+                    break
+
+            # Если все слова исключены - пропускаем предложение
 
         return dict(clusters)
 

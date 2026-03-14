@@ -43,6 +43,4 @@ demo.tfidf_for_top_words(engine, top_n=20)
 
 n = None
 demo.show_exclusive_clustering(engine, n=n, top_n=20)
-demo.compare_exclusive_clustering_metrics(engine, n=n, top_n=5)
 demo.show_exclusive_clustering_with_stats(engine, n=n, top_n=5)
-

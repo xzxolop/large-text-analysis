@@ -70,6 +70,9 @@ class SearchEngine:
         """Печатает top-N самых частых слов по индексу."""
         self._index.print_top_word_frequency(n)
 
+    def get_word_freq(self, word: str):
+        return self._index.get_word_freq(word)
+
 # Функции из класса TfidfModel
 
     def get_top_words_with_tfidf(self, n: int) -> List[Tuple[MyWord, float]]:

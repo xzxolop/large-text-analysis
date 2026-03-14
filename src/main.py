@@ -5,16 +5,16 @@ import demo
 
 
 data_store = DataStorage()
-data_store.load_data()  # TODO: убрать постоянную загрузку
+data_store.load_data()
 sentences = data_store.get_processed_sentences()
 
 engine = SearchEngine(sentences, calc_word_freq=True)
 
 demo.tfidf_for_top_words(engine, top_n=20)
 
-demo.export_tfidf_results(engine, n=20, filename="tfidf_results.txt")
+#demo.export_tfidf_results(engine, n=20, filename="tfidf_results.txt")
 
-demo.search_words_sequentially(engine, ["russia", "china"])
+#demo.search_words_sequentially(engine, ["russia", "china"])
 
 # ============================================
 # ДЕМО: Кластерный анализ слов (PMI-based)
@@ -45,15 +45,14 @@ demo.search_words_sequentially(engine, ["russia", "china"])
 
 #demo.show_word_cluster_by_frequency(engine, "russia", top_n=20, min_freq=1, min_score_percent=30.0)
 
-index = engine.exclusive_clustering(1000)
+# ============================================
+# ДЕМО: Непересекающаяся кластеризация (TF-IDF based)
+# ============================================
 
-# Сортируем слова по количеству предложений (по популярности)
-sorted_words = sorted(index.items(), key=lambda x: len(x[1]), reverse=True)
+n = None
+demo.show_exclusive_clustering(engine, n=n, top_n=20)
 
-print("\n" + "=" * 50)
-print("Кластеры слов (отсортировано по популярности)")
-print("=" * 50)
+demo.compare_exclusive_clustering_metrics(engine, n=n, top_n=5)
 
-for word, sentence_indexes in sorted_words:
-    print(f"\n{word}: {len(sentence_indexes)} предл.")
+demo.show_exclusive_clustering_with_stats(engine, n=n, top_n=5)
 

@@ -1,6 +1,7 @@
 from data.data_storage import DataStorage
 from search.search_engine import SearchEngine
 from data.data_exporter import DataExporter
+from analysis.exclusive_clustererV2 import ExclusiveClustererV2
 import demo
 
 
@@ -8,9 +9,9 @@ data_store = DataStorage()
 data_store.load_data()
 sentences = data_store.get_processed_sentences()
 
-engine = SearchEngine(sentences, calc_word_freq=True)
+#engine = SearchEngine(sentences, calc_word_freq=True)
 
-demo.tfidf_for_top_words(engine, top_n=20)
+#demo.tfidf_for_top_words(engine, top_n=20)
 
 #demo.export_tfidf_results(engine, n=20, filename="tfidf_results.txt")
 #demo.search_words_sequentially(engine, ["russia", "china"])
@@ -41,7 +42,13 @@ demo.tfidf_for_top_words(engine, top_n=20)
 # ДЕМО: Непересекающаяся кластеризация (TF-IDF based)
 # ============================================
 
-n = None
-demo.show_exclusive_clustering(engine, n=n, top_n=20)
-demo.show_iterative_exclusive_clustering(engine, seed_words=["python"], top_n=20)
-demo.show_iterative_exclusive_clustering(engine, seed_words=["python", "use"], top_n=20)
+#n = None
+#demo.show_exclusive_clustering(engine, n=n, top_n=20)
+#demo.show_iterative_exclusive_clustering(engine, seed_words=["python"], top_n=20)
+#demo.show_iterative_exclusive_clustering(engine, seed_words=["python", "use"], top_n=20)
+
+print(len(sentences))
+ex_clust = ExclusiveClustererV2(sentences[:10000])
+index = ex_clust.get_clusters()
+top_words = index.get_top_word_frequency(n=20)
+print(top_words)

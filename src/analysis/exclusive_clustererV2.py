@@ -13,42 +13,53 @@ class ExclusiveClustererV2:
     Использует метрику TF-IDF × log(freq) для выбора наиболее релевантного слова.
     """
 
-    def __init__(self, sent: list):
-        self._sent = sent
-        self._vectorizer = TfidfVectorizer()
-        self._matrix = self._vectorizer.fit_transform(self._sent)
-        self._feature_names = self._vectorizer.get_feature_names_out()
-        self.word_doc_freq: Counter = Counter()
-
-        # Предварительный расчёт log(freq) для всех слов
-        self._word_log_freq: dict[str, float] = {}
-
-        for sent in self._sent:
-            words = word_tokenize(sent.lower())
-            unique_words = set(words)
-            for w in unique_words:
-                self.word_doc_freq[w] += 1
-
-        # Кэшируем log(freq) для всех слов
-        for word, freq in self.word_doc_freq.items():
-            self._word_log_freq[word] = math.log2(freq) if freq > 0 else 0.0
-
-    def get_clusters(self) -> InvIndex:
+    def __init__(self):
         """
-        Построить инвертированный индекс кластеров.
+        Инициализация кластеризатора.
+
+        TF-IDF векторизатор создаётся один раз и переиспользуется для всех вызовов.
+        """
+        self._vectorizer = TfidfVectorizer()
+
+    def get_clusters(self, sentences: list[str]) -> InvIndex:
+        """
+        Построить инвертированный индекс кластеров для заданных предложений.
 
         Для каждого предложения выбирается одно слово с максимальным TF-IDF.
         Если предложение не содержит слов — оно пропускается.
 
+        Args:
+            sentences: Список предложений для кластеризации.
+
         Returns:
             InvIndex: {слово: множество индексов предложений}
         """
+        if not sentences:
+            return InvIndex({})
+
+        # Векторизация предложений
+        matrix = self._vectorizer.fit_transform(sentences)
+        feature_names = self._vectorizer.get_feature_names_out()
+
+        # Подсчёт частоты слов (в скольких предложениях встречается)
+        word_doc_freq: Counter = Counter()
+        for sent in sentences:
+            words = word_tokenize(sent.lower())
+            unique_words = set(words)
+            for w in unique_words:
+                word_doc_freq[w] += 1
+
+        # Кэшируем log(freq) для всех слов
+        word_log_freq: dict[str, float] = {}
+        for word, freq in word_doc_freq.items():
+            word_log_freq[word] = math.log2(freq) if freq > 0 else 0.0
+
         clusters: dict[str, set[int]] = {}
 
         # Работаем напрямую со sparse матрицей — без toarray() и flatten()
-        for i in range(len(self._sent)):
+        for i in range(len(sentences)):
             # Получаем ненулевые элементы строки (эффективно для sparse)
-            row = self._matrix.getrow(i)
+            row = matrix.getrow(i)
             indices = row.indices
             data = row.data
 
@@ -59,7 +70,7 @@ class ExclusiveClustererV2:
             # Находим индекс максимального TF-IDF без полной сортировки
             max_idx_in_row = np.argmax(data)
             feature_idx = indices[max_idx_in_row]
-            word = self._feature_names[feature_idx]
+            word = feature_names[feature_idx]
 
             # Добавляем предложение в кластер слова
             if word in clusters:
@@ -67,19 +78,44 @@ class ExclusiveClustererV2:
             else:
                 clusters[word] = {i}
 
-        return InvIndex(clusters)
+        return clusters
 
-    def get_clusters_with_scores(self) -> dict[str, set[float]]:
+    def get_clusters_with_scores(
+        self, sentences: list[str]
+    ) -> dict[str, set[float]]:
         """
         Построить кластеры с сохранением скоров для каждого предложения.
+
+        Args:
+            sentences: Список предложений для кластеризации.
 
         Returns:
             {слово: множество скоров (TF-IDF × log(freq))}
         """
+        if not sentences:
+            return {}
+
+        # Векторизация предложений
+        matrix = self._vectorizer.fit_transform(sentences)
+        feature_names = self._vectorizer.get_feature_names_out()
+
+        # Подсчёт частоты слов (в скольких предложениях встречается)
+        word_doc_freq: Counter = Counter()
+        for sent in sentences:
+            words = word_tokenize(sent.lower())
+            unique_words = set(words)
+            for w in unique_words:
+                word_doc_freq[w] += 1
+
+        # Кэшируем log(freq) для всех слов
+        word_log_freq: dict[str, float] = {}
+        for word, freq in word_doc_freq.items():
+            word_log_freq[word] = math.log2(freq) if freq > 0 else 0.0
+
         clusters: dict[str, set[float]] = {}
 
-        for i in range(len(self._sent)):
-            row = self._matrix.getrow(i)
+        for i in range(len(sentences)):
+            row = matrix.getrow(i)
             indices = row.indices
             data = row.data
 
@@ -89,11 +125,11 @@ class ExclusiveClustererV2:
             # Находим слово с максимальным TF-IDF
             max_idx_in_row = np.argmax(data)
             feature_idx = indices[max_idx_in_row]
-            word = self._feature_names[feature_idx]
+            word = feature_names[feature_idx]
             tf_idf = data[max_idx_in_row]
 
             # Рассчитываем скор
-            log_freq = self._word_log_freq.get(word, 0.0)
+            log_freq = word_log_freq.get(word, 0.0)
             score = tf_idf * log_freq
 
             if word in clusters:

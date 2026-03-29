@@ -3,6 +3,7 @@ from search.search_engine import SearchEngine
 from data.data_exporter import DataExporter
 from analysis.exclusive_clustererV2 import ExclusiveClustererV2
 import demo
+from interface.invindex import InvIndex
 
 
 data_store = DataStorage()
@@ -48,7 +49,22 @@ sentences = data_store.get_processed_sentences()
 #demo.show_iterative_exclusive_clustering(engine, seed_words=["python", "use"], top_n=20)
 
 print(len(sentences))
-ex_clust = ExclusiveClustererV2(sentences)
-index = ex_clust.get_clusters()
+ex_clust = ExclusiveClustererV2()
+clusters = ex_clust.get_clusters(sentences)
+index = InvIndex(clusters)
 top_words = index.get_top_word_frequency(n=20)
 print(top_words)
+
+sent_ind = clusters["deleted"]
+
+new_sents = []
+for i in sent_ind:
+    new_sents.append(sentences[i])
+
+clusters = ex_clust.get_clusters(new_sents)
+index = InvIndex(clusters)
+top_words = index.get_top_word_frequency(n=20)
+print(top_words)
+
+
+# [deleted: 2635, thanks: 1500, removed: 977, thank: 910, performed: 827, concerns: 825, needed: 503, much: 384, luck: 364, awesome: 352, cool: 327, check: 291, great: 264, link: 251, sharing: 219, helps: 217, yes: 213, nice: 212, help: 199, interesting: 192]

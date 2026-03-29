@@ -48,7 +48,7 @@ sentences = data_store.get_processed_sentences()
 #demo.show_iterative_exclusive_clustering(engine, seed_words=["python", "use"], top_n=20)
 
 print(len(sentences))
-ex_clust = ExclusiveClustererV2(sentences[:10000])
+ex_clust = ExclusiveClustererV2(sentences)
 index = ex_clust.get_clusters()
 top_words = index.get_top_word_frequency(n=20)
 print(top_words)

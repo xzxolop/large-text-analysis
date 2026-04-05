@@ -278,6 +278,13 @@
             color: #333;
             font-size: 0.95rem;
         }
+        .highlight {
+            background: linear-gradient(120deg, #ffd700 0%, #ffed4e 100%);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: #333;
+        }
 
         /* Responsive design */
         @media (max-width: 768px) {
@@ -341,6 +348,7 @@
         let sentenceLimit = 20;
         let sentenceOffset = 0;
         let sentenceTotalCount = 0;
+        let sentenceSeedWords = [];  // Контекст итеративной кластеризации
 
         document.addEventListener('DOMContentLoaded', () => {
             loadInitialClustering();
@@ -505,12 +513,16 @@
                 toggleCluster(node);
             }
 
-            // Always load sentences for the clicked word
-            selectWord(word);
+            // Load sentences with the PARENT seed_words context (excluding the clicked word itself)
+            // seedWords contains the path to THIS node, so we use it as-is for iterative clustering
+            // But for sentence retrieval, we need the parent path (without the last word)
+            const parentSeedWords = seedWords.slice(0, -1);
+            selectWord(word, parentSeedWords);
         }
 
-        function selectWord(word) {
+        function selectWord(word, seedWords = []) {
             selectedWord = word;
+            sentenceSeedWords = seedWords;
             sentenceOffset = 0;
             loadSentences(word);
             renderClusterTree(); // Update active state
@@ -520,8 +532,11 @@
             updateSentencesPanel();
 
             try {
+                const seedWordsParam = sentenceSeedWords.length > 0 
+                    ? `&seed_words=${encodeURIComponent(JSON.stringify(sentenceSeedWords))}` 
+                    : '';
                 const response = await fetch(
-                    `/api/exclusive/sentences?word=${encodeURIComponent(word)}&limit=${sentenceLimit}&offset=${sentenceOffset}`
+                    `/api/exclusive/sentences?word=${encodeURIComponent(word)}&limit=${sentenceLimit}&offset=${sentenceOffset}${seedWordsParam}`
                 );
                 const data = await response.json();
 
@@ -550,10 +565,11 @@
 
             let html = '<ul class="sentence-list">';
             sentences.forEach((sent, idx) => {
+                const highlightedText = highlightWord(sent.text, sent.highlight_positions, word);
                 html += `
                     <li class="sentence-item">
                         <span class="sentence-number">${sentenceOffset + idx + 1}.</span>
-                        <span class="sentence-text">${escapeHtml(sent.text)}</span>
+                        <span class="sentence-text">${highlightedText}</span>
                     </li>
                 `;
             });
@@ -565,6 +581,29 @@
             }
 
             contentDiv.innerHTML = html;
+        }
+
+        function highlightWord(text, positions, word) {
+            if (!positions || positions.length === 0) {
+                return escapeHtml(text);
+            }
+
+            // Собираем текст с подсветкой вхождений слова
+            let result = '';
+            let lastIndex = 0;
+
+            positions.forEach(pos => {
+                // Добавляем текст до вхождения
+                result += escapeHtml(text.substring(lastIndex, pos));
+                // Добавляем подсвеченное слово
+                result += `<span class="highlight">${escapeHtml(text.substring(pos, pos + word.length))}</span>`;
+                lastIndex = pos + word.length;
+            });
+
+            // Добавляем оставшийся текст
+            result += escapeHtml(text.substring(lastIndex));
+
+            return result;
         }
 
         function loadMoreSentences() {

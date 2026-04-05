@@ -68,6 +68,7 @@ class IterativeRequest(BaseModel):
 class SentenceItem(BaseModel):
     index: int
     text: str
+    highlight_positions: list[int] = []  # Позиции слова для подсветки
 
 
 class SentencesResponse(BaseModel):
@@ -287,10 +288,13 @@ async def get_or_compute_all_clusters() -> Dict[str, Set[int]]:
 
 
 @app.get("/api/exclusive/sentences", response_model=SentencesResponse)
-async def get_exclusive_sentences(word: str, limit: int = 20, offset: int = 0):
+async def get_exclusive_sentences(word: str, limit: int = 20, offset: int = 0, seed_words: str = ""):
     """
     Получить оригинальные предложения для заданного слова.
-    Использует кэшированные кластеры для производительности.
+    seed_words (JSON array) — контекст итеративной кластеризации.
+
+    Если seed_words указаны, вычисляем кластеры для подмножества предложений,
+    а не для всех. Это обеспечивает консистентность с итеративным просмотром.
     """
     if not state.loaded or state.engine is None or state.data_store is None:
         raise HTTPException(status_code=503, detail="Service not ready. Please wait for startup.")
@@ -299,14 +303,27 @@ async def get_exclusive_sentences(word: str, limit: int = 20, offset: int = 0):
     if not word_lower:
         raise HTTPException(status_code=400, detail="Word cannot be empty")
 
-    # Получаем все кластеры (из кэша или вычисляем)
-    all_clusters = await get_or_compute_all_clusters()
+    # Определяем, использовать ли глобальные кластеры или итеративные
+    import json
+    seed_words_list = []
+    if seed_words and seed_words.strip():
+        try:
+            seed_words_list = json.loads(seed_words)
+        except json.JSONDecodeError:
+            seed_words_list = []
+
+    if seed_words_list:
+        # Итеративная кластеризация для подмножества
+        clusters = state.engine.iterative_exclusive_clustering(seed_words=seed_words_list)
+    else:
+        # Глобальные кластеры (из кэша или вычисляем)
+        clusters = await get_or_compute_all_clusters()
 
     # Находим кластер для слова
-    if word_lower not in all_clusters:
+    if word_lower not in clusters:
         return SentencesResponse(word=word_lower, total_count=0, sentences=[])
 
-    sentence_indices = all_clusters[word_lower]
+    sentence_indices = clusters[word_lower]
     total_count = len(sentence_indices)
 
     # Сортируем индексы и применяем пагинацию
@@ -316,16 +333,28 @@ async def get_exclusive_sentences(word: str, limit: int = 20, offset: int = 0):
     # Получаем ОРИГИНАЛЬНЫЕ предложения (не обработанные)
     original_sentences = state.data_store.get_original_sentences_by_index(paginated_indices)
 
-    # Формируем ответ
-    sentences = [
-        SentenceItem(index=idx, text=text)
-        for idx, text in zip(paginated_indices, original_sentences)
-    ]
+    # Находим позиции слова в каждом предложении для подсветки
+    sentences_with_highlights = []
+    for idx, text in zip(paginated_indices, original_sentences):
+        # Находим все вхождения слова (case-insensitive)
+        positions = []
+        text_lower = text.lower()
+        start = 0
+        while True:
+            pos = text_lower.find(word_lower, start)
+            if pos == -1:
+                break
+            positions.append(pos)
+            start = pos + 1
+
+        sentences_with_highlights.append(
+            SentenceItem(index=idx, text=text, highlight_positions=positions)
+        )
 
     return SentencesResponse(
         word=word_lower,
         total_count=total_count,
-        sentences=sentences,
+        sentences=sentences_with_highlights,
     )
 
 

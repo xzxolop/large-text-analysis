@@ -530,6 +530,9 @@
 
         async function loadSentences(word) {
             updateSentencesPanel();
+            
+            // Показываем индикатор загрузки в правой панели
+            document.getElementById('right-panel-content').innerHTML = '<div class="loading">Loading sentences</div>';
 
             try {
                 const seedWordsParam = sentenceSeedWords.length > 0 

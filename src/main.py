@@ -55,13 +55,21 @@ index = InvIndex(clusters)
 top_words = index.get_top_word_frequency(n=20)
 print(top_words)
 
-sent_ind = clusters["deleted"]
+word = "help"
+
+sent_ind = clusters[word]
+
+#print(sent_ind)
 
 new_sents = []
 for i in sent_ind:
     new_sents.append(sentences[i])
 
-clusters = ex_clust.get_clusters(new_sents)
+print(new_sents[:10])
+
+print("sent count:", len(new_sents))
+ex_clust = ExclusiveClustererV2()
+clusters = ex_clust.get_clusters(new_sents, [word])
 index = InvIndex(clusters)
 top_words = index.get_top_word_frequency(n=20)
 print(top_words)

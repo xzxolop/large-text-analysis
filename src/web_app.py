@@ -9,7 +9,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict, Set
 import sys
 from pathlib import Path
 
@@ -65,6 +65,17 @@ class IterativeRequest(BaseModel):
     seed_words: List[str]
 
 
+class SentenceItem(BaseModel):
+    index: int
+    text: str
+
+
+class SentencesResponse(BaseModel):
+    word: str
+    total_count: int
+    sentences: list[SentenceItem]
+
+
 # ============================================
 # Инициализация приложения
 # ============================================
@@ -85,8 +96,10 @@ templates = Jinja2Templates(directory=str(templates_dir))
 # ============================================
 
 class AppState:
-    """Хранит инициализированный SearchEngine."""
+    """Хранит инициализированный SearchEngine и данные."""
     engine: Optional[SearchEngine] = None
+    data_store: Optional[DataStorage] = None
+    all_clusters: Optional[Dict[str, Set[int]]] = None  # Кэш всех кластеров
     loaded: bool = False
 
 
@@ -98,9 +111,9 @@ async def startup_event():
     """Загружает данные и инициализирует SearchEngine при старте приложения."""
     print("🔄 Loading dataset and initializing SearchEngine...")
 
-    data_store = DataStorage()
-    data_store.load_data()  # Загрузка Reddit dataset
-    sentences = data_store.get_processed_sentences()
+    state.data_store = DataStorage()
+    state.data_store.load_data()  # Загрузка Reddit dataset
+    sentences = state.data_store.get_processed_sentences()
 
     print(f"📄 Loaded {len(sentences)} sentences")
 
@@ -249,8 +262,71 @@ async def get_iterative_exclusive_clustering(request: IterativeRequest):
         ExclusiveClusterItem(word=word, freq=len(indices))
         for word, indices in sorted_clusters
     ]
-    
+
     return ExclusiveClusterResponse(clusters=cluster_list)
+
+
+async def get_or_compute_all_clusters() -> Dict[str, Set[int]]:
+    """
+    Получить все кластеры (из кэша или вычислить).
+    Кэширует результат для последующих вызовов.
+    """
+    if state.all_clusters is not None:
+        return state.all_clusters
+
+    if state.engine is None:
+        raise HTTPException(status_code=503, detail="Service not ready. Please wait for startup.")
+
+    print("🔄 Computing all exclusive clusters (first call)...")
+    # Используем ExclusiveClusterer напрямую — он уже инициализирован в SearchEngine
+    all_clusters = state.engine._exclusive_clusterer.cluster()
+    state.all_clusters = all_clusters
+    print(f"✅ Computed {len(all_clusters)} exclusive clusters")
+
+    return all_clusters
+
+
+@app.get("/api/exclusive/sentences", response_model=SentencesResponse)
+async def get_exclusive_sentences(word: str, limit: int = 20, offset: int = 0):
+    """
+    Получить оригинальные предложения для заданного слова.
+    Использует кэшированные кластеры для производительности.
+    """
+    if not state.loaded or state.engine is None or state.data_store is None:
+        raise HTTPException(status_code=503, detail="Service not ready. Please wait for startup.")
+
+    word_lower = word.lower().strip()
+    if not word_lower:
+        raise HTTPException(status_code=400, detail="Word cannot be empty")
+
+    # Получаем все кластеры (из кэша или вычисляем)
+    all_clusters = await get_or_compute_all_clusters()
+
+    # Находим кластер для слова
+    if word_lower not in all_clusters:
+        return SentencesResponse(word=word_lower, total_count=0, sentences=[])
+
+    sentence_indices = all_clusters[word_lower]
+    total_count = len(sentence_indices)
+
+    # Сортируем индексы и применяем пагинацию
+    sorted_indices = sorted(sentence_indices)
+    paginated_indices = sorted_indices[offset:offset + limit]
+
+    # Получаем ОРИГИНАЛЬНЫЕ предложения (не обработанные)
+    original_sentences = state.data_store.get_original_sentences_by_index(paginated_indices)
+
+    # Формируем ответ
+    sentences = [
+        SentenceItem(index=idx, text=text)
+        for idx, text in zip(paginated_indices, original_sentences)
+    ]
+
+    return SentencesResponse(
+        word=word_lower,
+        total_count=total_count,
+        sentences=sentences,
+    )
 
 
 @app.get("/api/health")

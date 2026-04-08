@@ -222,25 +222,23 @@ async def get_cluster(request: ClusterRequest):
 @app.get("/api/exclusive", response_model=ExclusiveClusterResponse)
 async def get_exclusive_clustering():
     """
-    Получить результаты непересекающейся кластеризации.
+    Получить ВСЕ результаты непересекающейся кластеризации.
     """
     if not state.loaded or state.engine is None:
         raise HTTPException(status_code=503, detail="Service not ready. Please wait for startup.")
 
-    engine = state.engine
-    
-    # Получаем топ-50 кластеров
-    clusters = engine.get_top_exclusive_clusters(top_n=50, min_cluster_size=1)
-    
+    # Получаем ВСЕ кластеры (из кэша)
+    all_clusters = await get_or_compute_all_clusters()
+
     # Сортируем по размеру
-    sorted_clusters = sorted(clusters.items(), key=lambda x: len(x[1]), reverse=True)
-    
-    # Формируем ответ
+    sorted_clusters = sorted(all_clusters.items(), key=lambda x: len(x[1]), reverse=True)
+
+    # Формируем ответ — отдаём всё
     cluster_list = [
         ExclusiveClusterItem(word=word, freq=len(indices))
         for word, indices in sorted_clusters
     ]
-    
+
     return ExclusiveClusterResponse(clusters=cluster_list)
 
 

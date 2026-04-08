@@ -192,6 +192,10 @@
             font-size: 0.8rem;
             font-weight: 600;
         }
+        .word-freq.cached {
+            background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%);
+            color: white;
+        }
         .expand-icon {
             margin-right: 10px;
             transition: transform 0.3s;
@@ -227,6 +231,10 @@
             background: #e0e0e0;
             color: #666;
             font-size: 0.75rem;
+        }
+        .nested-list .word-freq.cached {
+            background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%);
+            color: white;
         }
         .nested-list .cluster-word {
             padding: 10px 15px;
@@ -512,6 +520,10 @@
             const hasChildren = item.children && item.children.length > 0;
             const isSelected = selectedWord === item.word;
             const seedWordsJson = JSON.stringify(item.seedWords || []).replace(/"/g, '&quot;');
+            
+            // Проверяем, есть ли слово в кэше
+            const cacheKey = getCacheKey(item.word, item.seedWords.slice(0, -1));
+            const isCached = sentencesCache.has(cacheKey);
 
             let html = `
                 <li class="cluster-item" style="margin-left: ${indent}px;">
@@ -520,7 +532,7 @@
                             <span class="expand-icon ${isExpanded ? 'expanded' : ''}">▶</span>
                             ${escapeHtml(item.word)}
                         </span>
-                        <span class="word-freq">${item.freq.toLocaleString()}</span>
+                        <span class="word-freq ${isCached ? 'cached' : ''}">${item.freq.toLocaleString()}</span>
                     </div>
             `;
 
@@ -601,6 +613,7 @@
                 console.log(`📦 Cache hit: ${cacheKey}`);
                 sentenceTotalCount = cached.totalCount;
                 renderSentences(cached.sentences, word);
+                renderClusterTree(); // Обновляем отображение кэша
                 return;
             }
 
@@ -628,6 +641,7 @@
                 });
                 
                 renderSentences(data.sentences, word);
+                renderClusterTree(); // Обновляем отображение кэша
             } catch (error) {
                 document.getElementById('right-panel-content').innerHTML =
                     `<div class="error">❌ Error: ${error.message}</div>`;

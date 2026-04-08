@@ -45,7 +45,7 @@ data
 
 Веб-интерфейс для кластерного анализа слов:
 
-```uv run uvicorn src.web_app:app --reload --host 0.0.0.0 --port 8000```
+```uv run uvicorn src.web_app:app --reload```
 
 Откройте в браузере: http://localhost:8000
 

@@ -10,9 +10,9 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 40px 20px;
+            padding: 20px;
         }
-        .container { max-width: 1000px; margin: 0 auto; }
+        .container { max-width: 1400px; margin: 0 auto; }
         h1 {
             color: white;
             text-align: center;
@@ -23,12 +23,12 @@
         .subtitle {
             text-align: center;
             color: white;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             opacity: 0.9;
         }
         .nav-links {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
         .nav-links a {
             color: white;
@@ -41,19 +41,91 @@
             display: inline-block;
         }
         .nav-links a:hover { background: rgba(255,255,255,0.3); }
-        .results {
+        .reset-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+            margin-left: 10px;
+        }
+        .reset-btn:hover { background: rgba(255,255,255,0.3); }
+
+        /* Two-panel layout */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        /* Left panel - Clusters */
+        .left-panel {
             background: white;
             border-radius: 12px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             overflow: hidden;
-            padding: 0;
+            max-height: calc(100vh - 200px);
+            display: flex;
+            flex-direction: column;
         }
         .results-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 20px 30px;
+            padding: 15px 20px;
+            flex-shrink: 0;
         }
-        .loading { text-align: center; padding: 60px 20px; color: #666; }
+        .results-header h2 {
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+        }
+        .results-header p {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+        .left-panel-content {
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        /* Right panel - Sentences */
+        .right-panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+            max-height: calc(100vh - 200px);
+            display: flex;
+            flex-direction: column;
+        }
+        .right-panel-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+        }
+        .right-panel-header h2 {
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+        }
+        .right-panel-header p {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+        .right-panel-content {
+            overflow-y: auto;
+            flex: 1;
+            padding: 0;
+        }
+
+        /* Loading & Error states */
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
         .loading::after {
             content: '';
             display: inline-block;
@@ -69,11 +141,20 @@
         .error {
             background: #fee;
             color: #c00;
-            padding: 20px 30px;
+            padding: 20px;
+            margin: 10px;
             border-radius: 8px;
-            margin: 20px;
         }
-        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
         /* Cluster list with nesting */
         .cluster-list {
             list-style: none;
@@ -85,27 +166,39 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 20px;
+            padding: 12px 20px;
             cursor: pointer;
             transition: background 0.2s;
             position: relative;
         }
         .cluster-word:hover { background: #f8f9fa; }
+        .cluster-word.cached {
+            background: linear-gradient(90deg, rgba(67, 160, 71, 0.18) 0%, rgba(102, 187, 106, 0.14) 100%);
+            border-left: 3px solid #43a047;
+        }
+        .cluster-word.active {
+            background: #eef2ff;
+            border-left: 4px solid #667eea;
+        }
+        .cluster-word.cached.active {
+            background: linear-gradient(90deg, rgba(67, 160, 71, 0.25) 0%, rgba(102, 187, 106, 0.20) 100%);
+            border-left: 4px solid #667eea;
+        }
         .cluster-word.loading {
             pointer-events: none;
             opacity: 0.6;
         }
         .word-text {
             font-weight: 600;
-            font-size: 1.05rem;
+            font-size: 1rem;
             color: #333;
         }
         .word-freq {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 5px 15px;
+            padding: 4px 12px;
             border-radius: 20px;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 600;
         }
         .expand-icon {
@@ -118,7 +211,7 @@
         .expand-icon.expanded {
             transform: rotate(90deg);
         }
-        
+
         /* Nested content with indentation */
         .nested-content {
             max-height: 0;
@@ -147,7 +240,7 @@
         .nested-list .cluster-word {
             padding: 10px 15px;
         }
-        
+
         /* Deeper nesting levels */
         .nested-list .nested-list {
             padding-left: 25px;
@@ -156,68 +249,319 @@
         .nested-list .nested-list .nested-list {
             border-left-color: #c0c0c0;
         }
-        
-        .show-more { text-align: center; padding: 20px; }
+
+        .show-more {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-top: 1px solid #e0e0e0;
+        }
         .show-more button {
             background: transparent;
             color: #667eea;
             border: 2px solid #667eea;
-            padding: 10px 30px;
+            padding: 8px 24px;
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
             transition: all 0.3s;
+            margin-bottom: 5px;
         }
-        .show-more button:hover { background: #667eea; color: white; }
-        
-        .reset-btn {
-            background: rgba(255,255,255,0.2);
+        .show-more button:hover {
+            background: #667eea;
             color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
+        }
+        .show-more-remaining {
+            font-size: 0.8rem;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        /* Sentence list */
+        .sentence-list {
+            list-style: none;
+        }
+        .sentence-item {
+            padding: 12px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            line-height: 1.6;
+            transition: background 0.2s;
+        }
+        .sentence-item:hover {
+            background: #f8f9fa;
+        }
+        .sentence-number {
+            display: inline-block;
+            font-weight: 600;
+            color: #667eea;
+            margin-right: 10px;
+            min-width: 30px;
+        }
+        .sentence-text {
+            color: #333;
+            font-size: 0.95rem;
+        }
+        /* Highlight styles for different levels */
+        .highlight-level-0 {
+            background: linear-gradient(120deg, #ff6b6b 0%, #ee5a24 100%);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: white;
+        }
+        .highlight-level-1 {
+            background: linear-gradient(120deg, #ffa502 0%, #e67e22 100%);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: white;
+        }
+        .highlight-level-2 {
+            background: linear-gradient(120deg, #ffd700 0%, #f0c929 100%);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: #333;
+        }
+        .highlight-level-3 {
+            background: linear-gradient(120deg, #2ed573 0%, #27ae60 100%);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: white;
+        }
+        .highlight-level-4 {
+            background: linear-gradient(120deg, #1e90ff 0%, #0984e3 100%);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: white;
+        }
+        .highlight-level-5 {
+            background: linear-gradient(120deg, #a55eea 0%, #8854d0 100%);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: white;
+        }
+        .highlight-level-6 {
+            background: linear-gradient(120deg, #ff6b81 0%, #eb4d4b 100%);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: white;
+        }
+        .highlight-level-7 {
+            background: linear-gradient(120deg, #7bed9f 0%, #2ed573 100%);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: #333;
+        }
+        .highlight-level-8 {
+            background: linear-gradient(120deg, #70a1ff 0%, #1e90ff 100%);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: white;
+        }
+        .highlight-level-9 {
+            background: linear-gradient(120deg, #ffa502 0%, #ff6348 100%);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: white;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            .left-panel, .right-panel {
+                max-height: 50vh;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+
+        /* Toggle switch for highlight mode */
+        .highlight-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .highlight-toggle-label {
+            font-size: 0.8rem;
+            color: white;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+        .highlight-toggle-label.active {
+            opacity: 1;
+            font-weight: 600;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 52px;
+            height: 26px;
             cursor: pointer;
-            font-size: 0.9rem;
+        }
+        .toggle-track {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.3);
+            border-radius: 13px;
             transition: background 0.3s;
         }
-        .reset-btn:hover { background: rgba(255,255,255,0.3); }
+        .toggle-track.active {
+            background: rgba(255,255,255,0.6);
+        }
+        .toggle-thumb {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            transition: left 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .toggle-thumb.active {
+            left: 29px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>📊 Exclusive Clustering</h1>
-        <p class="subtitle">Click on a word to expand sub-clusters (nested view)</p>
-        
+        <p class="subtitle">Click on a word to view sentences and expand sub-clusters</p>
+
         <div class="nav-links">
             <a href="/">🔍 PMI Cluster Analysis</a>
             <button class="reset-btn" onclick="resetToInitial()">🔄 Reset</button>
         </div>
-        
-        <div id="results" class="results">
-            <div class="loading">Loading initial clustering</div>
+
+        <div class="main-layout">
+            <!-- Left Panel: Clusters -->
+            <div class="left-panel">
+                <div id="left-panel-content" class="left-panel-content">
+                    <div class="loading">Loading initial clustering</div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Sentences -->
+            <div class="right-panel">
+                <div class="right-panel-header">
+                    <h2>📄 Sentences</h2>
+                    <p id="sentences-subtitle">Select a word to view sentences</p>
+                    <div class="highlight-toggle">
+                        <span class="highlight-toggle-label active" id="label-all">All words</span>
+                        <div class="toggle-switch" onclick="toggleHighlightMode()">
+                            <div class="toggle-track" id="toggle-track"></div>
+                            <div class="toggle-thumb" id="toggle-thumb"></div>
+                        </div>
+                        <span class="highlight-toggle-label" id="label-last">Last only</span>
+                    </div>
+                </div>
+                <div id="right-panel-content" class="right-panel-content">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👈</div>
+                        <p>Select a word from the left panel to see sentences containing it</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         // Store the tree structure of expanded clusters
         let clusterTree = null;
-        let visibleCount = 20;
+        let visibleCount = 25;
+        let selectedWord = null;
+
+        // Sentence pagination
+        let sentenceLimit = 20;
+        let sentenceOffset = 0;
+        let sentenceTotalCount = 0;
+        let sentenceSeedWords = [];  // Контекст итеративной кластеризации
+
+        // LRU Cache for sentences
+        const MAX_CACHE_SIZE = 20;
+        const sentencesCache = new Map();  // key: "word|seed_words_json" -> {sentences, totalCount}
+        const cacheOrder = [];  // Для отслеживания порядка использования (LRU)
+
+        // Highlight mode: 'all' or 'last'
+        let highlightMode = 'all';
+
+        /**
+         * Получить данные из кэша (обновляет позицию при попадании).
+         */
+        function getFromCache(key) {
+            if (!sentencesCache.has(key)) return null;
+            
+            // Перемещаем в конец (самый свежий)
+            const index = cacheOrder.indexOf(key);
+            if (index !== -1) {
+                cacheOrder.splice(index, 1);
+            }
+            cacheOrder.push(key);
+            
+            return sentencesCache.get(key);
+        }
+
+        /**
+         * Сохранить данные в кэш с LRU eviction.
+         */
+        function setInCache(key, value) {
+            // Если уже есть — обновляем позицию
+            if (sentencesCache.has(key)) {
+                const index = cacheOrder.indexOf(key);
+                if (index !== -1) {
+                    cacheOrder.splice(index, 1);
+                }
+            }
+            
+            // Если кэш полон — удаляем самый старый
+            if (cacheOrder.length >= MAX_CACHE_SIZE) {
+                const oldest = cacheOrder.shift();
+                sentencesCache.delete(oldest);
+            }
+            
+            sentencesCache.set(key, value);
+            cacheOrder.push(key);
+        }
+
+        /**
+         * Создать ключ кэша из слова и seed_words.
+         */
+        function getCacheKey(word, seedWords) {
+            return `${word}|${JSON.stringify(seedWords)}`;
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             loadInitialClustering();
         });
-        
+
         async function loadInitialClustering() {
-            const resultsDiv = document.getElementById('results');
+            const resultsDiv = document.getElementById('left-panel-content');
             resultsDiv.innerHTML = '<div class="loading">Loading initial clustering</div>';
-            visibleCount = 20;
-            
+            visibleCount = 25;
+            selectedWord = null;
+            updateSentencesPanel();
+
             try {
                 const response = await fetch('/api/exclusive');
                 const data = await response.json();
-                
+
                 if (!response.ok) throw new Error(data.detail || 'Failed to fetch');
-                
+
                 // Build tree structure with seedWords path
                 clusterTree = {
                     word: 'root',
@@ -230,34 +574,38 @@
                         loading: false,
                         children: null
                     })),
-                    expanded: true
+                    expanded: true,
+                    totalCount: data.clusters.length
                 };
-                
-                renderTree();
+
+                renderClusterTree();
             } catch (error) {
                 resultsDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
             }
         }
-        
+
+        async function loadMoreClusters() {
+            // This function is deprecated — now we load all clusters at once
+        }
+
         async function expandCluster(node) {
             if (node.loading || node.expanded) return;
-            
+
             node.loading = true;
-            renderTree();
-            
+            renderClusterTree();
+
             try {
-                // Use the seedWords path stored in the node
                 const seedWords = node.seedWords || [node.word];
-                
+
                 const response = await fetch('/api/exclusive/iterative', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ seed_words: seedWords }),
                 });
-                
+
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail || 'Failed to fetch');
-                
+
                 // Add children to node with updated seedWords path
                 node.children = data.clusters.map(c => ({
                     ...c,
@@ -268,78 +616,79 @@
                 }));
                 node.expanded = true;
                 node.loading = false;
-                
-                renderTree();
+
+                renderClusterTree();
             } catch (error) {
                 node.loading = false;
-                renderTree();
+                renderClusterTree();
                 alert(`Error loading sub-clusters: ${error.message}`);
             }
         }
-        
+
         function collapseCluster(node) {
             node.expanded = false;
-            // Don't clear children - keep them for faster re-expand
-            renderTree();
+            renderClusterTree();
         }
-        
-        function toggleCluster(node) {
-            if (node.expanded) {
-                collapseCluster(node);
-            } else {
-                expandCluster(node);
-            }
-        }
-        
-        function renderTree() {
-            const resultsDiv = document.getElementById('results');
-            
+
+        function renderClusterTree() {
+            const resultsDiv = document.getElementById('left-panel-content');
+
             if (!clusterTree || !clusterTree.children) {
                 resultsDiv.innerHTML = '<div class="error">No clusters loaded</div>';
                 return;
             }
-            
+
             const visibleChildren = clusterTree.children.slice(0, visibleCount);
-            
-            let html = `
-                <div class="results-header">
-                    <h2>📊 Clustering Results</h2>
-                    <p>Click on any word to expand sub-clusters</p>
-                </div>
-                <ul class="cluster-list">
-            `;
-            
+
+            let html = `<div class="results-header">
+                <h2>📊 Clusters (${clusterTree.totalCount} total)</h2>
+                <p>Showing ${visibleCount} of ${clusterTree.totalCount}</p>
+            </div>`;
+
+            html += '<ul class="cluster-list">';
+
             visibleChildren.forEach((item) => {
                 html += renderClusterItem(item, 0);
             });
-            
+
             html += '</ul>';
-            
+
+            // Кнопка "Показать ещё" если есть ещё не показанные
             if (clusterTree.children.length > visibleCount) {
-                html += `<div class="show-more"><button onclick="showMore()">Show more (${clusterTree.children.length - visibleCount} more)</button></div>`;
+                const remaining = clusterTree.children.length - visibleCount;
+                const toShow = Math.min(20, remaining);
+                html += `<div class="show-more">
+                    <button onclick="showMore()">Show more ${toShow} clusters</button>
+                    <div class="show-more-remaining">${remaining.toLocaleString()} remaining</div>
+                </div>`;
             }
-            
+
             resultsDiv.innerHTML = html;
         }
-        
+
         function renderClusterItem(item, depth) {
             const indent = depth * 30;
             const isExpanded = item.expanded;
             const isLoading = item.loading;
             const hasChildren = item.children && item.children.length > 0;
+            const isSelected = selectedWord === item.word;
             const seedWordsJson = JSON.stringify(item.seedWords || []).replace(/"/g, '&quot;');
             
+            // Проверяем, есть ли слово в кэше
+            const cacheKey = getCacheKey(item.word, item.seedWords.slice(0, -1));
+            const isCached = sentencesCache.has(cacheKey);
+
             let html = `
                 <li class="cluster-item" style="margin-left: ${indent}px;">
-                    <div class="cluster-word ${isLoading ? 'loading' : ''}" onclick="onClusterClick('${escapeHtml(item.word)}', ${seedWordsJson})">
+                    <div class="cluster-word ${isCached ? 'cached' : ''} ${isLoading ? 'loading' : ''} ${isSelected ? 'active' : ''}" onclick="onClusterClick('${escapeHtml(item.word)}', ${seedWordsJson})">
                         <span class="word-text">
                             <span class="expand-icon ${isExpanded ? 'expanded' : ''}">▶</span>
                             ${escapeHtml(item.word)}
                         </span>
-                        <span class="word-freq">${item.freq.toLocaleString()} sentences</span>
+                        <span class="word-freq">${item.freq.toLocaleString()}</span>
                     </div>
             `;
-            
+
             if (hasChildren && isExpanded) {
                 html += `<div class="nested-content open"><ul class="nested-list">`;
                 item.children.forEach(child => {
@@ -347,11 +696,11 @@
                 });
                 html += `</ul></div>`;
             }
-            
+
             html += `</li>`;
             return html;
         }
-        
+
         function onClusterClick(word, seedWords) {
             // Find the node in the current visible list
             function findNodeInList(list, targetWord) {
@@ -364,24 +713,299 @@
                 }
                 return null;
             }
-            
-            // Search in root children first
+
             let node = findNodeInList(clusterTree.children, word);
-            
-            if (node) {
-                toggleCluster(node);
+
+            if (!node) return;
+
+            // Load sentences with the PARENT seed_words context (excluding the clicked word itself)
+            const parentSeedWords = seedWords.slice(0, -1);
+
+            if (node.expanded) {
+                // Сворачиваем — сбрасываем правую панель
+                collapseCluster(node);
+                resetSentencesPanel();
+            } else {
+                // Раскрываем — загружаем предложения
+                expandCluster(node);
+                selectWord(word, parentSeedWords);
             }
         }
-        
+
+        function toggleHighlightMode() {
+            highlightMode = highlightMode === 'all' ? 'last' : 'all';
+            
+            // Обновляем визуальное состояние toggle
+            const track = document.getElementById('toggle-track');
+            const thumb = document.getElementById('toggle-thumb');
+            const labelAll = document.getElementById('label-all');
+            const labelLast = document.getElementById('label-last');
+            
+            if (highlightMode === 'last') {
+                track.classList.add('active');
+                thumb.classList.add('active');
+                labelAll.classList.remove('active');
+                labelLast.classList.add('active');
+            } else {
+                track.classList.remove('active');
+                thumb.classList.remove('active');
+                labelAll.classList.add('active');
+                labelLast.classList.remove('active');
+            }
+            
+            // Перерисовываем предложения с новым режимом
+            if (selectedWord) {
+                rerenderCurrentSentences();
+            }
+        }
+
+        function rerenderCurrentSentences() {
+            const cacheKey = getCacheKey(selectedWord, sentenceSeedWords);
+            const cached = sentencesCache.get(cacheKey);
+            
+            if (cached) {
+                renderSentences(cached.sentences, selectedWord);
+            }
+        }
+
+        function resetSentencesPanel() {
+            selectedWord = null;
+            sentenceSeedWords = [];
+            sentenceOffset = 0;
+            sentenceTotalCount = 0;
+            updateSentencesPanel();
+            // Не очищаем кэш — он может понадобиться снова
+            document.getElementById('right-panel-content').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">👈</div>
+                    <p>Select a word from the left panel to see sentences containing it</p>
+                </div>
+            `;
+        }
+
+        function selectWord(word, seedWords = []) {
+            selectedWord = word;
+            sentenceSeedWords = seedWords;
+            sentenceOffset = 0;
+            loadSentences(word);
+            renderClusterTree(); // Update active state
+        }
+
+        async function loadSentences(word) {
+            updateSentencesPanel();
+            
+            // Проверяем кэш
+            const cacheKey = getCacheKey(word, sentenceSeedWords);
+            const cached = getFromCache(cacheKey);
+            
+            if (cached) {
+                console.log(`📦 Cache hit: ${cacheKey}`);
+                sentenceTotalCount = cached.totalCount;
+                renderSentences(cached.sentences, word);
+                renderClusterTree(); // Обновляем отображение кэша
+                return;
+            }
+
+            // Показываем индикатор загрузки в правой панели
+            document.getElementById('right-panel-content').innerHTML = '<div class="loading">Loading sentences</div>';
+
+            try {
+                console.log(`🔄 Loading from API: ${cacheKey}`);
+                const seedWordsParam = sentenceSeedWords.length > 0 
+                    ? `&seed_words=${encodeURIComponent(JSON.stringify(sentenceSeedWords))}` 
+                    : '';
+                const response = await fetch(
+                    `/api/exclusive/sentences?word=${encodeURIComponent(word)}&limit=${sentenceLimit}&offset=${sentenceOffset}${seedWordsParam}`
+                );
+                const data = await response.json();
+
+                if (!response.ok) throw new Error(data.detail || 'Failed to fetch');
+
+                sentenceTotalCount = data.total_count;
+                
+                // Сохраняем в кэш
+                setInCache(cacheKey, {
+                    sentences: data.sentences,
+                    totalCount: data.total_count
+                });
+                
+                renderSentences(data.sentences, word);
+                renderClusterTree(); // Обновляем отображение кэша
+            } catch (error) {
+                document.getElementById('right-panel-content').innerHTML =
+                    `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        function renderSentences(sentences, word) {
+            const contentDiv = document.getElementById('right-panel-content');
+
+            if (sentences.length === 0) {
+                contentDiv.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <p>No sentences found for "${word}"</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<ul class="sentence-list">';
+            sentences.forEach((sent, idx) => {
+                const highlightedText = highlightSentences(sent, word);
+                html += `
+                    <li class="sentence-item">
+                        <span class="sentence-number">${sentenceOffset + idx + 1}.</span>
+                        <span class="sentence-text">${highlightedText}</span>
+                    </li>
+                `;
+            });
+            html += '</ul>';
+
+            if (sentenceOffset + sentenceLimit < sentenceTotalCount) {
+                const remaining = sentenceTotalCount - (sentenceOffset + sentenceLimit);
+                html += `<div class="show-more"><button onclick="loadMoreSentences()">Show more (${remaining} more)</button></div>`;
+            }
+
+            contentDiv.innerHTML = html;
+        }
+
+        /**
+         * Подсветить предложения в зависимости от режима.
+         */
+        function highlightSentences(sent, word) {
+            if (highlightMode === 'last') {
+                // Подсвечиваем только последнее слово, но сохраняем его уровень цвета
+                const positions = sent.highlight_positions[word] || [];
+                const level = sent.search_path.indexOf(word);
+                return highlightWordSimple(sent.text, positions, word, level);
+            } else {
+                // Подсвечиваем все слова из пути
+                return highlightMultipleWords(sent.text, sent.highlight_positions, sent.search_path);
+            }
+        }
+
+        /**
+         * Простая подсветка одного слова (для режима "Last only").
+         */
+        function highlightWordSimple(text, positions, word, level = 0) {
+            if (!positions || positions.length === 0) {
+                return escapeHtml(text);
+            }
+
+            let result = '';
+            let lastIndex = 0;
+
+            positions.forEach(pos => {
+                result += escapeHtml(text.substring(lastIndex, pos));
+                result += `<span class="highlight-level-${level % 10}">${escapeHtml(text.substring(pos, pos + word.length))}</span>`;
+                lastIndex = pos + word.length;
+            });
+
+            result += escapeHtml(text.substring(lastIndex));
+            return result;
+        }
+
+        /**
+         * Подсветить несколько слов разными цветами по уровням.
+         * @param {string} text - исходный текст
+         * @param {Object} positionsMap - {word: [positions]}
+         * @param {Array} searchPath - порядок слов для определения уровня
+         */
+        function highlightMultipleWords(text, positionsMap, searchPath) {
+            if (!positionsMap || Object.keys(positionsMap).length === 0) {
+                return escapeHtml(text);
+            }
+
+            // Собираем все позиции с информацией об уровне
+            const allHighlights = [];
+            searchPath.forEach((word, level) => {
+                if (positionsMap[word]) {
+                    positionsMap[word].forEach(pos => {
+                        allHighlights.push({
+                            start: pos,
+                            end: pos + word.length,
+                            level: level
+                        });
+                    });
+                }
+            });
+
+            // Сортируем по позиции
+            allHighlights.sort((a, b) => a.start - b.start);
+
+            // Собираем результат с возможными перекрытиями
+            let result = '';
+            let lastIndex = 0;
+            let currentPos = 0;
+
+            // Используем sweep-line алгоритм для обработки перекрытий
+            const events = [];
+            allHighlights.forEach(h => {
+                events.push({ pos: h.start, type: 'open', level: h.level, end: h.end });
+                events.push({ pos: h.end, type: 'close' });
+            });
+            events.sort((a, b) => a.pos - b.pos || (b.type === 'open' ? 1 : -1));
+
+            let activeHighlights = [];
+
+            events.forEach(event => {
+                if (event.pos > currentPos && activeHighlights.length > 0) {
+                    // Выводим текст с текущими подсветками
+                    const textSegment = escapeHtml(text.substring(currentPos, event.pos));
+                    // Берём самый глубокий уровень (последний в пути)
+                    const topLevel = activeHighlights[activeHighlights.length - 1];
+                    result += `<span class="highlight-level-${topLevel % 10}">${textSegment}</span>`;
+                } else if (event.pos > currentPos) {
+                    result += escapeHtml(text.substring(currentPos, event.pos));
+                }
+
+                if (event.type === 'open') {
+                    activeHighlights.push(event.level);
+                } else {
+                    activeHighlights.pop();
+                }
+
+                currentPos = event.pos;
+            });
+
+            // Оставшийся текст
+            if (currentPos < text.length) {
+                result += escapeHtml(text.substring(currentPos));
+            }
+
+            return result;
+        }
+
+        function highlightWord(text, positions, word) {
+            // Эта функция больше не используется, оставлена для совместимости
+            return highlightMultipleWords(text, { [word]: positions }, [word]);
+        }
+
+        function loadMoreSentences() {
+            sentenceOffset += sentenceLimit;
+            loadSentences(selectedWord);
+        }
+
+        function updateSentencesPanel() {
+            const subtitle = document.getElementById('sentences-subtitle');
+            if (selectedWord) {
+                subtitle.textContent = `Sentences for "${selectedWord}"`;
+            } else {
+                subtitle.textContent = 'Select a word to view sentences';
+            }
+        }
+
         function showMore() {
             visibleCount += 20;
-            renderTree();
+            renderClusterTree();
         }
-        
+
         function resetToInitial() {
+            visibleCount = 25;
             loadInitialClustering();
         }
-        
+
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;

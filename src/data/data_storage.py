@@ -34,8 +34,17 @@ class DataStorage:
     def load_data(self):
         """Загружает данные из датасета в списки python."""
 
-        path = kagglehub.dataset_download("pavellexyr/the-reddit-dataset-dataset")
-        dataset_path = Path(path) / "the-reddit-dataset-dataset-comments.csv"
+        # Сначала ищем кэшированный датасет
+        dataset_path = self._find_cached_dataset()
+        
+        if dataset_path and dataset_path.exists():
+            print(f"✅ Found cached dataset: {dataset_path}")
+        else:
+            # Загружаем с Kaggle
+            print("📥 Downloading dataset from Kaggle...")
+            path = kagglehub.dataset_download("pavellexyr/the-reddit-dataset-dataset")
+            dataset_path = Path(path) / "the-reddit-dataset-dataset-comments.csv"
+            print(f"✅ Dataset downloaded from Kaggle to: {path}")
 
         comments_df = pd.read_csv(dataset_path)
         self.__main_text_list = comments_df["body"].to_list()
@@ -84,6 +93,23 @@ class DataStorage:
 
     def set_stopwords():
         return
+
+    def _find_cached_dataset(self) -> Path | None:
+        """
+        Ищет кэшированный CSV файл датасета.
+        Проверяет стандартные директории kagglehub.
+        """
+        # Путь к кэшу kagglehub
+        kaggle_cache = Path.home() / ".cache" / "kagglehub" / "datasets"
+        
+        if kaggle_cache.exists():
+            # Ищем наш CSV (может быть в поддиректории с версией)
+            csv_files = list(kaggle_cache.rglob("the-reddit-dataset-dataset-comments.csv"))
+            if csv_files:
+                # Берём первый найденный (обычно самый последний)
+                return csv_files[0]
+        
+        return None
 
     def __fill_lists_by_main_text(self):
         for i in range(len(self.__main_text_list)):

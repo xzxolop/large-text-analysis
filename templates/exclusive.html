@@ -286,12 +286,76 @@
             color: #333;
             font-size: 0.95rem;
         }
-        .highlight {
-            background: linear-gradient(120deg, #ffd700 0%, #ffed4e 100%);
+        /* Highlight styles for different levels */
+        .highlight-level-0 {
+            background: linear-gradient(120deg, #ff6b6b 0%, #ee5a24 100%);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: white;
+        }
+        .highlight-level-1 {
+            background: linear-gradient(120deg, #ffa502 0%, #e67e22 100%);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: white;
+        }
+        .highlight-level-2 {
+            background: linear-gradient(120deg, #ffd700 0%, #f0c929 100%);
             padding: 2px 4px;
             border-radius: 3px;
             font-weight: 600;
             color: #333;
+        }
+        .highlight-level-3 {
+            background: linear-gradient(120deg, #2ed573 0%, #27ae60 100%);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: white;
+        }
+        .highlight-level-4 {
+            background: linear-gradient(120deg, #1e90ff 0%, #0984e3 100%);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: white;
+        }
+        .highlight-level-5 {
+            background: linear-gradient(120deg, #a55eea 0%, #8854d0 100%);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: white;
+        }
+        .highlight-level-6 {
+            background: linear-gradient(120deg, #ff6b81 0%, #eb4d4b 100%);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: white;
+        }
+        .highlight-level-7 {
+            background: linear-gradient(120deg, #7bed9f 0%, #2ed573 100%);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: #333;
+        }
+        .highlight-level-8 {
+            background: linear-gradient(120deg, #70a1ff 0%, #1e90ff 100%);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: white;
+        }
+        .highlight-level-9 {
+            background: linear-gradient(120deg, #ffa502 0%, #ff6348 100%);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: white;
         }
 
         /* Responsive design */
@@ -305,6 +369,57 @@
             h1 {
                 font-size: 1.8rem;
             }
+        }
+
+        /* Toggle switch for highlight mode */
+        .highlight-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .highlight-toggle-label {
+            font-size: 0.8rem;
+            color: white;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+        .highlight-toggle-label.active {
+            opacity: 1;
+            font-weight: 600;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 52px;
+            height: 26px;
+            cursor: pointer;
+        }
+        .toggle-track {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.3);
+            border-radius: 13px;
+            transition: background 0.3s;
+        }
+        .toggle-track.active {
+            background: rgba(255,255,255,0.6);
+        }
+        .toggle-thumb {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            transition: left 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .toggle-thumb.active {
+            left: 29px;
         }
     </style>
 </head>
@@ -335,6 +450,14 @@
                 <div class="right-panel-header">
                     <h2>📄 Sentences</h2>
                     <p id="sentences-subtitle">Select a word to view sentences</p>
+                    <div class="highlight-toggle">
+                        <span class="highlight-toggle-label active" id="label-all">All words</span>
+                        <div class="toggle-switch" onclick="toggleHighlightMode()">
+                            <div class="toggle-track" id="toggle-track"></div>
+                            <div class="toggle-thumb" id="toggle-thumb"></div>
+                        </div>
+                        <span class="highlight-toggle-label" id="label-last">Last only</span>
+                    </div>
                 </div>
                 <div id="right-panel-content" class="right-panel-content">
                     <div class="empty-state">
@@ -362,6 +485,9 @@
         const MAX_CACHE_SIZE = 20;
         const sentencesCache = new Map();  // key: "word|seed_words_json" -> {sentences, totalCount}
         const cacheOrder = [];  // Для отслеживания порядка использования (LRU)
+
+        // Highlight mode: 'all' or 'last'
+        let highlightMode = 'all';
 
         /**
          * Получить данные из кэша (обновляет позицию при попадании).
@@ -579,6 +705,42 @@
             }
         }
 
+        function toggleHighlightMode() {
+            highlightMode = highlightMode === 'all' ? 'last' : 'all';
+            
+            // Обновляем визуальное состояние toggle
+            const track = document.getElementById('toggle-track');
+            const thumb = document.getElementById('toggle-thumb');
+            const labelAll = document.getElementById('label-all');
+            const labelLast = document.getElementById('label-last');
+            
+            if (highlightMode === 'last') {
+                track.classList.add('active');
+                thumb.classList.add('active');
+                labelAll.classList.remove('active');
+                labelLast.classList.add('active');
+            } else {
+                track.classList.remove('active');
+                thumb.classList.remove('active');
+                labelAll.classList.add('active');
+                labelLast.classList.remove('active');
+            }
+            
+            // Перерисовываем предложения с новым режимом
+            if (selectedWord) {
+                rerenderCurrentSentences();
+            }
+        }
+
+        function rerenderCurrentSentences() {
+            const cacheKey = getCacheKey(selectedWord, sentenceSeedWords);
+            const cached = sentencesCache.get(cacheKey);
+            
+            if (cached) {
+                renderSentences(cached.sentences, selectedWord);
+            }
+        }
+
         function resetSentencesPanel() {
             selectedWord = null;
             sentenceSeedWords = [];
@@ -663,7 +825,7 @@
 
             let html = '<ul class="sentence-list">';
             sentences.forEach((sent, idx) => {
-                const highlightedText = highlightWord(sent.text, sent.highlight_positions, word);
+                const highlightedText = highlightSentences(sent, word);
                 html += `
                     <li class="sentence-item">
                         <span class="sentence-number">${sentenceOffset + idx + 1}.</span>
@@ -681,27 +843,116 @@
             contentDiv.innerHTML = html;
         }
 
-        function highlightWord(text, positions, word) {
+        /**
+         * Подсветить предложения в зависимости от режима.
+         */
+        function highlightSentences(sent, word) {
+            if (highlightMode === 'last') {
+                // Подсвечиваем только последнее слово, но сохраняем его уровень цвета
+                const positions = sent.highlight_positions[word] || [];
+                const level = sent.search_path.indexOf(word);
+                return highlightWordSimple(sent.text, positions, word, level);
+            } else {
+                // Подсвечиваем все слова из пути
+                return highlightMultipleWords(sent.text, sent.highlight_positions, sent.search_path);
+            }
+        }
+
+        /**
+         * Простая подсветка одного слова (для режима "Last only").
+         */
+        function highlightWordSimple(text, positions, word, level = 0) {
             if (!positions || positions.length === 0) {
                 return escapeHtml(text);
             }
 
-            // Собираем текст с подсветкой вхождений слова
             let result = '';
             let lastIndex = 0;
 
             positions.forEach(pos => {
-                // Добавляем текст до вхождения
                 result += escapeHtml(text.substring(lastIndex, pos));
-                // Добавляем подсвеченное слово
-                result += `<span class="highlight">${escapeHtml(text.substring(pos, pos + word.length))}</span>`;
+                result += `<span class="highlight-level-${level % 10}">${escapeHtml(text.substring(pos, pos + word.length))}</span>`;
                 lastIndex = pos + word.length;
             });
 
-            // Добавляем оставшийся текст
             result += escapeHtml(text.substring(lastIndex));
+            return result;
+        }
+
+        /**
+         * Подсветить несколько слов разными цветами по уровням.
+         * @param {string} text - исходный текст
+         * @param {Object} positionsMap - {word: [positions]}
+         * @param {Array} searchPath - порядок слов для определения уровня
+         */
+        function highlightMultipleWords(text, positionsMap, searchPath) {
+            if (!positionsMap || Object.keys(positionsMap).length === 0) {
+                return escapeHtml(text);
+            }
+
+            // Собираем все позиции с информацией об уровне
+            const allHighlights = [];
+            searchPath.forEach((word, level) => {
+                if (positionsMap[word]) {
+                    positionsMap[word].forEach(pos => {
+                        allHighlights.push({
+                            start: pos,
+                            end: pos + word.length,
+                            level: level
+                        });
+                    });
+                }
+            });
+
+            // Сортируем по позиции
+            allHighlights.sort((a, b) => a.start - b.start);
+
+            // Собираем результат с возможными перекрытиями
+            let result = '';
+            let lastIndex = 0;
+            let currentPos = 0;
+
+            // Используем sweep-line алгоритм для обработки перекрытий
+            const events = [];
+            allHighlights.forEach(h => {
+                events.push({ pos: h.start, type: 'open', level: h.level, end: h.end });
+                events.push({ pos: h.end, type: 'close' });
+            });
+            events.sort((a, b) => a.pos - b.pos || (b.type === 'open' ? 1 : -1));
+
+            let activeHighlights = [];
+
+            events.forEach(event => {
+                if (event.pos > currentPos && activeHighlights.length > 0) {
+                    // Выводим текст с текущими подсветками
+                    const textSegment = escapeHtml(text.substring(currentPos, event.pos));
+                    // Берём самый глубокий уровень (последний в пути)
+                    const topLevel = activeHighlights[activeHighlights.length - 1];
+                    result += `<span class="highlight-level-${topLevel % 10}">${textSegment}</span>`;
+                } else if (event.pos > currentPos) {
+                    result += escapeHtml(text.substring(currentPos, event.pos));
+                }
+
+                if (event.type === 'open') {
+                    activeHighlights.push(event.level);
+                } else {
+                    activeHighlights.pop();
+                }
+
+                currentPos = event.pos;
+            });
+
+            // Оставшийся текст
+            if (currentPos < text.length) {
+                result += escapeHtml(text.substring(currentPos));
+            }
 
             return result;
+        }
+
+        function highlightWord(text, positions, word) {
+            // Эта функция больше не используется, оставлена для совместимости
+            return highlightMultipleWords(text, { [word]: positions }, [word]);
         }
 
         function loadMoreSentences() {

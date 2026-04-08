@@ -70,7 +70,8 @@ class IterativeRequest(BaseModel):
 class SentenceItem(BaseModel):
     index: int
     text: str
-    highlight_positions: list[int] = []  # Позиции слова для подсветки
+    highlight_positions: dict[str, list[int]] = {}  # {word: [positions]} для всех слов пути
+    search_path: list[str] = []  # Полный путь итеративного поиска
 
 
 class SentencesResponse(BaseModel):
@@ -372,22 +373,35 @@ async def get_exclusive_sentences(word: str, limit: int = 20, offset: int = 0, s
     # Получаем ОРИГИНАЛЬНЫЕ предложения (не обработанные)
     original_sentences = state.data_store.get_original_sentences_by_index(paginated_indices)
 
-    # Находим позиции слова в каждом предложении для подсветки
+    # Полный путь поиска: seed_words + текущее слово
+    search_path = seed_words_list + [word_lower]
+
+    # Находим позиции ВСЕХ слов из пути в каждом предложении
     sentences_with_highlights = []
     for idx, text in zip(paginated_indices, original_sentences):
-        # Находим все вхождения слова (case-insensitive)
-        positions = []
+        positions_dict = {}
         text_lower = text.lower()
-        start = 0
-        while True:
-            pos = text_lower.find(word_lower, start)
-            if pos == -1:
-                break
-            positions.append(pos)
-            start = pos + 1
+
+        for search_word in search_path:
+            word_positions = []
+            start = 0
+            while True:
+                pos = text_lower.find(search_word, start)
+                if pos == -1:
+                    break
+                word_positions.append(pos)
+                start = pos + 1
+
+            if word_positions:
+                positions_dict[search_word] = word_positions
 
         sentences_with_highlights.append(
-            SentenceItem(index=idx, text=text, highlight_positions=positions)
+            SentenceItem(
+                index=idx,
+                text=text,
+                highlight_positions=positions_dict,
+                search_path=search_path,
+            )
         )
 
     return SentencesResponse(

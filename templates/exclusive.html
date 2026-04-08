@@ -430,14 +430,6 @@
             renderClusterTree();
         }
 
-        function toggleCluster(node) {
-            if (node.expanded) {
-                collapseCluster(node);
-            } else {
-                expandCluster(node);
-            }
-        }
-
         function renderClusterTree() {
             const resultsDiv = document.getElementById('left-panel-content');
 
@@ -509,15 +501,34 @@
 
             let node = findNodeInList(clusterTree.children, word);
 
-            if (node) {
-                toggleCluster(node);
-            }
+            if (!node) return;
 
             // Load sentences with the PARENT seed_words context (excluding the clicked word itself)
-            // seedWords contains the path to THIS node, so we use it as-is for iterative clustering
-            // But for sentence retrieval, we need the parent path (without the last word)
             const parentSeedWords = seedWords.slice(0, -1);
-            selectWord(word, parentSeedWords);
+
+            if (node.expanded) {
+                // Сворачиваем — сбрасываем правую панель
+                collapseCluster(node);
+                resetSentencesPanel();
+            } else {
+                // Раскрываем — загружаем предложения
+                expandCluster(node);
+                selectWord(word, parentSeedWords);
+            }
+        }
+
+        function resetSentencesPanel() {
+            selectedWord = null;
+            sentenceSeedWords = [];
+            sentenceOffset = 0;
+            sentenceTotalCount = 0;
+            updateSentencesPanel();
+            document.getElementById('right-panel-content').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">👈</div>
+                    <p>Select a word from the left panel to see sentences containing it</p>
+                </div>
+            `;
         }
 
         function selectWord(word, seedWords = []) {

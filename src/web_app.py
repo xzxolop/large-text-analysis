@@ -9,7 +9,9 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
-from typing import Optional, List, Dict, Set
+from typing import Optional, List, Dict, Set, Tuple
+from functools import lru_cache
+import json
 import sys
 from pathlib import Path
 
@@ -101,7 +103,10 @@ class AppState:
     engine: Optional[SearchEngine] = None
     data_store: Optional[DataStorage] = None
     all_clusters: Optional[Dict[str, Set[int]]] = None  # Кэш всех кластеров
+    cluster_cache: Dict[Tuple[str, ...], Dict[str, Set[int]]] = {}  # LRU кэш: seed_words -> clusters
+    cluster_cache_order: List[Tuple[str, ...]] = []  # Порядок использования для LRU
     loaded: bool = False
+    MAX_CACHE_SIZE = 20  # Максимальный размер LRU кэша
 
 
 state = AppState()
@@ -242,22 +247,22 @@ async def get_exclusive_clustering():
 async def get_iterative_exclusive_clustering(request: IterativeRequest):
     """
     Получить результаты итеративной непересекающейся кластеризации.
+    Использует LRU кэш для производительности.
     """
     if not state.loaded or state.engine is None:
         raise HTTPException(status_code=503, detail="Service not ready. Please wait for startup.")
 
-    engine = state.engine
     seed_words = [w.lower().strip() for w in request.seed_words if w.strip()]
-    
+
     if not seed_words:
         raise HTTPException(status_code=400, detail="seed_words cannot be empty")
-    
-    # Получаем итеративную кластеризацию
-    clusters = engine.iterative_exclusive_clustering(seed_words=seed_words)
-    
+
+    # Используем LRU кэш
+    clusters = get_cached_iterative_clusters(seed_words)
+
     # Сортируем по размеру
     sorted_clusters = sorted(clusters.items(), key=lambda x: len(x[1]), reverse=True)
-    
+
     # Формируем ответ
     cluster_list = [
         ExclusiveClusterItem(word=word, freq=len(indices))
@@ -279,12 +284,46 @@ async def get_or_compute_all_clusters() -> Dict[str, Set[int]]:
         raise HTTPException(status_code=503, detail="Service not ready. Please wait for startup.")
 
     print("🔄 Computing all exclusive clusters (first call)...")
-    # Используем ExclusiveClusterer напрямую — он уже инициализирован в SearchEngine
     all_clusters = state.engine._exclusive_clusterer.cluster()
     state.all_clusters = all_clusters
     print(f"✅ Computed {len(all_clusters)} exclusive clusters")
 
     return all_clusters
+
+
+def get_cached_iterative_clusters(seed_words: List[str]) -> Dict[str, Set[int]]:
+    """
+    Получить кластеры из LRU кэша или вычислить.
+    При попадании в кэш — обновляет позицию (делает "самым свежим").
+    """
+    seed_words_tuple = tuple(w.lower().strip() for w in seed_words)
+
+    # Проверяем кэш
+    if seed_words_tuple in state.cluster_cache:
+        # Перемещаем в конец (самый свежий)
+        state.cluster_cache_order.remove(seed_words_tuple)
+        state.cluster_cache_order.append(seed_words_tuple)
+        print(f"📦 Cache hit for seed_words: {seed_words}")
+        return state.cluster_cache[seed_words_tuple]
+
+    # Вычисляем
+    if state.engine is None:
+        raise HTTPException(status_code=503, detail="Service not ready.")
+
+    print(f"🔄 Computing clusters for seed_words: {seed_words}")
+    clusters = state.engine.iterative_exclusive_clustering(seed_words=list(seed_words_tuple))
+
+    # Добавляем в кэш с LRU eviction
+    if len(state.cluster_cache_order) >= state.MAX_CACHE_SIZE:
+        oldest = state.cluster_cache_order.pop(0)
+        del state.cluster_cache[oldest]
+        print(f"🗑️ Evicted from cache: {oldest}")
+
+    state.cluster_cache[seed_words_tuple] = clusters
+    state.cluster_cache_order.append(seed_words_tuple)
+    print(f"✅ Cached clusters for {seed_words} (cache size: {len(state.cluster_cache)})")
+
+    return clusters
 
 
 @app.get("/api/exclusive/sentences", response_model=SentencesResponse)
@@ -313,8 +352,8 @@ async def get_exclusive_sentences(word: str, limit: int = 20, offset: int = 0, s
             seed_words_list = []
 
     if seed_words_list:
-        # Итеративная кластеризация для подмножества
-        clusters = state.engine.iterative_exclusive_clustering(seed_words=seed_words_list)
+        # Итеративная кластеризация для подмножества (с LRU кэшем)
+        clusters = get_cached_iterative_clusters(seed_words_list)
     else:
         # Глобальные кластеры (из кэша или вычисляем)
         clusters = await get_or_compute_all_clusters()

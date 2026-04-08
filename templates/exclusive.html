@@ -350,6 +350,56 @@
         let sentenceTotalCount = 0;
         let sentenceSeedWords = [];  // Контекст итеративной кластеризации
 
+        // LRU Cache for sentences
+        const MAX_CACHE_SIZE = 20;
+        const sentencesCache = new Map();  // key: "word|seed_words_json" -> {sentences, totalCount}
+        const cacheOrder = [];  // Для отслеживания порядка использования (LRU)
+
+        /**
+         * Получить данные из кэша (обновляет позицию при попадании).
+         */
+        function getFromCache(key) {
+            if (!sentencesCache.has(key)) return null;
+            
+            // Перемещаем в конец (самый свежий)
+            const index = cacheOrder.indexOf(key);
+            if (index !== -1) {
+                cacheOrder.splice(index, 1);
+            }
+            cacheOrder.push(key);
+            
+            return sentencesCache.get(key);
+        }
+
+        /**
+         * Сохранить данные в кэш с LRU eviction.
+         */
+        function setInCache(key, value) {
+            // Если уже есть — обновляем позицию
+            if (sentencesCache.has(key)) {
+                const index = cacheOrder.indexOf(key);
+                if (index !== -1) {
+                    cacheOrder.splice(index, 1);
+                }
+            }
+            
+            // Если кэш полон — удаляем самый старый
+            if (cacheOrder.length >= MAX_CACHE_SIZE) {
+                const oldest = cacheOrder.shift();
+                sentencesCache.delete(oldest);
+            }
+            
+            sentencesCache.set(key, value);
+            cacheOrder.push(key);
+        }
+
+        /**
+         * Создать ключ кэша из слова и seed_words.
+         */
+        function getCacheKey(word, seedWords) {
+            return `${word}|${JSON.stringify(seedWords)}`;
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             loadInitialClustering();
         });
@@ -523,6 +573,7 @@
             sentenceOffset = 0;
             sentenceTotalCount = 0;
             updateSentencesPanel();
+            // Не очищаем кэш — он может понадобиться снова
             document.getElementById('right-panel-content').innerHTML = `
                 <div class="empty-state">
                     <div class="empty-state-icon">👈</div>
@@ -542,10 +593,22 @@
         async function loadSentences(word) {
             updateSentencesPanel();
             
+            // Проверяем кэш
+            const cacheKey = getCacheKey(word, sentenceSeedWords);
+            const cached = getFromCache(cacheKey);
+            
+            if (cached) {
+                console.log(`📦 Cache hit: ${cacheKey}`);
+                sentenceTotalCount = cached.totalCount;
+                renderSentences(cached.sentences, word);
+                return;
+            }
+
             // Показываем индикатор загрузки в правой панели
             document.getElementById('right-panel-content').innerHTML = '<div class="loading">Loading sentences</div>';
 
             try {
+                console.log(`🔄 Loading from API: ${cacheKey}`);
                 const seedWordsParam = sentenceSeedWords.length > 0 
                     ? `&seed_words=${encodeURIComponent(JSON.stringify(sentenceSeedWords))}` 
                     : '';
@@ -557,6 +620,13 @@
                 if (!response.ok) throw new Error(data.detail || 'Failed to fetch');
 
                 sentenceTotalCount = data.total_count;
+                
+                // Сохраняем в кэш
+                setInCache(cacheKey, {
+                    sentences: data.sentences,
+                    totalCount: data.total_count
+                });
+                
                 renderSentences(data.sentences, word);
             } catch (error) {
                 document.getElementById('right-panel-content').innerHTML =

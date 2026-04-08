@@ -171,8 +171,16 @@
             position: relative;
         }
         .cluster-word:hover { background: #f8f9fa; }
+        .cluster-word.cached {
+            background: linear-gradient(90deg, rgba(67, 160, 71, 0.18) 0%, rgba(102, 187, 106, 0.14) 100%);
+            border-left: 3px solid #43a047;
+        }
         .cluster-word.active {
             background: #eef2ff;
+            border-left: 4px solid #667eea;
+        }
+        .cluster-word.cached.active {
+            background: linear-gradient(90deg, rgba(67, 160, 71, 0.25) 0%, rgba(102, 187, 106, 0.20) 100%);
             border-left: 4px solid #667eea;
         }
         .cluster-word.loading {
@@ -191,10 +199,6 @@
             border-radius: 20px;
             font-size: 0.8rem;
             font-weight: 600;
-        }
-        .word-freq.cached {
-            background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%);
-            color: white;
         }
         .expand-icon {
             margin-right: 10px;
@@ -231,10 +235,6 @@
             background: #e0e0e0;
             color: #666;
             font-size: 0.75rem;
-        }
-        .nested-list .word-freq.cached {
-            background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%);
-            color: white;
         }
         .nested-list .cluster-word {
             padding: 10px 15px;
@@ -527,12 +527,12 @@
 
             let html = `
                 <li class="cluster-item" style="margin-left: ${indent}px;">
-                    <div class="cluster-word ${isLoading ? 'loading' : ''} ${isSelected ? 'active' : ''}" onclick="onClusterClick('${escapeHtml(item.word)}', ${seedWordsJson})">
+                    <div class="cluster-word ${isCached ? 'cached' : ''} ${isLoading ? 'loading' : ''} ${isSelected ? 'active' : ''}" onclick="onClusterClick('${escapeHtml(item.word)}', ${seedWordsJson})">
                         <span class="word-text">
                             <span class="expand-icon ${isExpanded ? 'expanded' : ''}">▶</span>
                             ${escapeHtml(item.word)}
                         </span>
-                        <span class="word-freq ${isCached ? 'cached' : ''}">${item.freq.toLocaleString()}</span>
+                        <span class="word-freq">${item.freq.toLocaleString()}</span>
                     </div>
             `;
 

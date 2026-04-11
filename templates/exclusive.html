@@ -864,7 +864,11 @@
 
             if (sentenceOffset + sentenceLimit < sentenceTotalCount) {
                 const remaining = sentenceTotalCount - (sentenceOffset + sentenceLimit);
-                html += `<div class="show-more"><button onclick="loadMoreSentences()">Show more (${remaining} more)</button></div>`;
+                const toShow = Math.min(20, remaining);
+                html += `<div class="show-more">
+                    <button onclick="loadMoreSentences()">Show more ${toShow} sentences</button>
+                    <div class="show-more-remaining">${remaining.toLocaleString()} remaining</div>
+                </div>`;
             }
 
             contentDiv.innerHTML = html;

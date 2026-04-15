@@ -225,9 +225,9 @@
         }
         .nested-list {
             list-style: none;
-            padding-left: 30px;
+            padding-left: 15px;
             border-left: 3px solid #e0e0e0;
-            margin: 10px 20px;
+            margin: 5px 10px;
         }
         .nested-list .word-text {
             font-size: 0.95rem;
@@ -243,7 +243,7 @@
 
         /* Deeper nesting levels */
         .nested-list .nested-list {
-            padding-left: 25px;
+            padding-left: 15px;
             border-left-color: #d0d0d0;
         }
         .nested-list .nested-list .nested-list {
@@ -668,7 +668,7 @@
         }
 
         function renderClusterItem(item, depth) {
-            const indent = depth * 30;
+            const indent = depth * 15;
             const isExpanded = item.expanded;
             const isLoading = item.loading;
             const hasChildren = item.children && item.children.length > 0;

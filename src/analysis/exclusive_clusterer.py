@@ -52,6 +52,9 @@ class ExclusiveClusterer:
         self._feature_lower_to_idx: Dict[str, int] = {
             str(w).lower(): i for i, w in enumerate(self._feature_names)
         }
+        # Кэш "лучшее слово для предложения" (без excluded_words)
+        # best_feature_idx[doc] = индекс фичи с максимумом tfidf*log(freq), либо -1 если строка пустая
+        self._best_feature_idx: Optional[np.ndarray] = None
 
     def _compute_word_weights(self) -> np.ndarray:
         """
@@ -65,6 +68,46 @@ class ExclusiveClusterer:
             freq = self._word_freqs.get(word, 0)
             weights[i] = np.log(freq + 1)
         return weights
+
+    def _ensure_best_cache(self) -> None:
+        """
+        Ленивая инициализация кэша "лучшее слово на предложение".
+
+        Это ускоряет повторные вызовы cluster()/cluster_on_indices() в кейсе
+        excluded_words=None: вместо прохода по всем ненулевым элементам
+        для каждого doc мы просто читаем готовый best_feature_idx.
+        """
+        if self._best_feature_idx is not None:
+            return
+
+        matrix = self._tfidf_matrix.tocsr()
+        indptr = matrix.indptr
+        indices = matrix.indices
+        data = matrix.data
+        weights = self._word_weights
+
+        best_idx = np.full(self._n_docs, -1, dtype=np.int32)
+
+        for doc_idx in range(self._n_docs):
+            start = indptr[doc_idx]
+            end = indptr[doc_idx + 1]
+            if start == end:
+                continue
+
+            best_feature = -1
+            best_score = 0.0
+
+            for j in range(start, end):
+                fi = int(indices[j])
+                score = float(data[j]) * float(weights[fi])
+                if score > best_score:
+                    best_score = score
+                    best_feature = fi
+
+            if best_feature >= 0 and best_score > 0.0:
+                best_idx[doc_idx] = best_feature
+
+        self._best_feature_idx = best_idx
 
     def _excluded_indices(self, excluded_words: Optional[Set[str]]) -> Set[int]:
         """
@@ -134,13 +177,28 @@ class ExclusiveClusterer:
 
         excluded_indices = self._excluded_indices(excluded_words)
 
+        clusters = defaultdict(set)
+
+        # Самый быстрый путь: без excluded_words используем кэш best_feature_idx
+        if not excluded_indices:
+            self._ensure_best_cache()
+            assert self._best_feature_idx is not None
+            for doc_idx in doc_indices:
+                if doc_idx < 0 or doc_idx >= self._n_docs:
+                    continue
+                fi = int(self._best_feature_idx[int(doc_idx)])
+                if fi < 0:
+                    continue
+                word = str(self._feature_names[fi])
+                clusters[word].add(int(doc_idx))
+            return dict(clusters)
+
+        # Путь с excluded_words: сканируем кандидатов строки CSR
         matrix = self._tfidf_matrix.tocsr()
         indptr = matrix.indptr
         indices = matrix.indices
         data = matrix.data
         weights = self._word_weights
-
-        clusters = defaultdict(set)
 
         for doc_idx in doc_indices:
             if doc_idx < 0 or doc_idx >= self._n_docs:

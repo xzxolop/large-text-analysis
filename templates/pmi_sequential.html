@@ -659,24 +659,11 @@
             updateSentencesPanel();
 
             try {
-                // Получаем индексы предложений для слова (для последующего подмножества)
-                const indicesResponse = await fetch('/api/pmi/indices', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ seed_words: [word] }),
-                });
-                const indicesData = await indicesResponse.json();
-
-                if (!indicesResponse.ok) throw new Error(indicesData.detail || 'Failed to fetch indices');
-
-                // Получаем PMI-кластер
+                // Начальный поиск — используем весь корпус (без фильтрации по предложениям)
                 const response = await fetch('/api/pmi/cluster', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        word: word,
-                        sentence_indices: indicesData.indices.slice(0, 5000),  // Ограничиваем для производительности
-                    }),
+                    body: JSON.stringify({ word: word }),
                 });
 
                 const data = await response.json();
@@ -691,7 +678,6 @@
                 clusterTree = {
                     word: word,
                     seedWords: [word],
-                    sentenceIndices: indicesData.indices.slice(0, 5000),
                     children: data.cluster.map(c => ({
                         word: c.word,
                         freq: c.freq,
@@ -718,11 +704,16 @@
             renderClusterTree();
 
             try {
-                // Находим индексы предложений для seed_words
+                // Для PMI используем РОДИТЕЛЬСКИЕ seed_words (без текущего слова)
+                // для фильтрации предложений. Текущее слово — это seed для PMI.
+                const parentSeedWords = node.seedWords.slice(0, -1);
+                const currentWord = node.seedWords[node.seedWords.length - 1];
+
+                // Находим индексы предложений для родительских seed_words
                 const indicesResponse = await fetch('/api/pmi/indices', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ seed_words: node.seedWords }),
+                    body: JSON.stringify({ seed_words: parentSeedWords }),
                 });
                 const indicesData = await indicesResponse.json();
 
@@ -741,7 +732,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        word: node.seedWords[node.seedWords.length - 1],  // Последнее слово в пути
+                        word: currentWord,
                         sentence_indices: indicesData.indices.slice(0, 5000),
                     }),
                 });

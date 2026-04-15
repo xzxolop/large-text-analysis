@@ -491,6 +491,10 @@ async def get_pmi_cluster(request: PmiClusterRequest):
         raise HTTPException(status_code=503, detail="Cluster analysis not available.")
 
     # Получаем PMI-кластер
+    # Для подмножества используем min_score_percent=0, т.к. PMI на малых
+    # подмножествах даёт низкие значения, и жёсткий порог отсекает всё
+    effective_min_score_percent = 0.0 if request.sentence_indices else (request.min_score_percent or 30.0)
+
     cluster = cluster_analyzer.get_cluster_words(
         seed_word=word,
         top_n=20 * 5,
@@ -498,7 +502,7 @@ async def get_pmi_cluster(request: PmiClusterRequest):
         min_freq=request.min_freq or 1,
         tfidf_range=None,
         use_freq_weighting=True,
-        min_score_percent=request.min_score_percent or 30.0,
+        min_score_percent=effective_min_score_percent,
     )
 
     if not cluster:

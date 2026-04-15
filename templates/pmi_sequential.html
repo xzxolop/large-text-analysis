@@ -130,30 +130,6 @@
             opacity: 0.9;
         }
 
-        /* Stats bar */
-        .stats-bar {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            padding: 12px 15px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #e0e0e0;
-            flex-shrink: 0;
-        }
-        .stat-item {
-            text-align: center;
-        }
-        .stat-value {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #667eea;
-        }
-        .stat-label {
-            font-size: 0.75rem;
-            color: #666;
-            margin-top: 2px;
-        }
-
         .left-panel-content {
             overflow-y: auto;
             flex: 1;
@@ -475,9 +451,6 @@
             h1 {
                 font-size: 1.8rem;
             }
-            .stats-bar {
-                grid-template-columns: repeat(2, 1fr);
-            }
         }
 
         /* Toggle switch for highlight mode */
@@ -565,24 +538,6 @@
                 <div id="left-panel-header" class="results-header" style="display: none;">
                     <h2 id="cluster-title">📊 Clusters</h2>
                     <p id="cluster-subtitle">Search for a word to start</p>
-                </div>
-                <div id="stats-bar" class="stats-bar" style="display: none;">
-                    <div class="stat-item">
-                        <div class="stat-value" id="stat-words">0</div>
-                        <div class="stat-label">Words Found</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="stat-max">0.0000</div>
-                        <div class="stat-label">Max Score</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="stat-avg">0.0000</div>
-                        <div class="stat-label">Avg Score</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="stat-min">0.0000</div>
-                        <div class="stat-label">Min Score</div>
-                    </div>
                 </div>
                 <div id="left-panel-content" class="left-panel-content">
                     <div class="empty-state">
@@ -692,11 +647,9 @@
         async function searchInitialCluster(word) {
             const resultsDiv = document.getElementById('left-panel-content');
             const headerDiv = document.getElementById('left-panel-header');
-            const statsBar = document.getElementById('stats-bar');
 
             resultsDiv.innerHTML = '<div class="loading">Searching for clusters</div>';
             headerDiv.style.display = 'block';
-            statsBar.style.display = 'grid';
             document.getElementById('cluster-title').textContent = `📊 Clusters for "${word}"`;
             document.getElementById('cluster-subtitle').textContent = 'Click on a word to expand sub-cluster';
 
@@ -731,19 +684,14 @@
 
                 if (!data.cluster || data.cluster.length === 0) {
                     resultsDiv.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><p>No clusters found for "${word}"</p></div>`;
-                    statsBar.style.display = 'none';
                     return;
                 }
-
-                // Обновляем статистику
-                updateStats(data.stats);
 
                 // Строим дерево
                 clusterTree = {
                     word: word,
                     seedWords: [word],
                     sentenceIndices: indicesData.indices.slice(0, 5000),
-                    stats: data.stats,
                     children: data.cluster.map(c => ({
                         word: c.word,
                         freq: c.freq,
@@ -752,7 +700,6 @@
                         expanded: false,
                         loading: false,
                         children: null,
-                        stats: null,
                     })),
                     expanded: true,
                     totalCount: data.cluster.length,
@@ -762,13 +709,6 @@
             } catch (error) {
                 resultsDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
             }
-        }
-
-        function updateStats(stats) {
-            document.getElementById('stat-words').textContent = stats.count;
-            document.getElementById('stat-max').textContent = stats.max_score.toFixed(4);
-            document.getElementById('stat-avg').textContent = stats.mean_score.toFixed(4);
-            document.getElementById('stat-min').textContent = stats.min_score.toFixed(4);
         }
 
         async function expandCluster(node) {
@@ -792,7 +732,6 @@
                     node.children = [];
                     node.expanded = true;
                     node.loading = false;
-                    node.stats = { count: 0, max_score: 0, mean_score: 0, min_score: 0 };
                     renderClusterTree();
                     return;
                 }
@@ -819,17 +758,11 @@
                     expanded: false,
                     loading: false,
                     children: null,
-                    stats: null,
                 }));
                 node.expanded = true;
                 node.loading = false;
-                node.stats = data.stats;
 
-                // Обновляем статистику
-                if (data.stats) {
-                    updateStats(data.stats);
-                    document.getElementById('cluster-title').textContent = `📊 Clusters for "${node.seedWords.join(' → ')}"`;
-                }
+                document.getElementById('cluster-title').textContent = `📊 Clusters for "${node.seedWords.join(' → ')}"`;
 
                 renderClusterTree();
             } catch (error) {
@@ -933,8 +866,6 @@
 
             if (node.expanded) {
                 collapseCluster(node);
-                // Возвращаем статистику к предыдущему уровню
-                updateStats(clusterTree.stats);
                 document.getElementById('cluster-title').textContent = `📊 Clusters for "${clusterTree.word}"`;
                 resetSentencesPanel();
             } else {
@@ -1194,7 +1125,6 @@
                 </div>
             `;
             document.getElementById('left-panel-header').style.display = 'none';
-            document.getElementById('stats-bar').style.display = 'none';
             resetSentencesPanel();
             document.getElementById('wordInput').value = '';
             document.getElementById('wordInput').focus();

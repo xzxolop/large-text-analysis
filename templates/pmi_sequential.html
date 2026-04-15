@@ -110,12 +110,17 @@
             background: white;
             border-radius: 12px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            overflow: hidden;
+            overflow: auto;
             max-height: calc(100vh - 200px);
             display: flex;
             flex-direction: column;
+            min-width: 0;
+            max-width: 100%;
         }
-        .results-header {
+        .left-panel > .results-header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 15px 20px;
@@ -131,8 +136,9 @@
         }
 
         .left-panel-content {
-            overflow-y: auto;
+            overflow: auto;
             flex: 1;
+            min-width: fit-content;
         }
 
         /* Right panel - Sentences */
@@ -205,6 +211,7 @@
         }
         .cluster-item {
             border-bottom: 1px solid #f0f0f0;
+            white-space: nowrap;
         }
         .cluster-word {
             display: flex;
@@ -290,6 +297,7 @@
             padding-left: 30px;
             border-left: 3px solid #e0e0e0;
             margin: 10px 20px;
+            min-width: fit-content;
         }
         .nested-list .word-text {
             font-size: 0.95rem;

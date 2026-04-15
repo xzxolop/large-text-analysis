@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exclusive Clustering — Large Text Analysis</title>
+    <title>PMI Sequential Clustering — Large Text Analysis</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -54,10 +54,53 @@
         }
         .reset-btn:hover { background: rgba(255,255,255,0.3); }
 
+        /* Search box */
+        .search-box {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        .search-form {
+            display: flex;
+            gap: 10px;
+        }
+        .search-input {
+            flex: 1;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .search-input:focus { border-color: #667eea; }
+        .search-btn {
+            padding: 12px 24px;
+            font-size: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+        }
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        .search-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         /* Two-panel layout */
         .main-layout {
             display: grid;
-            grid-template-columns: 400px 1fr;
+            grid-template-columns: 450px 1fr;
             gap: 20px;
             align-items: start;
         }
@@ -86,6 +129,31 @@
             font-size: 0.85rem;
             opacity: 0.9;
         }
+
+        /* Stats bar */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            padding: 12px 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 2px;
+        }
+
         .left-panel-content {
             overflow-y: auto;
             flex: 1;
@@ -188,17 +256,35 @@
             pointer-events: none;
             opacity: 0.6;
         }
+        .word-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
         .word-text {
             font-weight: 600;
             font-size: 1rem;
             color: #333;
         }
-        .word-freq {
+        .word-badges {
+            display: flex;
+            gap: 8px;
+        }
+        .badge-freq {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 4px 12px;
+            padding: 4px 10px;
             border-radius: 20px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-score {
+            background: #e8eaf6;
+            color: #3949ab;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
             font-weight: 600;
         }
         .expand-icon {
@@ -232,10 +318,15 @@
         .nested-list .word-text {
             font-size: 0.95rem;
         }
-        .nested-list .word-freq {
+        .nested-list .badge-freq {
             background: #e0e0e0;
             color: #666;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
+        }
+        .nested-list .badge-score {
+            background: #d0d0d0;
+            color: #555;
+            font-size: 0.7rem;
         }
         .nested-list .cluster-word {
             padding: 10px 15px;
@@ -384,6 +475,9 @@
             h1 {
                 font-size: 1.8rem;
             }
+            .stats-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
 
         /* Toggle switch for highlight mode */
@@ -440,20 +534,61 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Exclusive Clustering</h1>
-        <p class="subtitle">Click on a word to view sentences and expand sub-clusters</p>
+        <h1>🔍 PMI Sequential Clustering</h1>
+        <p class="subtitle">Search for a word, then click to explore sub-clusters in context</p>
 
         <div class="nav-links">
-            <a href="/">🔍 PMI Cluster Analysis</a>
-            <a href="/pmi_sequential">🔀 PMI Sequential</a>
+            <a href="/">🔍 PMI (Single)</a>
+            <a href="/exclusive">📊 Exclusive Clustering</a>
             <button class="reset-btn" onclick="resetToInitial()">🔄 Reset</button>
         </div>
 
+        <!-- Search Box -->
+        <div class="search-box">
+            <form id="searchForm" class="search-form">
+                <input
+                    type="text"
+                    id="wordInput"
+                    class="search-input"
+                    placeholder="Enter a word (e.g., data, python, russia)"
+                    autocomplete="off"
+                    required
+                >
+                <button type="submit" id="searchBtn" class="search-btn">Find Cluster</button>
+            </form>
+        </div>
+
+        <!-- Two-panel layout -->
         <div class="main-layout">
             <!-- Left Panel: Clusters -->
             <div class="left-panel">
+                <div id="left-panel-header" class="results-header" style="display: none;">
+                    <h2 id="cluster-title">📊 Clusters</h2>
+                    <p id="cluster-subtitle">Search for a word to start</p>
+                </div>
+                <div id="stats-bar" class="stats-bar" style="display: none;">
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-words">0</div>
+                        <div class="stat-label">Words Found</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-max">0.0000</div>
+                        <div class="stat-label">Max Score</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-avg">0.0000</div>
+                        <div class="stat-label">Avg Score</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-min">0.0000</div>
+                        <div class="stat-label">Min Score</div>
+                    </div>
+                </div>
                 <div id="left-panel-content" class="left-panel-content">
-                    <div class="loading">Loading initial clustering</div>
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔍</div>
+                        <p>Enter a word above to find associated clusters using PMI</p>
+                    </div>
                 </div>
             </div>
 
@@ -486,6 +621,7 @@
         let clusterTree = null;
         let visibleCount = 25;
         let selectedWord = null;
+        let currentSeedWords = [];  // Текущий путь поиска
 
         // Sentence pagination
         let sentenceLimit = 20;
@@ -506,14 +642,11 @@
          */
         function getFromCache(key) {
             if (!sentencesCache.has(key)) return null;
-            
-            // Перемещаем в конец (самый свежий)
             const index = cacheOrder.indexOf(key);
             if (index !== -1) {
                 cacheOrder.splice(index, 1);
             }
             cacheOrder.push(key);
-            
             return sentencesCache.get(key);
         }
 
@@ -521,20 +654,16 @@
          * Сохранить данные в кэш с LRU eviction.
          */
         function setInCache(key, value) {
-            // Если уже есть — обновляем позицию
             if (sentencesCache.has(key)) {
                 const index = cacheOrder.indexOf(key);
                 if (index !== -1) {
                     cacheOrder.splice(index, 1);
                 }
             }
-            
-            // Если кэш полон — удаляем самый старый
             if (cacheOrder.length >= MAX_CACHE_SIZE) {
                 const oldest = cacheOrder.shift();
                 sentencesCache.delete(oldest);
             }
-            
             sentencesCache.set(key, value);
             cacheOrder.push(key);
         }
@@ -547,36 +676,86 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            loadInitialClustering();
+            // Фокус на поле ввода
+            document.getElementById('wordInput').focus();
         });
 
-        async function loadInitialClustering() {
+        // Обработка формы поиска
+        document.getElementById('searchForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const word = document.getElementById('wordInput').value.trim().toLowerCase();
+            if (!word) return;
+
+            await searchInitialCluster(word);
+        });
+
+        async function searchInitialCluster(word) {
             const resultsDiv = document.getElementById('left-panel-content');
-            resultsDiv.innerHTML = '<div class="loading">Loading initial clustering</div>';
+            const headerDiv = document.getElementById('left-panel-header');
+            const statsBar = document.getElementById('stats-bar');
+
+            resultsDiv.innerHTML = '<div class="loading">Searching for clusters</div>';
+            headerDiv.style.display = 'block';
+            statsBar.style.display = 'grid';
+            document.getElementById('cluster-title').textContent = `📊 Clusters for "${word}"`;
+            document.getElementById('cluster-subtitle').textContent = 'Click on a word to expand sub-cluster';
+
             visibleCount = 25;
             selectedWord = null;
+            currentSeedWords = [word];
             updateSentencesPanel();
 
             try {
-                const response = await fetch('/api/exclusive');
-                const data = await response.json();
+                // Получаем индексы предложений для слова (для последующего подмножества)
+                const indicesResponse = await fetch('/api/pmi/indices', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ seed_words: [word] }),
+                });
+                const indicesData = await indicesResponse.json();
 
+                if (!indicesResponse.ok) throw new Error(indicesData.detail || 'Failed to fetch indices');
+
+                // Получаем PMI-кластер
+                const response = await fetch('/api/pmi/cluster', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        word: word,
+                        sentence_indices: indicesData.indices.slice(0, 5000),  // Ограничиваем для производительности
+                    }),
+                });
+
+                const data = await response.json();
                 if (!response.ok) throw new Error(data.detail || 'Failed to fetch');
 
-                // Build tree structure with seedWords path
+                if (!data.cluster || data.cluster.length === 0) {
+                    resultsDiv.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><p>No clusters found for "${word}"</p></div>`;
+                    statsBar.style.display = 'none';
+                    return;
+                }
+
+                // Обновляем статистику
+                updateStats(data.stats);
+
+                // Строим дерево
                 clusterTree = {
-                    word: 'root',
-                    freq: data.clusters.reduce((sum, c) => sum + c.freq, 0),
-                    seedWords: [],
-                    children: data.clusters.map(c => ({
-                        ...c,
-                        seedWords: [c.word],  // Path to this node
+                    word: word,
+                    seedWords: [word],
+                    sentenceIndices: indicesData.indices.slice(0, 5000),
+                    stats: data.stats,
+                    children: data.cluster.map(c => ({
+                        word: c.word,
+                        freq: c.freq,
+                        score: c.score,
+                        seedWords: [word, c.word],
                         expanded: false,
                         loading: false,
-                        children: null
+                        children: null,
+                        stats: null,
                     })),
                     expanded: true,
-                    totalCount: data.clusters.length
+                    totalCount: data.cluster.length,
                 };
 
                 renderClusterTree();
@@ -585,8 +764,11 @@
             }
         }
 
-        async function loadMoreClusters() {
-            // This function is deprecated — now we load all clusters at once
+        function updateStats(stats) {
+            document.getElementById('stat-words').textContent = stats.count;
+            document.getElementById('stat-max').textContent = stats.max_score.toFixed(4);
+            document.getElementById('stat-avg').textContent = stats.mean_score.toFixed(4);
+            document.getElementById('stat-min').textContent = stats.min_score.toFixed(4);
         }
 
         async function expandCluster(node) {
@@ -596,27 +778,58 @@
             renderClusterTree();
 
             try {
-                const seedWords = node.seedWords || [node.word];
-
-                const response = await fetch('/api/exclusive/iterative', {
+                // Находим индексы предложений для seed_words
+                const indicesResponse = await fetch('/api/pmi/indices', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ seed_words: seedWords }),
+                    body: JSON.stringify({ seed_words: node.seedWords }),
+                });
+                const indicesData = await indicesResponse.json();
+
+                if (!indicesResponse.ok) throw new Error(indicesData.detail || 'Failed to fetch indices');
+
+                if (indicesData.count === 0) {
+                    node.children = [];
+                    node.expanded = true;
+                    node.loading = false;
+                    node.stats = { count: 0, max_score: 0, mean_score: 0, min_score: 0 };
+                    renderClusterTree();
+                    return;
+                }
+
+                // Получаем PMI-кластер в подмножестве
+                const response = await fetch('/api/pmi/cluster', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        word: node.seedWords[node.seedWords.length - 1],  // Последнее слово в пути
+                        sentence_indices: indicesData.indices.slice(0, 5000),
+                    }),
                 });
 
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail || 'Failed to fetch');
 
-                // Add children to node with updated seedWords path
-                node.children = data.clusters.map(c => ({
-                    ...c,
-                    seedWords: [...seedWords, c.word],  // Extend the path
+                // Добавляем children с обновлённым путём
+                node.children = (data.cluster || []).map(c => ({
+                    word: c.word,
+                    freq: c.freq,
+                    score: c.score,
+                    seedWords: [...node.seedWords, c.word],
                     expanded: false,
                     loading: false,
-                    children: null
+                    children: null,
+                    stats: null,
                 }));
                 node.expanded = true;
                 node.loading = false;
+                node.stats = data.stats;
+
+                // Обновляем статистику
+                if (data.stats) {
+                    updateStats(data.stats);
+                    document.getElementById('cluster-title').textContent = `📊 Clusters for "${node.seedWords.join(' → ')}"`;
+                }
 
                 renderClusterTree();
             } catch (error) {
@@ -641,12 +854,7 @@
 
             const visibleChildren = clusterTree.children.slice(0, visibleCount);
 
-            let html = `<div class="results-header">
-                <h2>📊 Clusters (${clusterTree.totalCount} total)</h2>
-                <p>Showing ${visibleCount} of ${clusterTree.totalCount}</p>
-            </div>`;
-
-            html += '<ul class="cluster-list">';
+            let html = '<ul class="cluster-list">';
 
             visibleChildren.forEach((item) => {
                 html += renderClusterItem(item, 0);
@@ -654,7 +862,7 @@
 
             html += '</ul>';
 
-            // Кнопка "Показать ещё" если есть ещё не показанные
+            // Кнопка "Показать ещё"
             if (clusterTree.children.length > visibleCount) {
                 const remaining = clusterTree.children.length - visibleCount;
                 const toShow = Math.min(20, remaining);
@@ -674,19 +882,23 @@
             const hasChildren = item.children && item.children.length > 0;
             const isSelected = selectedWord === item.word;
             const seedWordsJson = JSON.stringify(item.seedWords || []).replace(/"/g, '&quot;');
-            
-            // Проверяем, есть ли слово в кэше
-            const cacheKey = getCacheKey(item.word, item.seedWords.slice(0, -1));
+
+            // Проверяем кэш
+            const parentSeedWords = item.seedWords.slice(0, -1);
+            const cacheKey = getCacheKey(item.word, parentSeedWords);
             const isCached = sentencesCache.has(cacheKey);
 
             let html = `
                 <li class="cluster-item" style="margin-left: ${indent}px;">
                     <div class="cluster-word ${isCached ? 'cached' : ''} ${isLoading ? 'loading' : ''} ${isSelected ? 'active' : ''}" onclick="onClusterClick('${escapeHtml(item.word)}', ${seedWordsJson})">
-                        <span class="word-text">
+                        <span class="word-info">
                             <span class="expand-icon ${isExpanded ? 'expanded' : ''}">▶</span>
-                            ${escapeHtml(item.word)}
+                            <span class="word-text">${escapeHtml(item.word)}</span>
                         </span>
-                        <span class="word-freq">${item.freq.toLocaleString()}</span>
+                        <span class="word-badges">
+                            <span class="badge-freq">Freq: ${item.freq}</span>
+                            <span class="badge-score">Score: ${item.score.toFixed(2)}</span>
+                        </span>
                     </div>
             `;
 
@@ -703,7 +915,6 @@
         }
 
         function onClusterClick(word, seedWords) {
-            // Find the node in the current visible list
             function findNodeInList(list, targetWord) {
                 for (const item of list) {
                     if (item.word === targetWord) return item;
@@ -716,18 +927,17 @@
             }
 
             let node = findNodeInList(clusterTree.children, word);
-
             if (!node) return;
 
-            // Load sentences with the PARENT seed_words context (excluding the clicked word itself)
             const parentSeedWords = seedWords.slice(0, -1);
 
             if (node.expanded) {
-                // Сворачиваем — сбрасываем правую панель
                 collapseCluster(node);
+                // Возвращаем статистику к предыдущему уровню
+                updateStats(clusterTree.stats);
+                document.getElementById('cluster-title').textContent = `📊 Clusters for "${clusterTree.word}"`;
                 resetSentencesPanel();
             } else {
-                // Раскрываем — загружаем предложения
                 expandCluster(node);
                 selectWord(word, parentSeedWords);
             }
@@ -735,13 +945,12 @@
 
         function toggleHighlightMode() {
             highlightMode = highlightMode === 'all' ? 'last' : 'all';
-            
-            // Обновляем визуальное состояние toggle
+
             const track = document.getElementById('toggle-track');
             const thumb = document.getElementById('toggle-thumb');
             const labelAll = document.getElementById('label-all');
             const labelLast = document.getElementById('label-last');
-            
+
             if (highlightMode === 'last') {
                 track.classList.add('active');
                 thumb.classList.add('active');
@@ -753,8 +962,7 @@
                 labelAll.classList.add('active');
                 labelLast.classList.remove('active');
             }
-            
-            // Перерисовываем предложения с новым режимом
+
             if (selectedWord) {
                 rerenderCurrentSentences();
             }
@@ -763,7 +971,6 @@
         function rerenderCurrentSentences() {
             const cacheKey = getCacheKey(selectedWord, sentenceSeedWords);
             const cached = sentencesCache.get(cacheKey);
-            
             if (cached) {
                 renderSentences(cached.sentences, selectedWord);
             }
@@ -775,7 +982,6 @@
             sentenceOffset = 0;
             sentenceTotalCount = 0;
             updateSentencesPanel();
-            // Не очищаем кэш — он может понадобиться снова
             document.getElementById('right-panel-content').innerHTML = `
                 <div class="empty-state">
                     <div class="empty-state-icon">👈</div>
@@ -789,49 +995,50 @@
             sentenceSeedWords = seedWords;
             sentenceOffset = 0;
             loadSentences(word);
-            renderClusterTree(); // Update active state
+            renderClusterTree();
         }
 
         async function loadSentences(word) {
             updateSentencesPanel();
-            
-            // Проверяем кэш
+
             const cacheKey = getCacheKey(word, sentenceSeedWords);
             const cached = getFromCache(cacheKey);
-            
+
             if (cached) {
                 console.log(`📦 Cache hit: ${cacheKey}`);
                 sentenceTotalCount = cached.totalCount;
                 renderSentences(cached.sentences, word);
-                renderClusterTree(); // Обновляем отображение кэша
+                renderClusterTree();
                 return;
             }
 
-            // Показываем индикатор загрузки в правой панели
             document.getElementById('right-panel-content').innerHTML = '<div class="loading">Loading sentences</div>';
 
             try {
                 console.log(`🔄 Loading from API: ${cacheKey}`);
-                const seedWordsParam = sentenceSeedWords.length > 0 
-                    ? `&seed_words=${encodeURIComponent(JSON.stringify(sentenceSeedWords))}` 
-                    : '';
-                const response = await fetch(
-                    `/api/exclusive/sentences?word=${encodeURIComponent(word)}&limit=${sentenceLimit}&offset=${sentenceOffset}${seedWordsParam}`
-                );
-                const data = await response.json();
+                const response = await fetch('/api/pmi/sentences', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        word: word,
+                        seed_words: sentenceSeedWords,
+                        limit: sentenceLimit,
+                        offset: sentenceOffset,
+                    }),
+                });
 
+                const data = await response.json();
                 if (!response.ok) throw new Error(data.detail || 'Failed to fetch');
 
                 sentenceTotalCount = data.total_count;
-                
-                // Сохраняем в кэш
+
                 setInCache(cacheKey, {
                     sentences: data.sentences,
-                    totalCount: data.total_count
+                    totalCount: data.total_count,
                 });
-                
+
                 renderSentences(data.sentences, word);
-                renderClusterTree(); // Обновляем отображение кэша
+                renderClusterTree();
             } catch (error) {
                 document.getElementById('right-panel-content').innerHTML =
                     `<div class="error">❌ Error: ${error.message}</div>`;
@@ -875,54 +1082,36 @@
             contentDiv.innerHTML = html;
         }
 
-        /**
-         * Подсветить предложения в зависимости от режима.
-         */
         function highlightSentences(sent, word) {
             if (highlightMode === 'last') {
-                // Подсвечиваем только последнее слово, но сохраняем его уровень цвета
                 const positions = sent.highlight_positions[word] || [];
                 const level = sent.search_path.indexOf(word);
                 return highlightWordSimple(sent.text, positions, word, level);
             } else {
-                // Подсвечиваем все слова из пути
                 return highlightMultipleWords(sent.text, sent.highlight_positions, sent.search_path);
             }
         }
 
-        /**
-         * Простая подсветка одного слова (для режима "Last only").
-         */
         function highlightWordSimple(text, positions, word, level = 0) {
             if (!positions || positions.length === 0) {
                 return escapeHtml(text);
             }
-
             let result = '';
             let lastIndex = 0;
-
             positions.forEach(pos => {
                 result += escapeHtml(text.substring(lastIndex, pos));
                 result += `<span class="highlight-level-${level % 10}">${escapeHtml(text.substring(pos, pos + word.length))}</span>`;
                 lastIndex = pos + word.length;
             });
-
             result += escapeHtml(text.substring(lastIndex));
             return result;
         }
 
-        /**
-         * Подсветить несколько слов разными цветами по уровням.
-         * @param {string} text - исходный текст
-         * @param {Object} positionsMap - {word: [positions]}
-         * @param {Array} searchPath - порядок слов для определения уровня
-         */
         function highlightMultipleWords(text, positionsMap, searchPath) {
             if (!positionsMap || Object.keys(positionsMap).length === 0) {
                 return escapeHtml(text);
             }
 
-            // Собираем все позиции с информацией об уровне
             const allHighlights = [];
             searchPath.forEach((word, level) => {
                 if (positionsMap[word]) {
@@ -930,21 +1119,14 @@
                         allHighlights.push({
                             start: pos,
                             end: pos + word.length,
-                            level: level
+                            level: level,
                         });
                     });
                 }
             });
 
-            // Сортируем по позиции
             allHighlights.sort((a, b) => a.start - b.start);
 
-            // Собираем результат с возможными перекрытиями
-            let result = '';
-            let lastIndex = 0;
-            let currentPos = 0;
-
-            // Используем sweep-line алгоритм для обработки перекрытий
             const events = [];
             allHighlights.forEach(h => {
                 events.push({ pos: h.start, type: 'open', level: h.level, end: h.end });
@@ -952,13 +1134,13 @@
             });
             events.sort((a, b) => a.pos - b.pos || (b.type === 'open' ? 1 : -1));
 
+            let result = '';
+            let currentPos = 0;
             let activeHighlights = [];
 
             events.forEach(event => {
                 if (event.pos > currentPos && activeHighlights.length > 0) {
-                    // Выводим текст с текущими подсветками
                     const textSegment = escapeHtml(text.substring(currentPos, event.pos));
-                    // Берём самый глубокий уровень (последний в пути)
                     const topLevel = activeHighlights[activeHighlights.length - 1];
                     result += `<span class="highlight-level-${topLevel % 10}">${textSegment}</span>`;
                 } else if (event.pos > currentPos) {
@@ -974,17 +1156,11 @@
                 currentPos = event.pos;
             });
 
-            // Оставшийся текст
             if (currentPos < text.length) {
                 result += escapeHtml(text.substring(currentPos));
             }
 
             return result;
-        }
-
-        function highlightWord(text, positions, word) {
-            // Эта функция больше не используется, оставлена для совместимости
-            return highlightMultipleWords(text, { [word]: positions }, [word]);
         }
 
         function loadMoreSentences() {
@@ -1008,7 +1184,20 @@
 
         function resetToInitial() {
             visibleCount = 25;
-            loadInitialClustering();
+            clusterTree = null;
+            selectedWord = null;
+            currentSeedWords = [];
+            document.getElementById('left-panel-content').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🔍</div>
+                    <p>Enter a word above to find associated clusters using PMI</p>
+                </div>
+            `;
+            document.getElementById('left-panel-header').style.display = 'none';
+            document.getElementById('stats-bar').style.display = 'none';
+            resetSentencesPanel();
+            document.getElementById('wordInput').value = '';
+            document.getElementById('wordInput').focus();
         }
 
         function escapeHtml(text) {

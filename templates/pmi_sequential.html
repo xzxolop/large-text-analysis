@@ -663,7 +663,7 @@
                 const response = await fetch('/api/pmi/cluster', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ word: word }),
+                    body: JSON.stringify({ word: word, excluded_words: [word] }),
                 });
 
                 const data = await response.json();
@@ -728,12 +728,14 @@
                 }
 
                 // Получаем PMI-кластер в подмножестве
+                // excluded_words — все слова текущего пути, чтобы они не попадали в подкластеры
                 const response = await fetch('/api/pmi/cluster', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         word: currentWord,
                         sentence_indices: indicesData.indices.slice(0, 5000),
+                        excluded_words: [...parentSeedWords, currentWord],
                     }),
                 });
 

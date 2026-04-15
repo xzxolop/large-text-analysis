@@ -72,6 +72,7 @@ class PmiClusterRequest(BaseModel):
     min_freq: Optional[int] = 1
     min_score_percent: Optional[float] = 30.0
     sentence_indices: Optional[List[int]] = None  # Если указано — ищем в подмножестве
+    excluded_words: Optional[List[str]] = None  # Слова, которые нужно исключить из кандидатов
 
 
 class PmiClusterWord(BaseModel):
@@ -521,7 +522,11 @@ async def get_pmi_cluster(request: PmiClusterRequest):
 
     # Добавляем частоту к каждому слову
     cluster_with_freq = []
+    excluded_set = {w.lower() for w in (request.excluded_words or [])}
     for cluster_word, score in cluster:
+        # Пропускаем слова, которые участвуют в пути поиска
+        if cluster_word.lower() in excluded_set:
+            continue
         freq = cluster_analyzer.word_doc_freq.get(cluster_word.lower(), 0)
         cluster_with_freq.append((cluster_word, freq, score))
 

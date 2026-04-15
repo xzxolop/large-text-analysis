@@ -67,6 +67,34 @@ class IterativeRequest(BaseModel):
     seed_words: List[str]
 
 
+class PmiClusterRequest(BaseModel):
+    word: str
+    min_freq: Optional[int] = 1
+    min_score_percent: Optional[float] = 30.0
+    sentence_indices: Optional[List[int]] = None  # Если указано — ищем в подмножестве
+    excluded_words: Optional[List[str]] = None  # Слова, которые нужно исключить из кандидатов
+
+
+class PmiClusterWord(BaseModel):
+    word: str
+    freq: int
+    score: float
+
+
+class PmiClusterResponse(BaseModel):
+    word: str
+    cluster: list[PmiClusterWord]
+    stats: ClusterStats
+    sentence_indices: Optional[List[int]] = None  # Индексы предложений для контекста
+
+
+class PmiSentencesRequest(BaseModel):
+    word: str
+    seed_words: List[str] = []
+    limit: int = 20
+    offset: int = 0
+
+
 class SentenceItem(BaseModel):
     index: int
     text: str
@@ -144,6 +172,12 @@ async def read_root(request: Request):
 async def read_exclusive(request: Request):
     """Страница exclusive clustering."""
     return templates.TemplateResponse("exclusive.html", {"request": request})
+
+
+@app.get("/pmi_sequential", response_class=HTMLResponse)
+async def read_pmi_sequential(request: Request):
+    """Страница PMI sequential clustering."""
+    return templates.TemplateResponse("pmi_sequential.html", {"request": request})
 
 
 @app.post("/api/cluster", response_model=ClusterResponse)
@@ -415,4 +449,226 @@ async def health_check():
     return {
         "status": "ok" if state.loaded else "loading",
         "engine_loaded": state.loaded,
+    }
+
+
+# ============================================
+# PMI Sequential Clustering Endpoints
+# ============================================
+
+@app.post("/api/pmi/cluster", response_model=PmiClusterResponse)
+async def get_pmi_cluster(request: PmiClusterRequest):
+    """
+    Получить PMI-кластер для слова.
+    Если sentence_indices указаны — вычисляем PMI в подмножестве предложений.
+    """
+    if not state.loaded or state.engine is None:
+        raise HTTPException(status_code=503, detail="Service not ready. Please wait for startup.")
+
+    word = request.word.lower().strip()
+    if not word:
+        raise HTTPException(status_code=400, detail="Word cannot be empty")
+
+    engine = state.engine
+
+    # Если указаны индексы предложений — создаём временный SearchEngine для подмножества
+    if request.sentence_indices and len(request.sentence_indices) > 0:
+        sorted_indices = sorted(request.sentence_indices)
+        subset_sentences = [state.data_store.get_processed_sentences()[i] for i in sorted_indices]
+
+        temp_engine = SearchEngine(
+            sentences=subset_sentences,
+            calc_word_freq=True,
+            enable_cluster_analysis=True,
+            enable_exclusive_clustering=False,
+        )
+
+        cluster_analyzer = temp_engine._cluster_analyzer
+    else:
+        temp_engine = engine
+        cluster_analyzer = engine._cluster_analyzer
+
+    if cluster_analyzer is None:
+        raise HTTPException(status_code=503, detail="Cluster analysis not available.")
+
+    # Получаем PMI-кластер
+    # Для подмножества используем min_score_percent=0, т.к. PMI на малых
+    # подмножествах даёт низкие значения, и жёсткий порог отсекает всё
+    effective_min_score_percent = 0.0 if request.sentence_indices else (request.min_score_percent or 30.0)
+
+    cluster = cluster_analyzer.get_cluster_words(
+        seed_word=word,
+        top_n=20 * 5,
+        use_npmi=False,
+        min_freq=request.min_freq or 1,
+        tfidf_range=None,
+        use_freq_weighting=True,
+        min_score_percent=effective_min_score_percent,
+    )
+
+    if not cluster:
+        return PmiClusterResponse(
+            word=word,
+            cluster=[],
+            stats=ClusterStats(
+                count=0,
+                max_score=0.0,
+                mean_score=0.0,
+                median_score=0.0,
+                min_score=0.0,
+            ),
+            sentence_indices=request.sentence_indices,
+        )
+
+    # Добавляем частоту к каждому слову
+    cluster_with_freq = []
+    excluded_set = {w.lower() for w in (request.excluded_words or [])}
+    for cluster_word, score in cluster:
+        # Пропускаем слова, которые участвуют в пути поиска
+        if cluster_word.lower() in excluded_set:
+            continue
+        freq = cluster_analyzer.word_doc_freq.get(cluster_word.lower(), 0)
+        cluster_with_freq.append((cluster_word, freq, score))
+
+    # Сортируем по убыванию частоты
+    cluster_with_freq.sort(key=lambda x: x[1], reverse=True)
+
+    # Берём топ-20
+    cluster_with_freq = cluster_with_freq[:20]
+
+    # Рассчитываем статистику
+    scores = [s for _, _, s in cluster_with_freq]
+    n = len(scores)
+    scores_sorted = sorted(scores)
+
+    stats = ClusterStats(
+        count=n,
+        max_score=max(scores),
+        mean_score=sum(scores) / n if n > 0 else 0.0,
+        median_score=(scores_sorted[n // 2 - 1] + scores_sorted[n // 2]) / 2 if n % 2 == 0 else scores_sorted[n // 2],
+        min_score=min(scores),
+    )
+
+    return PmiClusterResponse(
+        word=word,
+        cluster=[
+            PmiClusterWord(word=w, freq=f, score=s)
+            for w, f, s in cluster_with_freq
+        ],
+        stats=stats,
+        sentence_indices=request.sentence_indices,
+    )
+
+
+@app.post("/api/pmi/sentences", response_model=SentencesResponse)
+async def get_pmi_sentences(request: PmiSentencesRequest):
+    """
+    Получить предложения для слова в контексте seed_words.
+    Находим предложения, где встречаются все seed_words, и возвращаем их с подсветкой.
+    """
+    if not state.loaded or state.data_store is None:
+        raise HTTPException(status_code=503, detail="Service not ready. Please wait for startup.")
+
+    word = request.word.lower().strip()
+    if not word:
+        raise HTTPException(status_code=400, detail="Word cannot be empty")
+
+    # Формируем путь поиска: seed_words + текущее слово
+    search_path = request.seed_words + [word]
+
+    # Находим предложения, где встречаются все слова из search_path
+    all_sentences = state.data_store.get_processed_sentences()
+    matching_indices = _find_sentences_with_all_words(search_path)
+
+    total_count = len(matching_indices)
+
+    if total_count == 0:
+        return SentencesResponse(
+            word=word,
+            total_count=0,
+            sentences=[],
+        )
+
+    # Пагинация
+    sorted_indices = sorted(matching_indices)
+    paginated_indices = sorted_indices[request.offset:request.offset + request.limit]
+
+    # Получаем оригинальные предложения
+    original_sentences = state.data_store.get_original_sentences_by_index(paginated_indices)
+
+    # Находим позиции всех слов из пути для подсветки
+    sentences_with_highlights = []
+    for idx, text in zip(paginated_indices, original_sentences):
+        positions_dict = {}
+        text_lower = text.lower()
+
+        for search_word in search_path:
+            word_positions = []
+            start = 0
+            while True:
+                pos = text_lower.find(search_word, start)
+                if pos == -1:
+                    break
+                word_positions.append(pos)
+                start = pos + 1
+
+            if word_positions:
+                positions_dict[search_word] = word_positions
+
+        sentences_with_highlights.append(
+            SentenceItem(
+                index=idx,
+                text=text,
+                highlight_positions=positions_dict,
+                search_path=search_path,
+            )
+        )
+
+    return SentencesResponse(
+        word=word,
+        total_count=total_count,
+        sentences=sentences_with_highlights,
+    )
+
+
+def _find_sentences_with_all_words(words: List[str]) -> set:
+    """
+    Найти индексы предложений, где встречаются ВСЕ указанные слова.
+    """
+    all_sentences = state.data_store.get_processed_sentences()
+    matching_indices = set(range(len(all_sentences)))
+
+    for word in words:
+        word_lower = word.lower()
+        new_indices = set()
+        for idx in matching_indices:
+            sent_words = all_sentences[idx].lower().split()
+            if word_lower in sent_words:
+                new_indices.add(idx)
+        matching_indices = new_indices
+        if not matching_indices:
+            break
+
+    return matching_indices
+
+
+@app.post("/api/pmi/indices", response_model=Dict[str, object])
+async def get_pmi_indices(request: IterativeRequest):
+    """
+    Получить индексы предложений, где встречаются все seed_words.
+    Используется для последовательного PMI — передаём индексы для вычисления в подмножестве.
+    """
+    if not state.loaded or state.data_store is None:
+        raise HTTPException(status_code=503, detail="Service not ready.")
+
+    seed_words = [w.lower().strip() for w in request.seed_words if w.strip()]
+    if not seed_words:
+        raise HTTPException(status_code=400, detail="seed_words cannot be empty")
+
+    matching_indices = _find_sentences_with_all_words(seed_words)
+
+    return {
+        "indices": sorted(matching_indices),
+        "count": len(matching_indices),
+        "seed_words": seed_words,
     }

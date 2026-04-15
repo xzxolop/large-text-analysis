@@ -379,62 +379,40 @@ class SearchEngine:
             if not current_indices:
                 return {}
 
-            # Проводим exclusive clustering для текущего набора предложений (без исключений!)
+            # Кластеризуем текущее подмножество БЕЗ пересборки TF-IDF/индекса.
+            # Важно: doc_indices — это индексы в исходном корпусе, и они сохраняются в результатах.
             sorted_indices = sorted(current_indices)
-            subset_sentences = [self._sentences[j] for j in sorted_indices]
-
-            # Создаём временный SearchEngine для подмножества
-            temp_engine = SearchEngine(
-                sentences=subset_sentences,
-                calc_word_freq=True,
-                enable_cluster_analysis=False,
+            temp_clusters = self._exclusive_clusterer.cluster_on_indices(
+                doc_indices=sorted_indices,
+                excluded_words=None,
             )
 
-            # Получаем кластеры без исключений - ищем seed_word
-            temp_clusters = temp_engine.exclusive_clustering()
-
-            # Находим кластер с именем seed_word
-            if seed_word.lower() not in temp_clusters:
-                # Если такого кластера нет, пробуем найти слово в любом виде
+            # Ключи кластеров — слова из vocabulary (обычно lower),
+            # но на всякий случай ищем по lower()
+            seed_lower = seed_word.lower()
+            if seed_lower in temp_clusters:
+                current_indices = set(temp_clusters[seed_lower])
+            else:
                 found = False
                 for word, indices in temp_clusters.items():
-                    if word.lower() == seed_word.lower():
-                        current_indices = {sorted_indices[j] for j in indices}
+                    if word.lower() == seed_lower:
+                        current_indices = set(indices)
                         found = True
                         break
-                
                 if not found:
                     return {}
-            else:
-                # Берём предложения из кластера seed_word
-                cluster_indices = temp_clusters[seed_word.lower()]
-                current_indices = {sorted_indices[j] for j in cluster_indices}
 
         # Финальная кластеризация для оставшихся предложений
         if not current_indices:
             return {}
 
         sorted_indices = sorted(current_indices)
-        subset_sentences = [self._sentences[j] for j in sorted_indices]
 
-        temp_engine = SearchEngine(
-            sentences=subset_sentences,
-            calc_word_freq=True,
-            enable_cluster_analysis=False,
+        # Финальная кластеризация с исключением всех seed_words (на том же подмножестве)
+        result = self._exclusive_clusterer.cluster_on_indices(
+            doc_indices=sorted_indices,
+            excluded_words=excluded_words,
         )
-
-        # Финальная кластеризация с исключением всех seed_words
-        temp_clusters = temp_engine._exclusive_clusterer.cluster(
-            excluded_words=excluded_words
-        )
-
-        # Маппинг индексов обратно к оригинальным
-        index_mapping = {j: orig_idx for j, orig_idx in enumerate(sorted_indices)}
-
-        result: Dict[str, Set[int]] = {}
-        for word, indices in temp_clusters.items():
-            original_indices = {index_mapping[j] for j in indices}
-            result[word] = original_indices
 
         return result
         

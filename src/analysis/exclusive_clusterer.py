@@ -6,7 +6,7 @@
 на основе TF-IDF метрики.
 """
 
-from typing import Optional, Dict, Set
+from typing import Optional, Dict, Set, Iterable, List
 import numpy as np
 from scipy.sparse import csr_matrix
 
@@ -45,6 +45,13 @@ class ExclusiveClusterer:
 
         # Предварительно вычисляем веса для всех слов
         self._word_weights = self._compute_word_weights()
+        # Быстрые отображения для исключения слов
+        self._feature_to_idx: Dict[str, int] = {
+            str(w): i for i, w in enumerate(self._feature_names)
+        }
+        self._feature_lower_to_idx: Dict[str, int] = {
+            str(w).lower(): i for i, w in enumerate(self._feature_names)
+        }
 
     def _compute_word_weights(self) -> np.ndarray:
         """
@@ -58,6 +65,22 @@ class ExclusiveClusterer:
             freq = self._word_freqs.get(word, 0)
             weights[i] = np.log(freq + 1)
         return weights
+
+    def _excluded_indices(self, excluded_words: Optional[Set[str]]) -> Set[int]:
+        """
+        Преобразовать excluded_words в индексы фич.
+
+        Делается через словарь feature_lower_to_idx, чтобы не проходить
+        по всем feature_names каждый вызов.
+        """
+        if not excluded_words:
+            return set()
+        idxs: Set[int] = set()
+        for w in excluded_words:
+            i = self._feature_lower_to_idx.get(str(w).lower())
+            if i is not None:
+                idxs.add(i)
+        return idxs
 
     def cluster(
         self,
@@ -83,53 +106,83 @@ class ExclusiveClusterer:
         if n_docs == 0 or self._n_features == 0:
             return {}
 
-        # Берём подмножество матрицы
-        matrix = self._tfidf_matrix[:n_docs]
+        return self.cluster_on_indices(
+            doc_indices=list(range(n_docs)),
+            excluded_words=excluded_words,
+        )
 
-        # Вычисляем скоры: TF-IDF × log(freq)
-        scores = matrix.multiply(self._word_weights).tocsr()
+    def cluster_on_indices(
+        self,
+        doc_indices: Iterable[int],
+        excluded_words: Optional[Set[str]] = None,
+    ) -> Dict[str, Set[int]]:
+        """
+        Быстрая кластеризация на подмножестве документов без пересборки TF-IDF.
 
-        # Получаем максимальные скоры для проверки
-        max_scores = np.asarray(scores.max(axis=1).toarray()).flatten()
+        Алгоритм: для каждого выбранного документа берём ненулевые элементы
+        строки CSR и находим максимум TF-IDF × log(freq). Если задан
+        excluded_words — выбираем лучший не-исключённый.
 
-        # Собираем результат: слово -> множество индексов предложений
+        Args:
+            doc_indices: индексы документов (предложений) в исходной матрице.
+            excluded_words: множество слов, которые нельзя назначать кластером.
+
+        Returns:
+            {слово: множество индексов документов} (индексы — исходные).
+        """
         from collections import defaultdict
+
+        excluded_indices = self._excluded_indices(excluded_words)
+
+        matrix = self._tfidf_matrix.tocsr()
+        indptr = matrix.indptr
+        indices = matrix.indices
+        data = matrix.data
+        weights = self._word_weights
+
         clusters = defaultdict(set)
 
-        # Индексы исключённых слов для быстрого доступа
-        excluded_indices = set()
-        if excluded_words:
-            for i, word in enumerate(self._feature_names):
-                if word.lower() in {w.lower() for w in excluded_words}:
-                    excluded_indices.add(i)
-
-        for doc_idx in range(n_docs):
-            # Проверяем, что в предложении есть хоть одно слово
-            if max_scores[doc_idx] == 0:
+        for doc_idx in doc_indices:
+            if doc_idx < 0 or doc_idx >= self._n_docs:
                 continue
 
-            # Получаем все слова и их скоры для этого предложения
-            row = scores.getrow(doc_idx)
-            word_indices = row.indices
-            word_scores = row.data
-
-            if len(word_indices) == 0:
+            start = indptr[doc_idx]
+            end = indptr[doc_idx + 1]
+            if start == end:
                 continue
 
-            # Сортируем по убыванию скора
-            sorted_order = np.argsort(word_scores)[::-1]
+            row_indices = indices[start:end]
+            row_data = data[start:end]
 
-            # Находим первое слово, которое не исключено
-            assigned = False
-            for idx in sorted_order:
-                word_idx = word_indices[idx]
-                if word_idx not in excluded_indices:
-                    word = self._feature_names[word_idx]
-                    clusters[word].add(doc_idx)
-                    assigned = True
-                    break
+            best_feature_idx = None
+            best_score = 0.0
 
-            # Если все слова исключены - пропускаем предложение
+            if not excluded_indices:
+                # Быстрый путь: просто максимум по всем кандидатам
+                # score = tfidf * log(freq)
+                # Вычисляем максимум за один проход без сортировок.
+                for j in range(end - start):
+                    fi = int(row_indices[j])
+                    score = float(row_data[j]) * float(weights[fi])
+                    if score > best_score:
+                        best_score = score
+                        best_feature_idx = fi
+            else:
+                # С исключениями: максимум по не-исключённым
+                for j in range(end - start):
+                    fi = int(row_indices[j])
+                    if fi in excluded_indices:
+                        continue
+                    score = float(row_data[j]) * float(weights[fi])
+                    if score > best_score:
+                        best_score = score
+                        best_feature_idx = fi
+
+            if best_feature_idx is None or best_score <= 0.0:
+                continue
+
+            word = str(self._feature_names[best_feature_idx])
+            clusters[word].add(int(doc_idx))
 
         return dict(clusters)
 

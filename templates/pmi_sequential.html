@@ -110,7 +110,8 @@
             background: white;
             border-radius: 12px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            overflow: auto;
+            overflow: hidden;
+            height: calc(100vh - 200px);
             max-height: calc(100vh - 200px);
             display: flex;
             flex-direction: column;
@@ -136,9 +137,17 @@
         }
 
         .left-panel-content {
-            overflow: auto;
             flex: 1;
-            min-width: fit-content;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            min-width: 0;
+        }
+        .cluster-scroll {
+            flex: 1;
+            overflow: auto;
+            min-height: 0;
+            min-width: 0;
         }
 
         /* Right panel - Sentences */
@@ -350,6 +359,12 @@
             font-size: 0.8rem;
             color: #999;
             margin-top: 5px;
+        }
+        .show-more.footer {
+            position: sticky;
+            bottom: 0;
+            z-index: 5;
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
         }
 
         /* Sentence list */
@@ -788,19 +803,19 @@
 
             const visibleChildren = clusterTree.children.slice(0, visibleCount);
 
-            let html = '<ul class="cluster-list">';
+            let html = '<div class="cluster-scroll"><ul class="cluster-list">';
 
             visibleChildren.forEach((item) => {
                 html += renderClusterItem(item, 0);
             });
 
-            html += '</ul>';
+            html += '</ul></div>';
 
             // Кнопка "Показать ещё"
             if (clusterTree.children.length > visibleCount) {
                 const remaining = clusterTree.children.length - visibleCount;
                 const toShow = Math.min(20, remaining);
-                html += `<div class="show-more">
+                html += `<div class="show-more footer">
                     <button onclick="showMore()">Show more ${toShow} clusters</button>
                     <div class="show-more-remaining">${remaining.toLocaleString()} remaining</div>
                 </div>`;

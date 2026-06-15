@@ -533,8 +533,8 @@ async def get_pmi_cluster(request: PmiClusterRequest):
     # Сортируем по убыванию частоты
     cluster_with_freq.sort(key=lambda x: x[1], reverse=True)
 
-    # Берём топ-20
-    cluster_with_freq = cluster_with_freq[:20]
+    # PMI Sequential initially shows 25 items and reveals the rest in batches.
+    cluster_with_freq = cluster_with_freq[:100]
 
     # Рассчитываем статистику
     scores = [s for _, _, s in cluster_with_freq]

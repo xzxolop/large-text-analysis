@@ -171,19 +171,19 @@ async def read_root(request: Request):
 @app.get("/tfidf", response_class=HTMLResponse)
 async def read_tfidf(request: Request):
     """Страница TF-IDF clustering."""
-    return templates.TemplateResponse("tfidf.html", {"request": request})
+    return templates.TemplateResponse("tfidf_page.html", {"request": request})
 
 
 @app.get("/exclusive", response_class=HTMLResponse)
 async def read_exclusive(request: Request):
     """Backward-compatible page route for the old exclusive clustering URL."""
-    return templates.TemplateResponse("tfidf.html", {"request": request})
+    return templates.TemplateResponse("tfidf_page.html", {"request": request})
 
 
 @app.get("/pmi_sequential", response_class=HTMLResponse)
 async def read_pmi_sequential(request: Request):
     """Страница PMI sequential clustering."""
-    return templates.TemplateResponse("pmi_sequential.html", {"request": request})
+    return templates.TemplateResponse("pmi_page.html", {"request": request})
 
 
 @app.post("/api/cluster", response_model=ClusterResponse)

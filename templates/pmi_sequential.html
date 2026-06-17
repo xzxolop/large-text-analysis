@@ -795,6 +795,9 @@
 
         function renderClusterTree() {
             const resultsDiv = document.getElementById('left-panel-content');
+            const currentScroll = resultsDiv.querySelector('.cluster-scroll');
+            const scrollTop = currentScroll ? currentScroll.scrollTop : 0;
+            const scrollLeft = currentScroll ? currentScroll.scrollLeft : 0;
 
             if (!clusterTree || !clusterTree.children) {
                 resultsDiv.innerHTML = '<div class="error">No clusters loaded</div>';
@@ -822,6 +825,12 @@
             }
 
             resultsDiv.innerHTML = html;
+
+            const restoredScroll = resultsDiv.querySelector('.cluster-scroll');
+            if (restoredScroll) {
+                restoredScroll.scrollTop = scrollTop;
+                restoredScroll.scrollLeft = scrollLeft;
+            }
         }
 
         function renderClusterItem(item, depth) {

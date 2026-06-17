@@ -520,14 +520,16 @@ async def get_pmi_cluster(request: PmiClusterRequest):
             sentence_indices=request.sentence_indices,
         )
 
-    # Добавляем частоту к каждому слову
+    # For PMI Sequential, freq should match what the user sees in the
+    # sentences panel: documents containing the current path plus candidate.
+    context_sentences = subset_sentences if request.sentence_indices and len(request.sentence_indices) > 0 else state.data_store.get_processed_sentences()
     cluster_with_freq = []
     excluded_set = {w.lower() for w in (request.excluded_words or [])}
     for cluster_word, score in cluster:
         # Пропускаем слова, которые участвуют в пути поиска
         if cluster_word.lower() in excluded_set:
             continue
-        freq = cluster_analyzer.word_doc_freq.get(cluster_word.lower(), 0)
+        freq = _count_sentences_with_all_words(context_sentences, [word, cluster_word])
         cluster_with_freq.append((cluster_word, freq, score))
 
     # Сортируем по убыванию частоты
@@ -650,6 +652,23 @@ def _find_sentences_with_all_words(words: List[str]) -> set:
             break
 
     return matching_indices
+
+
+def _count_sentences_with_all_words(sentences: List[str], words: List[str]) -> int:
+    """
+    Count processed sentences containing every specified word as a token.
+    """
+    required_words = {word.lower().strip() for word in words if word.strip()}
+    if not required_words:
+        return 0
+
+    count = 0
+    for sentence in sentences:
+        sentence_words = set(sentence.lower().split())
+        if required_words.issubset(sentence_words):
+            count += 1
+
+    return count
 
 
 @app.post("/api/pmi/indices", response_model=Dict[str, object])

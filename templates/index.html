@@ -29,6 +29,29 @@
             margin-bottom: 36px;
         }
 
+        .language-switch {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .language-switch button {
+            color: white;
+            background: rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.24);
+            border-radius: 8px;
+            padding: 8px 14px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: background 0.2s;
+        }
+
+        .language-switch button.active,
+        .language-switch button:hover {
+            background: rgba(255,255,255,0.34);
+        }
+
         h1 {
             font-size: clamp(2.2rem, 6vw, 4.2rem);
             line-height: 1.05;
@@ -107,32 +130,85 @@
 </head>
 <body>
     <main class="container">
+        <div class="language-switch" aria-label="Language switch">
+            <button type="button" data-lang-btn="ru" onclick="setLanguage('ru')">RU</button>
+            <button type="button" data-lang-btn="en" onclick="setLanguage('en')">EN</button>
+        </div>
+
         <section class="hero">
-            <h1>Large Text Analysis</h1>
-            <p class="subtitle">Choose an analysis mode to explore word clusters and user intent.</p>
+            <h1 data-i18n="appTitle">Large Text Analysis</h1>
+            <p class="subtitle" data-i18n="subtitle">Choose an analysis mode to explore word clusters and user intent.</p>
         </section>
 
         <section class="mode-grid" aria-label="Analysis modes">
             <a class="mode-card" href="/pmi">
                 <div class="mode-icon">🔀</div>
-                <h2>PMI Clustering</h2>
-                <p>
+                <h2 data-i18n="pmiTitle">PMI Clustering</h2>
+                <p data-i18n="pmiDescription">
                     Explore related words step by step using PMI and narrow the context
                     by clicking through clusters.
                 </p>
-                <span class="mode-action">Open PMI</span>
+                <span class="mode-action" data-i18n="openPmi">Open PMI</span>
             </a>
 
             <a class="mode-card" href="/tfidf">
                 <div class="mode-icon">📊</div>
-                <h2>TF-IDF Clustering</h2>
-                <p>
+                <h2 data-i18n="tfidfTitle">TF-IDF Clustering</h2>
+                <p data-i18n="tfidfDescription">
                     View non-overlapping sentence clusters based on representative
                     TF-IDF terms and inspect matching sentences.
                 </p>
-                <span class="mode-action">Open TF-IDF</span>
+                <span class="mode-action" data-i18n="openTfidf">Open TF-IDF</span>
             </a>
         </section>
     </main>
+
+    <script>
+        const translations = {
+            en: {
+                appTitle: 'Large Text Analysis',
+                subtitle: 'Choose an analysis mode to explore word clusters and user intent.',
+                pmiTitle: 'PMI Clustering',
+                pmiDescription: 'Explore related words step by step using PMI and narrow the context by clicking through clusters.',
+                openPmi: 'Open PMI',
+                tfidfTitle: 'TF-IDF Clustering',
+                tfidfDescription: 'View non-overlapping sentence clusters based on representative TF-IDF terms and inspect matching sentences.',
+                openTfidf: 'Open TF-IDF',
+            },
+            ru: {
+                appTitle: 'Анализ больших текстов',
+                subtitle: 'Выберите режим анализа, чтобы исследовать кластеры слов и пользовательские намерения.',
+                pmiTitle: 'PMI-кластеризация',
+                pmiDescription: 'Исследуйте связанные слова пошагово с помощью PMI и сужайте контекст, раскрывая кластеры.',
+                openPmi: 'Открыть PMI',
+                tfidfTitle: 'TF-IDF-кластеризация',
+                tfidfDescription: 'Просматривайте непересекающиеся кластеры предложений по важным TF-IDF словам.',
+                openTfidf: 'Открыть TF-IDF',
+            },
+        };
+
+        function getLanguage() {
+            return localStorage.getItem('lta-language') || 'ru';
+        }
+
+        function setLanguage(lang) {
+            localStorage.setItem('lta-language', lang);
+            applyLanguage();
+        }
+
+        function applyLanguage() {
+            const lang = getLanguage();
+            document.documentElement.lang = lang;
+            document.querySelectorAll('[data-i18n]').forEach((el) => {
+                const key = el.dataset.i18n;
+                el.textContent = translations[lang][key] || translations.en[key] || el.textContent;
+            });
+            document.querySelectorAll('[data-lang-btn]').forEach((btn) => {
+                btn.classList.toggle('active', btn.dataset.langBtn === lang);
+            });
+        }
+
+        applyLanguage();
+    </script>
 </body>
 </html>

@@ -41,6 +41,25 @@
             display: inline-block;
         }
         .nav-links a:hover { background: rgba(255,255,255,0.3); }
+        .language-switch {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .language-switch button {
+            color: white;
+            background: rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.24);
+            border-radius: 8px;
+            padding: 8px 14px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+        .language-switch button.active,
+        .language-switch button:hover {
+            background: rgba(255,255,255,0.34);
+        }
         .reset-btn {
             background: rgba(255,255,255,0.2);
             color: white;
@@ -530,11 +549,16 @@
 </head>
 <body>
     <div class="container">
-        <h1>🔍 PMI Clustering</h1>
-        <p class="subtitle">Search for a word, then click to explore sub-clusters in context</p>
+        <div class="language-switch" aria-label="Language switch">
+            <button type="button" data-lang-btn="ru" onclick="setLanguage('ru')">RU</button>
+            <button type="button" data-lang-btn="en" onclick="setLanguage('en')">EN</button>
+        </div>
+
+        <h1 data-i18n="pageTitle">🔍 PMI Clustering</h1>
+        <p class="subtitle" data-i18n="subtitle">Search for a word, then click to explore sub-clusters in context</p>
 
         <div class="nav-links">
-            <a href="/">← Back to start</a>
+            <a href="/" data-i18n="backToStart">← Back to start</a>
         </div>
 
         <!-- Search Box -->
@@ -544,11 +568,12 @@
                     type="text"
                     id="wordInput"
                     class="search-input"
+                    data-i18n-placeholder="wordPlaceholder"
                     placeholder="Enter a word (e.g., data, python, russia)"
                     autocomplete="off"
                     required
                 >
-                <button type="submit" id="searchBtn" class="search-btn">Find Cluster</button>
+                <button type="submit" id="searchBtn" class="search-btn" data-i18n="findCluster">Find Cluster</button>
             </form>
         </div>
 
@@ -557,13 +582,13 @@
             <!-- Left Panel: Clusters -->
             <div class="left-panel">
                 <div id="left-panel-header" class="results-header" style="display: none;">
-                    <h2 id="cluster-title">📊 Clusters</h2>
-                    <p id="cluster-subtitle">Search for a word to start</p>
+                    <h2 id="cluster-title" data-i18n="clustersTitle">📊 Clusters</h2>
+                    <p id="cluster-subtitle" data-i18n="clusterSubtitle">Search for a word to start</p>
                 </div>
                 <div id="left-panel-content" class="left-panel-content">
                     <div class="empty-state">
                         <div class="empty-state-icon">🔍</div>
-                        <p>Enter a word above to find associated clusters using PMI</p>
+                        <p data-i18n="initialClusterHint">Enter a word above to find associated clusters using PMI</p>
                     </div>
                 </div>
             </div>
@@ -571,21 +596,21 @@
             <!-- Right Panel: Sentences -->
             <div class="right-panel">
                 <div class="right-panel-header">
-                    <h2>📄 Sentences</h2>
-                    <p id="sentences-subtitle">Select a word to view sentences</p>
+                    <h2 data-i18n="sentencesTitle">📄 Sentences</h2>
+                    <p id="sentences-subtitle" data-i18n="sentencesSubtitle">Select a word to view sentences</p>
                     <div class="highlight-toggle">
-                        <span class="highlight-toggle-label active" id="label-all">All words</span>
+                        <span class="highlight-toggle-label active" id="label-all" data-i18n="allWords">All words</span>
                         <div class="toggle-switch" onclick="toggleHighlightMode()">
                             <div class="toggle-track" id="toggle-track"></div>
                             <div class="toggle-thumb" id="toggle-thumb"></div>
                         </div>
-                        <span class="highlight-toggle-label" id="label-last">Last only</span>
+                        <span class="highlight-toggle-label" id="label-last" data-i18n="lastOnly">Last only</span>
                     </div>
                 </div>
                 <div id="right-panel-content" class="right-panel-content">
                     <div class="empty-state">
                         <div class="empty-state-icon">👈</div>
-                        <p>Select a word from the left panel to see sentences containing it</p>
+                        <p data-i18n="selectWordHint">Select a word from the left panel to see sentences containing it</p>
                     </div>
                 </div>
             </div>
@@ -593,6 +618,108 @@
     </div>
 
     <script>
+        const translations = {
+            en: {
+                pageTitle: '🔍 PMI Clustering',
+                subtitle: 'Search for a word, then click to explore sub-clusters in context',
+                backToStart: '← Back to start',
+                wordPlaceholder: 'Enter a word (e.g., data, python, russia)',
+                findCluster: 'Find Cluster',
+                clustersTitle: '📊 Clusters',
+                clusterSubtitle: 'Search for a word to start',
+                initialClusterHint: 'Enter a word above to find associated clusters using PMI',
+                sentencesTitle: '📄 Sentences',
+                sentencesSubtitle: 'Select a word to view sentences',
+                allWords: 'All words',
+                lastOnly: 'Last only',
+                selectWordHint: 'Select a word from the left panel to see sentences containing it',
+                searchingClusters: 'Searching for clusters',
+                clustersFor: '📊 Clusters for',
+                expandHint: 'Click on a word to expand sub-cluster',
+                noClustersFound: 'No clusters found for',
+                loadingSentences: 'Loading sentences',
+                noSentencesFound: 'No sentences found for',
+                sentencesFor: 'Sentences for',
+                showMoreClusters: 'Show more {count} clusters',
+                showMoreSentences: 'Show more {count} sentences',
+                remaining: '{count} remaining',
+                error: 'Error',
+                failedToFetch: 'Failed to fetch',
+                failedToFetchIndices: 'Failed to fetch indices',
+                errorLoadingSubclusters: 'Error loading sub-clusters',
+                noClustersLoaded: 'No clusters loaded',
+                freq: 'Freq',
+                score: 'Score',
+            },
+            ru: {
+                pageTitle: '🔍 PMI-кластеризация',
+                subtitle: 'Введите слово, затем раскрывайте кластеры для последовательного сужения контекста',
+                backToStart: '← На главную',
+                wordPlaceholder: 'Введите слово (например: data, python, russia)',
+                findCluster: 'Найти кластер',
+                clustersTitle: '📊 Кластеры',
+                clusterSubtitle: 'Введите слово, чтобы начать',
+                initialClusterHint: 'Введите слово выше, чтобы найти связанные PMI-кластеры',
+                sentencesTitle: '📄 Предложения',
+                sentencesSubtitle: 'Выберите слово, чтобы увидеть предложения',
+                allWords: 'Все слова',
+                lastOnly: 'Только последнее',
+                selectWordHint: 'Выберите слово слева, чтобы увидеть предложения с ним',
+                searchingClusters: 'Поиск кластеров',
+                clustersFor: '📊 Кластеры для',
+                expandHint: 'Нажмите на слово, чтобы раскрыть подкластер',
+                noClustersFound: 'Кластеры не найдены для',
+                loadingSentences: 'Загрузка предложений',
+                noSentencesFound: 'Предложения не найдены для',
+                sentencesFor: 'Предложения для',
+                showMoreClusters: 'Показать еще {count} кластеров',
+                showMoreSentences: 'Показать еще {count} предложений',
+                remaining: 'Осталось: {count}',
+                error: 'Ошибка',
+                failedToFetch: 'Не удалось загрузить данные',
+                failedToFetchIndices: 'Не удалось загрузить индексы',
+                errorLoadingSubclusters: 'Ошибка загрузки подкластеров',
+                noClustersLoaded: 'Кластеры не загружены',
+                freq: 'Частота',
+                score: 'Оценка',
+            },
+        };
+
+        function getLanguage() {
+            return localStorage.getItem('lta-language') || 'ru';
+        }
+
+        function t(key, params = {}) {
+            const lang = getLanguage();
+            let value = translations[lang][key] || translations.en[key] || key;
+            Object.entries(params).forEach(([name, replacement]) => {
+                value = value.replace(`{${name}}`, replacement);
+            });
+            return value;
+        }
+
+        function setLanguage(lang) {
+            localStorage.setItem('lta-language', lang);
+            applyLanguage();
+            updateSentencesPanel();
+            if (clusterTree) renderClusterTree();
+            if (selectedWord) rerenderCurrentSentences();
+        }
+
+        function applyLanguage() {
+            const lang = getLanguage();
+            document.documentElement.lang = lang;
+            document.querySelectorAll('[data-i18n]').forEach((el) => {
+                el.textContent = t(el.dataset.i18n);
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+                el.placeholder = t(el.dataset.i18nPlaceholder);
+            });
+            document.querySelectorAll('[data-lang-btn]').forEach((btn) => {
+                btn.classList.toggle('active', btn.dataset.langBtn === lang);
+            });
+        }
+
         // Store the tree structure of expanded clusters
         let clusterTree = null;
         let visibleCount = 25;
@@ -652,6 +779,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            applyLanguage();
             // Фокус на поле ввода
             document.getElementById('wordInput').focus();
         });
@@ -669,10 +797,10 @@
             const resultsDiv = document.getElementById('left-panel-content');
             const headerDiv = document.getElementById('left-panel-header');
 
-            resultsDiv.innerHTML = '<div class="loading">Searching for clusters</div>';
+            resultsDiv.innerHTML = `<div class="loading">${t('searchingClusters')}</div>`;
             headerDiv.style.display = 'block';
-            document.getElementById('cluster-title').textContent = `📊 Clusters for "${word}"`;
-            document.getElementById('cluster-subtitle').textContent = 'Click on a word to expand sub-cluster';
+            document.getElementById('cluster-title').textContent = `${t('clustersFor')} "${word}"`;
+            document.getElementById('cluster-subtitle').textContent = t('expandHint');
 
             visibleCount = 25;
             selectedWord = null;
@@ -688,10 +816,10 @@
                 });
 
                 const data = await response.json();
-                if (!response.ok) throw new Error(data.detail || 'Failed to fetch');
+                if (!response.ok) throw new Error(data.detail || t('failedToFetch'));
 
                 if (!data.cluster || data.cluster.length === 0) {
-                    resultsDiv.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><p>No clusters found for "${word}"</p></div>`;
+                    resultsDiv.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><p>${t('noClustersFound')} "${word}"</p></div>`;
                     return;
                 }
 
@@ -714,7 +842,7 @@
 
                 renderClusterTree();
             } catch (error) {
-                resultsDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                resultsDiv.innerHTML = `<div class="error">❌ ${t('error')}: ${error.message}</div>`;
             }
         }
 
@@ -738,7 +866,7 @@
                 });
                 const indicesData = await indicesResponse.json();
 
-                if (!indicesResponse.ok) throw new Error(indicesData.detail || 'Failed to fetch indices');
+                if (!indicesResponse.ok) throw new Error(indicesData.detail || t('failedToFetchIndices'));
 
                 if (indicesData.count === 0) {
                     node.children = [];
@@ -761,7 +889,7 @@
                 });
 
                 const data = await response.json();
-                if (!response.ok) throw new Error(data.detail || 'Failed to fetch');
+                if (!response.ok) throw new Error(data.detail || t('failedToFetch'));
 
                 // Добавляем children с обновлённым путём
                 node.children = (data.cluster || []).map(c => ({
@@ -776,13 +904,13 @@
                 node.expanded = true;
                 node.loading = false;
 
-                document.getElementById('cluster-title').textContent = `📊 Clusters for "${node.seedWords.join(' → ')}"`;
+                document.getElementById('cluster-title').textContent = `${t('clustersFor')} "${node.seedWords.join(' → ')}"`;
 
                 renderClusterTree();
             } catch (error) {
                 node.loading = false;
                 renderClusterTree();
-                alert(`Error loading sub-clusters: ${error.message}`);
+                alert(`${t('errorLoadingSubclusters')}: ${error.message}`);
             }
         }
 
@@ -798,7 +926,7 @@
             const scrollLeft = currentScroll ? currentScroll.scrollLeft : 0;
 
             if (!clusterTree || !clusterTree.children) {
-                resultsDiv.innerHTML = '<div class="error">No clusters loaded</div>';
+                resultsDiv.innerHTML = `<div class="error">${t('noClustersLoaded')}</div>`;
                 return;
             }
 
@@ -817,8 +945,8 @@
                 const remaining = clusterTree.children.length - visibleCount;
                 const toShow = Math.min(20, remaining);
                 html += `<div class="show-more footer">
-                    <button onclick="showMore()">Show more ${toShow} clusters</button>
-                    <div class="show-more-remaining">${remaining.toLocaleString()} remaining</div>
+                    <button onclick="showMore()">${t('showMoreClusters', { count: toShow })}</button>
+                    <div class="show-more-remaining">${t('remaining', { count: remaining.toLocaleString() })}</div>
                 </div>`;
             }
 
@@ -852,8 +980,8 @@
                             <span class="word-text">${escapeHtml(item.word)}</span>
                         </span>
                         <span class="word-badges">
-                            <span class="badge-freq">Freq: ${item.freq}</span>
-                            <span class="badge-score">Score: ${item.score.toFixed(2)}</span>
+                            <span class="badge-freq">${t('freq')}: ${item.freq}</span>
+                            <span class="badge-score">${t('score')}: ${item.score.toFixed(2)}</span>
                         </span>
                     </div>
             `;
@@ -889,7 +1017,7 @@
 
             if (node.expanded) {
                 collapseCluster(node);
-                document.getElementById('cluster-title').textContent = `📊 Clusters for "${clusterTree.word}"`;
+                document.getElementById('cluster-title').textContent = `${t('clustersFor')} "${clusterTree.word}"`;
                 resetSentencesPanel();
             } else {
                 expandCluster(node);
@@ -939,7 +1067,7 @@
             document.getElementById('right-panel-content').innerHTML = `
                 <div class="empty-state">
                     <div class="empty-state-icon">👈</div>
-                    <p>Select a word from the left panel to see sentences containing it</p>
+                    <p>${t('selectWordHint')}</p>
                 </div>
             `;
         }
@@ -966,7 +1094,7 @@
                 return;
             }
 
-            document.getElementById('right-panel-content').innerHTML = '<div class="loading">Loading sentences</div>';
+            document.getElementById('right-panel-content').innerHTML = `<div class="loading">${t('loadingSentences')}</div>`;
 
             try {
                 console.log(`🔄 Loading from API: ${cacheKey}`);
@@ -982,7 +1110,7 @@
                 });
 
                 const data = await response.json();
-                if (!response.ok) throw new Error(data.detail || 'Failed to fetch');
+                if (!response.ok) throw new Error(data.detail || t('failedToFetch'));
 
                 sentenceTotalCount = data.total_count;
 
@@ -995,7 +1123,7 @@
                 renderClusterTree();
             } catch (error) {
                 document.getElementById('right-panel-content').innerHTML =
-                    `<div class="error">❌ Error: ${error.message}</div>`;
+                    `<div class="error">❌ ${t('error')}: ${error.message}</div>`;
             }
         }
 
@@ -1006,7 +1134,7 @@
                 contentDiv.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">📭</div>
-                        <p>No sentences found for "${word}"</p>
+                        <p>${t('noSentencesFound')} "${word}"</p>
                     </div>
                 `;
                 return;
@@ -1028,8 +1156,8 @@
                 const remaining = sentenceTotalCount - (sentenceOffset + sentenceLimit);
                 const toShow = Math.min(20, remaining);
                 html += `<div class="show-more">
-                    <button onclick="loadMoreSentences()">Show more ${toShow} sentences</button>
-                    <div class="show-more-remaining">${remaining.toLocaleString()} remaining</div>
+                    <button onclick="loadMoreSentences()">${t('showMoreSentences', { count: toShow })}</button>
+                    <div class="show-more-remaining">${t('remaining', { count: remaining.toLocaleString() })}</div>
                 </div>`;
             }
 
@@ -1125,9 +1253,9 @@
         function updateSentencesPanel() {
             const subtitle = document.getElementById('sentences-subtitle');
             if (selectedWord) {
-                subtitle.textContent = `Sentences for "${selectedWord}"`;
+                subtitle.textContent = `${t('sentencesFor')} "${selectedWord}"`;
             } else {
-                subtitle.textContent = 'Select a word to view sentences';
+                subtitle.textContent = t('sentencesSubtitle');
             }
         }
 
@@ -1144,7 +1272,7 @@
             document.getElementById('left-panel-content').innerHTML = `
                 <div class="empty-state">
                     <div class="empty-state-icon">🔍</div>
-                    <p>Enter a word above to find associated clusters using PMI</p>
+                    <p>${t('initialClusterHint')}</p>
                 </div>
             `;
             document.getElementById('left-panel-header').style.display = 'none';

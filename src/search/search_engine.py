@@ -7,8 +7,8 @@ from collections import defaultdict
 
 from core.inverted_index import InvertedIndex, SearchState, MyWord
 from core.tfidf_model import TfidfModel
-from analysis.cluster_analyzer import ClusterAnalyzer
-from analysis.exclusive_clusterer import ExclusiveClusterer
+from analysis.pmi_clusterer import PmiClusterer
+from analysis.tfidf_clusterer import TfidfClusterer
 
 class SearchEngine:
     """
@@ -27,7 +27,7 @@ class SearchEngine:
         self._index = InvertedIndex(sentences, calc_word_freq=calc_word_freq)
         self._tfidf = TfidfModel(sentences, vectorizer=tfidf_vectorizer)
         self._cluster_analyzer = (
-            ClusterAnalyzer(sentences) if enable_cluster_analysis else None
+            PmiClusterer(sentences) if enable_cluster_analysis else None
         )
         self._tfidf_cache: Optional[dict] = None
         self._sentences = sentences
@@ -40,7 +40,7 @@ class SearchEngine:
                 word: self._index.get_word_freq(word)
                 for word in feature_names
             }
-            self._exclusive_clusterer = ExclusiveClusterer(
+            self._exclusive_clusterer = TfidfClusterer(
                 tfidf_matrix=self._tfidf._matrix,
                 feature_names=feature_names,
                 word_freqs=word_freqs,
@@ -89,7 +89,7 @@ class SearchEngine:
         """TF-IDF для набора слов."""
         return self._tfidf.get_words_tfidf(words)
 
-# Функции кластерного анализа (ClusterAnalyzer)
+# Функции кластерного анализа (PmiClusterer)
 
     def get_cluster_words(
         self,
@@ -228,7 +228,7 @@ class SearchEngine:
 
         return cluster_with_freq, sentence_indexes
 
-# ========== Непересекающаяся кластеризация (ExclusiveClusterer) ==========
+# ========== Непересекающаяся кластеризация (TfidfClusterer) ==========
 
     def tfidf_exclusive_clustering(
         self,

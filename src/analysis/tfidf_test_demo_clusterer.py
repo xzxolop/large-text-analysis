@@ -6,7 +6,7 @@ import math
 import numpy as np
 
 
-class ExclusiveClustererV2:
+class TfidfTestDemoClusterer:
     """
     Непересекающаяся кластеризация: каждое предложение получает одно релевантное слово.
 
@@ -138,3 +138,7 @@ class ExclusiveClustererV2:
                 clusters[word] = {score}
 
         return clusters
+
+
+# Backward-compatible alias for older demo code that imported ExclusiveClustererV2.
+ExclusiveClustererV2 = TfidfTestDemoClusterer

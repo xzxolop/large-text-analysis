@@ -1,7 +1,7 @@
 """
 Модуль для непересекающейся кластеризации на основе TF-IDF.
 
-В отличие от PMI-based кластеризации (cluster_analyzer.py),
+В отличие от PMI-based кластеризации (pmi_clusterer.py),
 этот модуль назначает каждому предложению ровно одно релевантное слово
 на основе TF-IDF метрики.
 """
@@ -11,7 +11,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 
 
-class ExclusiveClusterer:
+class TfidfClusterer:
     """
     Непересекающаяся кластеризация предложений по релевантным словам.
 
@@ -19,7 +19,7 @@ class ExclusiveClusterer:
     выбранное на основе TF-IDF × log(freq).
 
     Пример использования:
-        clusterer = ExclusiveClusterer(tfidf_matrix, feature_names, word_freqs)
+        clusterer = TfidfClusterer(tfidf_matrix, feature_names, word_freqs)
         clusters = clusterer.cluster(n=10000)
         # {'data': {0, 5, 23}, 'python': {1, 12}, ...}
     """
@@ -166,3 +166,7 @@ class ExclusiveClusterer:
         )[:n]
 
         return dict(sorted_clusters)
+
+
+# Backward-compatible alias for older code/tests that imported ExclusiveClusterer.
+ExclusiveClusterer = TfidfClusterer

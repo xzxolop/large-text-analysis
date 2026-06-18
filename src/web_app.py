@@ -180,9 +180,15 @@ async def read_exclusive(request: Request):
     return templates.TemplateResponse("tfidf_page.html", {"request": request})
 
 
+@app.get("/pmi", response_class=HTMLResponse)
+async def read_pmi(request: Request):
+    """Страница PMI clustering."""
+    return templates.TemplateResponse("pmi_page.html", {"request": request})
+
+
 @app.get("/pmi_sequential", response_class=HTMLResponse)
 async def read_pmi_sequential(request: Request):
-    """Страница PMI sequential clustering."""
+    """Backward-compatible page route for the old PMI sequential URL."""
     return templates.TemplateResponse("pmi_page.html", {"request": request})
 
 

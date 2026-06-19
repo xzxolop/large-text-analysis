@@ -7,7 +7,8 @@ import re
 from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
 
-from config import PROJECT_ROOT, FILES_DIR
+from config import ACTIVE_DATASET, DATASET_MAX_DOCUMENTS, PROJECT_ROOT, FILES_DIR
+from data.dataset_sources import DatasetSource, get_dataset_source
 from data.sqlite_repository import SQLiteSentenceRepository
 
 
@@ -34,6 +35,7 @@ class DataStorage:
         self.__processed_sent_list = []
         self.__alias_list = []
         self.__stop_words = set()
+        self.__dataset_source = get_dataset_source(ACTIVE_DATASET)
 
         files_path = Path(FILES_DIR)
         if not files_path.is_absolute():
@@ -46,8 +48,13 @@ class DataStorage:
         self,
         dataset_path: Path | None = None,
         dataset_name: str | None = None,
+        dataset_key: str | None = None,
+        max_documents: int | None = None,
     ):
         """Загружает данные из датасета в списки python."""
+
+        self.__dataset_source = get_dataset_source(dataset_key or ACTIVE_DATASET)
+        max_documents = self.__resolve_max_documents(max_documents)
 
         if dataset_path is not None:
             dataset_path = Path(dataset_path)
@@ -62,13 +69,18 @@ class DataStorage:
             else:
                 # Загружаем с Kaggle
                 print("📥 Downloading dataset from Kaggle...")
-                path = kagglehub.dataset_download("pavellexyr/the-reddit-dataset-dataset")
-                dataset_path = Path(path) / "the-reddit-dataset-dataset-comments.csv"
+                path = kagglehub.dataset_download(self.__dataset_source.kaggle_handle)
+                dataset_path = self.__find_dataset_file(Path(path))
                 print(f"✅ Dataset downloaded from Kaggle to: {path}")
+
+        cache_version = (
+            f"{PREPROCESSING_VERSION}:{self.__dataset_source.cache_variant}:"
+            f"max={max_documents or 'all'}"
+        )
 
         cached_records = self.__repository.load_sentences(
             dataset_path,
-            PREPROCESSING_VERSION,
+            cache_version,
         )
         if cached_records is not None:
             self.__reset_sentence_lists()
@@ -79,8 +91,9 @@ class DataStorage:
             print(f"✅ Loaded {len(cached_records)} preprocessed sentences from SQLite")
             return
 
-        comments_df = pd.read_csv(dataset_path)
-        self.__main_text_list = comments_df["body"].to_list()
+        self.__main_text_list = list(
+            self.__dataset_source.iter_texts(dataset_path, max_documents)
+        )
 
         nltk.download('stopwords', quiet=True)
         self.__stop_words = set(stopwords.words('english'))
@@ -88,9 +101,9 @@ class DataStorage:
         self.__fill_lists_by_main_text()
         saved_count = self.__repository.save_sentences(
             dataset_path,
-            PREPROCESSING_VERSION,
+            cache_version,
             zip(self.__alias_list, self.__orig_sent_list, self.__processed_sent_list),
-            dataset_name=dataset_name,
+            dataset_name=dataset_name or self.__dataset_source.name,
         )
         print(f"✅ Saved {saved_count} preprocessed sentences to SQLite")
 
@@ -154,12 +167,28 @@ class DataStorage:
         
         if kaggle_cache.exists():
             # Ищем наш CSV (может быть в поддиректории с версией)
-            csv_files = list(kaggle_cache.rglob("the-reddit-dataset-dataset-comments.csv"))
+            csv_files = list(kaggle_cache.rglob(self.__dataset_source.filename))
             if csv_files:
                 # Берём первый найденный (обычно самый последний)
                 return csv_files[0]
         
         return None
+
+    def __find_dataset_file(self, dataset_directory: Path) -> Path:
+        matches = list(dataset_directory.rglob(self.__dataset_source.filename))
+        if not matches:
+            raise FileNotFoundError(
+                f"{self.__dataset_source.filename} was not found in {dataset_directory}"
+            )
+        return matches[0]
+
+    def __resolve_max_documents(self, max_documents: int | None) -> int | None:
+        if max_documents is not None:
+            return max_documents
+        if DATASET_MAX_DOCUMENTS:
+            configured_limit = int(DATASET_MAX_DOCUMENTS)
+            return configured_limit or None
+        return self.__dataset_source.default_max_documents
 
     def __fill_lists_by_main_text(self):
         for i in range(len(self.__main_text_list)):

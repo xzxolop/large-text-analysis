@@ -91,7 +91,7 @@ def test_data_storage_reuses_preprocessed_sqlite_cache(storage_paths, monkeypatc
     monkeypatch.setattr("data.data_storage.word_tokenize", lambda text: text.split())
 
     first_storage = DataStorage(database_path=database_path)
-    first_storage.load_data()
+    first_storage.load_data(dataset_key="reddit")
     assert first_storage.get_processed_sentences() == ["buy car"]
 
     monkeypatch.setattr(
@@ -100,7 +100,7 @@ def test_data_storage_reuses_preprocessed_sqlite_cache(storage_paths, monkeypatc
     )
 
     second_storage = DataStorage(database_path=database_path)
-    second_storage.load_data()
+    second_storage.load_data(dataset_key="reddit")
     assert second_storage.get_processed_sentences() == ["buy car"]
     assert second_storage.get_original_sentences_by_index([0]) == ["Buy the car"]
 

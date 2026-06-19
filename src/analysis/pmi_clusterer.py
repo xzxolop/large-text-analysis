@@ -204,6 +204,10 @@ class PmiClusterer:
             if word == seed_word:
                 continue
 
+            # A PMI candidate must occur with the seed in at least one sentence.
+            if self.get_cooccurrence_freq(seed_word, word) == 0:
+                continue
+
             # Фильтр по минимальной частоте (мягкий, по умолчанию = 1)
             if self.word_doc_freq[word] < min_freq:
                 continue
@@ -232,7 +236,7 @@ class PmiClusterer:
                 freq = self.word_doc_freq[word]
                 score = score * math.log(freq + 1)
 
-            if score >= min_pmi:
+            if score > 0 and score >= min_pmi:
                 scores.append((word, score))
 
         # Сортировка по убыванию

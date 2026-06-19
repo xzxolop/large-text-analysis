@@ -147,6 +147,26 @@ class TestGetClusterWords:
         """Для несуществующего слова должен返回 пустой список."""
         cluster = analyzer.get_cluster_words("nonexistent_xyz")
         assert cluster == []
+
+    def test_get_cluster_words_excludes_zero_frequency_candidates(self):
+        analyzer = PmiClusterer([
+            "buy car",
+            "buy boat",
+            "unrelated thing",
+        ])
+
+        cluster = analyzer.get_cluster_words(
+            "buy",
+            filter_pos=False,
+            use_freq_weighting=False,
+            min_score_percent=0.0,
+        )
+
+        words = [word for word, _ in cluster]
+        assert "unrelated" not in words
+        assert "thing" not in words
+        assert all(analyzer.get_cooccurrence_freq("buy", word) > 0 for word in words)
+        assert all(score > 0 for _, score in cluster)
     
     def test_get_cluster_words_with_npmi(self, analyzer):
         """use_npmi=True должен использовать NPMI вместо PMI."""

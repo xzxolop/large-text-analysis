@@ -883,7 +883,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         word: currentWord,
-                        sentence_indices: indicesData.indices.slice(0, 5000),
+                        sentence_indices: indicesData.indices,
                         excluded_words: [...parentSeedWords, currentWord],
                     }),
                 });

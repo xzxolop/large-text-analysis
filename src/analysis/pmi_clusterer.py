@@ -78,6 +78,13 @@ class PmiClusterer:
                 for w2 in unique_words:
                     if w1 < w2:  # чтобы не дублировать (w1,w2) и (w2,w1)
                         self.cooccurrence[(w1, w2)] += 1
+
+    def get_cooccurrence_freq(self, word1: str, word2: str) -> int:
+        """Return the number of sentences containing both words."""
+        word1 = word1.lower()
+        word2 = word2.lower()
+        key = (min(word1, word2), max(word1, word2))
+        return self.cooccurrence.get(key, 0)
     
     def pmi(self, word1: str, word2: str) -> float:
         """

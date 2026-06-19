@@ -44,6 +44,18 @@ class TestPmiClustererInit:
         # "machine" встречается в 2 предложениях
         assert analyzer.word_doc_freq.get("machine", 0) >= 1
 
+    def test_cooccurrence_freq_counts_shared_sentences(self, analyzer):
+        assert analyzer.get_cooccurrence_freq("machine", "learning") == 2
+        assert analyzer.get_cooccurrence_freq("learning", "neural") == 1
+
+    def test_cooccurrence_freq_is_symmetric(self, analyzer):
+        assert analyzer.get_cooccurrence_freq("machine", "learning") == analyzer.get_cooccurrence_freq(
+            "learning", "machine"
+        )
+
+    def test_cooccurrence_freq_returns_zero_for_unrelated_words(self, analyzer):
+        assert analyzer.get_cooccurrence_freq("brain", "teacher") == 0
+
 
 class TestPMI:
     """Тесты расчёта PMI."""

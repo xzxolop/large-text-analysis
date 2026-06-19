@@ -42,20 +42,29 @@ class DataStorage:
             database_path or files_path / "large_text_analysis.sqlite3"
         )
 
-    def load_data(self):
+    def load_data(
+        self,
+        dataset_path: Path | None = None,
+        dataset_name: str | None = None,
+    ):
         """Загружает данные из датасета в списки python."""
 
-        # Сначала ищем кэшированный датасет
-        dataset_path = self._find_cached_dataset()
-        
-        if dataset_path and dataset_path.exists():
-            print(f"✅ Found cached dataset: {dataset_path}")
+        if dataset_path is not None:
+            dataset_path = Path(dataset_path)
+            if not dataset_path.exists():
+                raise FileNotFoundError(f"Dataset not found: {dataset_path}")
         else:
-            # Загружаем с Kaggle
-            print("📥 Downloading dataset from Kaggle...")
-            path = kagglehub.dataset_download("pavellexyr/the-reddit-dataset-dataset")
-            dataset_path = Path(path) / "the-reddit-dataset-dataset-comments.csv"
-            print(f"✅ Dataset downloaded from Kaggle to: {path}")
+            # Сначала ищем кэшированный датасет
+            dataset_path = self._find_cached_dataset()
+
+            if dataset_path and dataset_path.exists():
+                print(f"✅ Found cached dataset: {dataset_path}")
+            else:
+                # Загружаем с Kaggle
+                print("📥 Downloading dataset from Kaggle...")
+                path = kagglehub.dataset_download("pavellexyr/the-reddit-dataset-dataset")
+                dataset_path = Path(path) / "the-reddit-dataset-dataset-comments.csv"
+                print(f"✅ Dataset downloaded from Kaggle to: {path}")
 
         cached_records = self.__repository.load_sentences(
             dataset_path,
@@ -81,8 +90,12 @@ class DataStorage:
             dataset_path,
             PREPROCESSING_VERSION,
             zip(self.__alias_list, self.__orig_sent_list, self.__processed_sent_list),
+            dataset_name=dataset_name,
         )
         print(f"✅ Saved {saved_count} preprocessed sentences to SQLite")
+
+    def get_cached_datasets(self):
+        return self.__repository.list_datasets()
 
     def write_processed_text_to_file(self, filename="output.txt"):
         """Сохраняет элементы __processed_text_list в текстовый файл."""

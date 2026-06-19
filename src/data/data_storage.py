@@ -8,6 +8,10 @@ from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
 
 from config import PROJECT_ROOT, FILES_DIR
+from data.sqlite_repository import SQLiteSentenceRepository
+
+
+PREPROCESSING_VERSION = "1"
 
 
 class DataStorage:
@@ -24,12 +28,19 @@ class DataStorage:
     __alias_list: list[int]
     __stop_words: set[str]
 
-    def __init__(self) -> None:
+    def __init__(self, database_path: Path | None = None) -> None:
         self.__main_text_list = []
         self.__orig_sent_list = []
         self.__processed_sent_list = []
         self.__alias_list = []
         self.__stop_words = set()
+
+        files_path = Path(FILES_DIR)
+        if not files_path.is_absolute():
+            files_path = PROJECT_ROOT / files_path
+        self.__repository = SQLiteSentenceRepository(
+            database_path or files_path / "large_text_analysis.sqlite3"
+        )
 
     def load_data(self):
         """Загружает данные из датасета в списки python."""
@@ -46,12 +57,32 @@ class DataStorage:
             dataset_path = Path(path) / "the-reddit-dataset-dataset-comments.csv"
             print(f"✅ Dataset downloaded from Kaggle to: {path}")
 
+        cached_records = self.__repository.load_sentences(
+            dataset_path,
+            PREPROCESSING_VERSION,
+        )
+        if cached_records is not None:
+            self.__reset_sentence_lists()
+            for document_index, original_text, processed_text in cached_records:
+                self.__alias_list.append(document_index)
+                self.__orig_sent_list.append(original_text)
+                self.__processed_sent_list.append(processed_text)
+            print(f"✅ Loaded {len(cached_records)} preprocessed sentences from SQLite")
+            return
+
         comments_df = pd.read_csv(dataset_path)
         self.__main_text_list = comments_df["body"].to_list()
 
         nltk.download('stopwords', quiet=True)
         self.__stop_words = set(stopwords.words('english'))
+        self.__reset_sentence_lists()
         self.__fill_lists_by_main_text()
+        saved_count = self.__repository.save_sentences(
+            dataset_path,
+            PREPROCESSING_VERSION,
+            zip(self.__alias_list, self.__orig_sent_list, self.__processed_sent_list),
+        )
+        print(f"✅ Saved {saved_count} preprocessed sentences to SQLite")
 
     def write_processed_text_to_file(self, filename="output.txt"):
         """Сохраняет элементы __processed_text_list в текстовый файл."""
@@ -74,6 +105,7 @@ class DataStorage:
         self.__main_text_list = text
         nltk.download('stopwords', quiet=True)
         self.__stop_words = set(stopwords.words('english'))
+        self.__reset_sentence_lists()
         self.__fill_lists_by_main_text()
 
     def get_processed_sentences(self) -> list:
@@ -93,6 +125,11 @@ class DataStorage:
 
     def set_stopwords():
         return
+
+    def __reset_sentence_lists(self) -> None:
+        self.__orig_sent_list = []
+        self.__processed_sent_list = []
+        self.__alias_list = []
 
     def _find_cached_dataset(self) -> Path | None:
         """

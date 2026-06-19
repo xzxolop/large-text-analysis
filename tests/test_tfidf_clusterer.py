@@ -137,10 +137,29 @@ class TestPerformance:
         n_docs = 1000
         n_features = 100
 
-        from scipy.sparse import random
-        tfidf_matrix = random(n_docs, n_features, density=0.1, format="csr")
+        from scipy.sparse import csr_matrix, random
+
+        tfidf_matrix = random(
+            n_docs,
+            n_features,
+            density=0.1,
+            format="csr",
+            random_state=42,
+        )
+        # Sparse random matrices may contain empty rows. Add one deterministic
+        # feature per document because empty TF-IDF rows cannot be clustered.
+        rows = np.arange(n_docs)
+        guaranteed_features = csr_matrix(
+            (np.ones(n_docs), (rows, rows % n_features)),
+            shape=(n_docs, n_features),
+        )
+        tfidf_matrix = tfidf_matrix.maximum(guaranteed_features)
         feature_names = np.array([f"word_{i}" for i in range(n_features)])
-        word_freqs = {f"word_{i}": np.random.randint(1, 100) for i in range(n_features)}
+        rng = np.random.default_rng(42)
+        word_freqs = {
+            f"word_{i}": int(rng.integers(1, 100))
+            for i in range(n_features)
+        }
 
         clusterer = TfidfClusterer(tfidf_matrix, feature_names, word_freqs)
 

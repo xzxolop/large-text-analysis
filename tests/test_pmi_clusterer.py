@@ -1,5 +1,5 @@
 """
-Тесты для модуля кластерного анализа (ClusterAnalyzer).
+Тесты для модуля кластерного анализа (PmiClusterer).
 """
 
 import pytest
@@ -24,7 +24,7 @@ def analyzer(sample_sentences):
     return PmiClusterer(sample_sentences)
 
 
-class TestClusterAnalyzerInit:
+class TestPmiClustererInit:
     """Тесты инициализации PmiClusterer."""
     
     def test_init_creates_analyzer(self, sample_sentences):

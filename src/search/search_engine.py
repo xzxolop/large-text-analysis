@@ -46,10 +46,6 @@ class SearchEngine:
                 word_freqs=word_freqs,
             )
 
-        # Backward-compatible aliases for older internal callers/tests.
-        self._cluster_analyzer = self._pmi_clusterer
-        self._exclusive_clusterer = self._tfidf_clusterer
-
 # Функции из класса InvertedIndex
 
     def search(self, search_word: str, state: Optional[SearchState] = None) -> SearchState:

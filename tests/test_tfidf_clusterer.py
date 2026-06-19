@@ -1,5 +1,5 @@
 """
-Тесты для модуля непересекающейся кластеризации (ExclusiveClusterer).
+Тесты для модуля непересекающейся кластеризации (TfidfClusterer).
 """
 
 import pytest
@@ -40,7 +40,7 @@ def clusterer(sample_tfidf_data):
     return TfidfClusterer(tfidf_matrix, feature_names, word_freqs)
 
 
-class TestExclusiveClustererInit:
+class TestTfidfClustererInit:
     """Тесты инициализации TfidfClusterer."""
 
     def test_init_creates_clusterer(self, sample_tfidf_data):

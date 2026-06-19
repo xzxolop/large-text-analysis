@@ -292,7 +292,3 @@ class PmiClusterer:
         
         context_words.discard(seed_word)
         return list(context_words)
-
-
-# Backward-compatible alias for older code/tests that imported ClusterAnalyzer.
-ClusterAnalyzer = PmiClusterer

@@ -138,7 +138,3 @@ class TfidfTestDemoClusterer:
                 clusters[word] = {score}
 
         return clusters
-
-
-# Backward-compatible alias for older demo code that imported ExclusiveClustererV2.
-ExclusiveClustererV2 = TfidfTestDemoClusterer

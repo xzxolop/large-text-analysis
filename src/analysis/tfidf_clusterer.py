@@ -166,7 +166,3 @@ class TfidfClusterer:
         )[:n]
 
         return dict(sorted_clusters)
-
-
-# Backward-compatible alias for older code/tests that imported ExclusiveClusterer.
-ExclusiveClusterer = TfidfClusterer

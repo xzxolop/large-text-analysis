@@ -78,7 +78,7 @@ def show_word_cluster(
     # Получаем частоту для каждого слова
     cluster_with_freq = []
     for word, score in cluster:
-        freq = engine._cluster_analyzer.word_doc_freq.get(word.lower(), 0)
+        freq = engine._pmi_clusterer.word_doc_freq.get(word.lower(), 0)
         cluster_with_freq.append((word, freq, score))
 
     print(f"   {'Слово':<20} {'Freq':>10} {'Score':>12}")
@@ -126,7 +126,7 @@ def show_word_cluster_by_frequency(
     # Получаем частоту для каждого слова
     cluster_with_freq = []
     for word, score in cluster:
-        freq = engine._cluster_analyzer.word_doc_freq.get(word.lower(), 0)
+        freq = engine._pmi_clusterer.word_doc_freq.get(word.lower(), 0)
         cluster_with_freq.append((word, freq, score))
 
     # Сортируем по убыванию частоты

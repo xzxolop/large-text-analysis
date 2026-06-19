@@ -233,7 +233,7 @@ async def get_cluster(request: ClusterRequest):
     # Добавляем частоту к каждому слову
     cluster_with_freq = []
     for cluster_word, score in cluster:
-        freq = engine._cluster_analyzer.word_doc_freq.get(cluster_word.lower(), 0)
+        freq = engine._pmi_clusterer.word_doc_freq.get(cluster_word.lower(), 0)
         cluster_with_freq.append((cluster_word, freq, score))
 
     # Сортируем по убыванию частоты
@@ -329,7 +329,7 @@ async def get_or_compute_all_clusters() -> Dict[str, Set[int]]:
         raise HTTPException(status_code=503, detail="Service not ready. Please wait for startup.")
 
     print("🔄 Computing all exclusive clusters (first call)...")
-    all_clusters = state.engine._exclusive_clusterer.cluster()
+    all_clusters = state.engine._tfidf_clusterer.cluster()
     state.all_clusters = all_clusters
     print(f"✅ Computed {len(all_clusters)} exclusive clusters")
 
@@ -492,15 +492,15 @@ async def get_pmi_cluster(request: PmiClusterRequest):
             sentences=subset_sentences,
             calc_word_freq=True,
             enable_cluster_analysis=True,
-            enable_exclusive_clustering=False,
+            enable_tfidf_clustering=False,
         )
 
-        cluster_analyzer = temp_engine._cluster_analyzer
+        pmi_clusterer = temp_engine._pmi_clusterer
     else:
         temp_engine = engine
-        cluster_analyzer = engine._cluster_analyzer
+        pmi_clusterer = engine._pmi_clusterer
 
-    if cluster_analyzer is None:
+    if pmi_clusterer is None:
         raise HTTPException(status_code=503, detail="Cluster analysis not available.")
 
     # Получаем PMI-кластер
@@ -508,7 +508,7 @@ async def get_pmi_cluster(request: PmiClusterRequest):
     # подмножествах даёт низкие значения, и жёсткий порог отсекает всё
     effective_min_score_percent = 0.0 if request.sentence_indices else (request.min_score_percent or 30.0)
 
-    cluster = cluster_analyzer.get_cluster_words(
+    cluster = pmi_clusterer.get_cluster_words(
         seed_word=word,
         top_n=20 * 5,
         use_npmi=False,
@@ -539,7 +539,7 @@ async def get_pmi_cluster(request: PmiClusterRequest):
         # Пропускаем слова, которые участвуют в пути поиска
         if cluster_word.lower() in excluded_set:
             continue
-        freq = cluster_analyzer.word_doc_freq.get(cluster_word.lower(), 0)
+        freq = pmi_clusterer.word_doc_freq.get(cluster_word.lower(), 0)
         cluster_with_freq.append((cluster_word, freq, score))
 
     # Сортируем по убыванию частоты

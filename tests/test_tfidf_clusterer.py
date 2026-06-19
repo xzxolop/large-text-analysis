@@ -1,11 +1,11 @@
 """
-Тесты для модуля непересекающейся кластеризации (ExclusiveClusterer).
+Тесты для модуля непересекающейся кластеризации (TfidfClusterer).
 """
 
 import pytest
 import numpy as np
 from scipy.sparse import csr_matrix
-from analysis.exclusive_clusterer import ExclusiveClusterer
+from analysis.tfidf_clusterer import TfidfClusterer
 
 
 @pytest.fixture
@@ -37,16 +37,16 @@ def sample_tfidf_data():
 def clusterer(sample_tfidf_data):
     """Создание кластеризатора для тестов."""
     tfidf_matrix, feature_names, word_freqs = sample_tfidf_data
-    return ExclusiveClusterer(tfidf_matrix, feature_names, word_freqs)
+    return TfidfClusterer(tfidf_matrix, feature_names, word_freqs)
 
 
-class TestExclusiveClustererInit:
-    """Тесты инициализации ExclusiveClusterer."""
+class TestTfidfClustererInit:
+    """Тесты инициализации TfidfClusterer."""
 
     def test_init_creates_clusterer(self, sample_tfidf_data):
         """Проверка создания кластеризатора."""
         tfidf_matrix, feature_names, word_freqs = sample_tfidf_data
-        clusterer = ExclusiveClusterer(tfidf_matrix, feature_names, word_freqs)
+        clusterer = TfidfClusterer(tfidf_matrix, feature_names, word_freqs)
 
         assert clusterer._n_docs == 5
         assert clusterer._n_features == 6
@@ -142,7 +142,7 @@ class TestPerformance:
         feature_names = np.array([f"word_{i}" for i in range(n_features)])
         word_freqs = {f"word_{i}": np.random.randint(1, 100) for i in range(n_features)}
 
-        clusterer = ExclusiveClusterer(tfidf_matrix, feature_names, word_freqs)
+        clusterer = TfidfClusterer(tfidf_matrix, feature_names, word_freqs)
 
         clusters = clusterer.cluster()
 

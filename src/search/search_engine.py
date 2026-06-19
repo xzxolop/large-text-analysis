@@ -7,8 +7,8 @@ from collections import defaultdict
 
 from core.inverted_index import InvertedIndex, SearchState, MyWord
 from core.tfidf_model import TfidfModel
-from analysis.cluster_analyzer import ClusterAnalyzer
-from analysis.exclusive_clusterer import ExclusiveClusterer
+from analysis.pmi_clusterer import PmiClusterer
+from analysis.tfidf_clusterer import TfidfClusterer
 
 class SearchEngine:
     """
@@ -22,25 +22,25 @@ class SearchEngine:
         calc_word_freq: bool = False,
         tfidf_vectorizer=None,
         enable_cluster_analysis: bool = True,
-        enable_exclusive_clustering: bool = True,
+        enable_tfidf_clustering: bool = True,
     ) -> None:
         self._index = InvertedIndex(sentences, calc_word_freq=calc_word_freq)
         self._tfidf = TfidfModel(sentences, vectorizer=tfidf_vectorizer)
-        self._cluster_analyzer = (
-            ClusterAnalyzer(sentences) if enable_cluster_analysis else None
+        self._pmi_clusterer = (
+            PmiClusterer(sentences) if enable_cluster_analysis else None
         )
         self._tfidf_cache: Optional[dict] = None
         self._sentences = sentences
 
-        # Инициализируем ExclusiveClusterer если включено
-        self._exclusive_clusterer = None
-        if enable_exclusive_clustering:
+        # Инициализируем TfidfClusterer если включено
+        self._tfidf_clusterer = None
+        if enable_tfidf_clustering:
             feature_names = self._tfidf._vectorizer.get_feature_names_out()
             word_freqs = {
                 word: self._index.get_word_freq(word)
                 for word in feature_names
             }
-            self._exclusive_clusterer = ExclusiveClusterer(
+            self._tfidf_clusterer = TfidfClusterer(
                 tfidf_matrix=self._tfidf._matrix,
                 feature_names=feature_names,
                 word_freqs=word_freqs,
@@ -89,7 +89,7 @@ class SearchEngine:
         """TF-IDF для набора слов."""
         return self._tfidf.get_words_tfidf(words)
 
-# Функции кластерного анализа (ClusterAnalyzer)
+# Функции кластерного анализа (PmiClusterer)
 
     def get_cluster_words(
         self,
@@ -125,7 +125,7 @@ class SearchEngine:
         Raises:
             RuntimeError: Если кластерный анализ не включён.
         """
-        if self._cluster_analyzer is None:
+        if self._pmi_clusterer is None:
             raise RuntimeError("Cluster analysis is not enabled. "
                                "Set enable_cluster_analysis=True when creating SearchEngine.")
 
@@ -133,12 +133,12 @@ class SearchEngine:
         word_tfidf_scores = None
         if tfidf_range is not None:
             if self._tfidf_cache is None:
-                all_words = list(self._cluster_analyzer.word_doc_freq.keys())
+                all_words = list(self._pmi_clusterer.word_doc_freq.keys())
                 tfidf_values = self._tfidf.get_words_tfidf(all_words)
                 self._tfidf_cache = dict(zip(all_words, tfidf_values))
             word_tfidf_scores = self._tfidf_cache
 
-        return self._cluster_analyzer.get_cluster_words(
+        return self._pmi_clusterer.get_cluster_words(
             seed_word, top_n, min_pmi, filter_pos, use_npmi,
             min_freq, tfidf_range, word_tfidf_scores, use_freq_weighting, min_score_percent
         )
@@ -162,16 +162,16 @@ class SearchEngine:
         Returns:
             Список кортежей (слово, частота, pmi_score).
         """
-        if self._cluster_analyzer is None:
+        if self._pmi_clusterer is None:
             raise RuntimeError("Cluster analysis is not enabled.")
         
-        return self._cluster_analyzer.get_cluster_with_frequency(
+        return self._pmi_clusterer.get_cluster_with_frequency(
             seed_word, top_n, min_pmi, filter_pos
         )
     
     def is_cluster_analysis_enabled(self) -> bool:
         """Проверить, включён ли кластерный анализ."""
-        return self._cluster_analyzer is not None
+        return self._pmi_clusterer is not None
 
     def get_cluster_sentences(
         self,
@@ -222,13 +222,13 @@ class SearchEngine:
 
         # Добавляем частоту к каждому слову кластера
         cluster_with_freq = [
-            (word, self._cluster_analyzer.word_doc_freq.get(word.lower(), 0), score)
+            (word, self._pmi_clusterer.word_doc_freq.get(word.lower(), 0), score)
             for word, score in cluster
         ]
 
         return cluster_with_freq, sentence_indexes
 
-# ========== Непересекающаяся кластеризация (ExclusiveClusterer) ==========
+# ========== Непересекающаяся кластеризация (TfidfClusterer) ==========
 
     def tfidf_exclusive_clustering(
         self,
@@ -255,13 +255,13 @@ class SearchEngine:
             >>> index = engine.exclusive_clustering(n=1000)
             >>> # {'data': {0, 5, 23}, 'python': {1, 12}, ...}
         """
-        if self._exclusive_clusterer is None:
+        if self._tfidf_clusterer is None:
             raise RuntimeError(
                 "Exclusive clustering is not enabled. "
-                "Set enable_exclusive_clustering=True when creating SearchEngine."
+                "Set enable_tfidf_clustering=True when creating SearchEngine."
             )
 
-        return self._exclusive_clusterer.cluster(n=n)
+        return self._tfidf_clusterer.cluster(n=n)
 
     def exclusive_clustering(
         self,
@@ -290,10 +290,10 @@ class SearchEngine:
         Raises:
             RuntimeError: Если exclusive clustering не включён.
         """
-        if self._exclusive_clusterer is None:
+        if self._tfidf_clusterer is None:
             raise RuntimeError("Exclusive clustering is not enabled.")
 
-        return self._exclusive_clusterer.get_top_clusters(
+        return self._tfidf_clusterer.get_top_clusters(
             n=top_n,
             min_cluster_size=min_cluster_size,
         )
@@ -374,7 +374,7 @@ class SearchEngine:
             >>> # Кластеризация только по предложениям, которые были в кластере python и data,
             >>> # с финальным пересчётом релевантности (исключая python и data)
         """
-        if self._exclusive_clusterer is None:
+        if self._tfidf_clusterer is None:
             raise RuntimeError("Exclusive clustering is not enabled.")
 
         # Нормализуем seed_words для исключения
@@ -433,7 +433,7 @@ class SearchEngine:
         )
 
         # Финальная кластеризация с исключением всех seed_words
-        temp_clusters = temp_engine._exclusive_clusterer.cluster(
+        temp_clusters = temp_engine._tfidf_clusterer.cluster(
             excluded_words=excluded_words
         )
 

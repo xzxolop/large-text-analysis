@@ -1,9 +1,9 @@
 """
-Тесты для модуля кластерного анализа (ClusterAnalyzer).
+Тесты для модуля кластерного анализа (PmiClusterer).
 """
 
 import pytest
-from analysis.cluster_analyzer import ClusterAnalyzer
+from analysis.pmi_clusterer import PmiClusterer
 
 
 @pytest.fixture
@@ -21,15 +21,15 @@ def sample_sentences():
 @pytest.fixture
 def analyzer(sample_sentences):
     """Создание анализатора для тестов."""
-    return ClusterAnalyzer(sample_sentences)
+    return PmiClusterer(sample_sentences)
 
 
-class TestClusterAnalyzerInit:
-    """Тесты инициализации ClusterAnalyzer."""
+class TestPmiClustererInit:
+    """Тесты инициализации PmiClusterer."""
     
     def test_init_creates_analyzer(self, sample_sentences):
         """Проверка создания анализатора."""
-        analyzer = ClusterAnalyzer(sample_sentences)
+        analyzer = PmiClusterer(sample_sentences)
         assert analyzer.n_docs == len(sample_sentences)
     
     def test_init_precomputes_frequencies(self, analyzer):
@@ -188,7 +188,7 @@ class TestPOSFiltering:
         """Фильтр должен удалять местоимения."""
         # Добавим предложение с местоимениями
         sentences = ["i think it is good", "you know they are here"]
-        test_analyzer = ClusterAnalyzer(sentences)
+        test_analyzer = PmiClusterer(sentences)
 
         # С POS-фильтром
         cluster_filtered = test_analyzer.get_cluster_words("think", filter_pos=True)
@@ -207,7 +207,7 @@ class TestMinFreqFilter:
     
     def test_min_freq_filters_rare_words(self, sample_sentences):
         """min_freq должен отсекать редкие слова."""
-        analyzer = ClusterAnalyzer(sample_sentences)
+        analyzer = PmiClusterer(sample_sentences)
         
         # Без фильтра (min_freq=1)
         cluster_no_filter = analyzer.get_cluster_words("learning", min_freq=1, use_freq_weighting=False)
@@ -220,7 +220,7 @@ class TestMinFreqFilter:
     
     def test_min_freq_returns_empty_if_too_high(self, sample_sentences):
         """Слишком высокий min_freq должен вернуть пустой результат."""
-        analyzer = ClusterAnalyzer(sample_sentences)
+        analyzer = PmiClusterer(sample_sentences)
         
         # Все слова встречаются 1-4 раза, поэтому min_freq=100 должен вернуть []
         cluster = analyzer.get_cluster_words("learning", min_freq=100, use_freq_weighting=False)
@@ -233,7 +233,7 @@ class TestTfidfFilter:
     
     def test_tfidf_range_filters_words(self, sample_sentences):
         """tfidf_range должен отсекать слова с экстремальными TF-IDF."""
-        analyzer = ClusterAnalyzer(sample_sentences)
+        analyzer = PmiClusterer(sample_sentences)
         
         # Создадим простой словарь TF-IDF для теста
         word_tfidf = {
@@ -266,7 +266,7 @@ class TestFreqWeighting:
     
     def test_freq_weighting_changes_scores(self, sample_sentences):
         """use_freq_weighting должен изменять scores (умножать на log(freq))."""
-        analyzer = ClusterAnalyzer(sample_sentences)
+        analyzer = PmiClusterer(sample_sentences)
         
         # Без взвешивания
         cluster_no_weight = analyzer.get_cluster_words(
@@ -288,7 +288,7 @@ class TestFreqWeighting:
     
     def test_freq_weighting_promotes_frequent_words(self, sample_sentences):
         """use_freq_weighting должен поднимать частые слова выше в топе."""
-        analyzer = ClusterAnalyzer(sample_sentences)
+        analyzer = PmiClusterer(sample_sentences)
         
         # "learning" встречается часто (4 раза), "neural" реже (2 раза)
         # Без взвешивания PMI может быть выше у редких слов
@@ -304,7 +304,7 @@ class TestMinScorePercent:
 
     def test_min_score_percent_filters_words(self, sample_sentences):
         """min_score_percent должен отсекать слова с низким score."""
-        analyzer = ClusterAnalyzer(sample_sentences)
+        analyzer = PmiClusterer(sample_sentences)
 
         # Без фильтра
         cluster_no_filter = analyzer.get_cluster_words(
@@ -321,7 +321,7 @@ class TestMinScorePercent:
 
     def test_min_score_percent_returns_empty_if_too_high(self, sample_sentences):
         """Слишком высокий min_score_percent должен вернуть пустой результат."""
-        analyzer = ClusterAnalyzer(sample_sentences)
+        analyzer = PmiClusterer(sample_sentences)
 
         # 100% порог (только слово с максимальным score)
         cluster = analyzer.get_cluster_words(
@@ -333,7 +333,7 @@ class TestMinScorePercent:
 
     def test_min_score_percent_zero_disables_filter(self, sample_sentences):
         """min_score_percent=0 должен отключать фильтрацию."""
-        analyzer = ClusterAnalyzer(sample_sentences)
+        analyzer = PmiClusterer(sample_sentences)
 
         # С фильтром 0% (по умолчанию)
         cluster_zero = analyzer.get_cluster_words(
@@ -345,7 +345,7 @@ class TestMinScorePercent:
 
     def test_min_score_percent_preserves_order(self, sample_sentences):
         """Результаты должны оставаться отсортированными по убыванию score."""
-        analyzer = ClusterAnalyzer(sample_sentences)
+        analyzer = PmiClusterer(sample_sentences)
 
         cluster = analyzer.get_cluster_words(
             "learning", top_n=10, min_score_percent=10.0, use_freq_weighting=False
@@ -356,7 +356,7 @@ class TestMinScorePercent:
 
     def test_min_score_percent_with_freq_weighting(self, sample_sentences):
         """min_score_percent должен работать вместе с use_freq_weighting."""
-        analyzer = ClusterAnalyzer(sample_sentences)
+        analyzer = PmiClusterer(sample_sentences)
 
         # Без фильтра
         cluster_no_filter = analyzer.get_cluster_words(
@@ -373,7 +373,7 @@ class TestMinScorePercent:
 
     def test_min_score_percent_nonexistent_word(self, sample_sentences):
         """Для несуществующего слова должен вернуть пустой список."""
-        analyzer = ClusterAnalyzer(sample_sentences)
+        analyzer = PmiClusterer(sample_sentences)
 
         cluster = analyzer.get_cluster_words(
             "nonexistent_xyz", min_score_percent=50.0

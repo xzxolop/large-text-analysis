@@ -1,7 +1,7 @@
 from data.data_storage import DataStorage
 from search.search_engine import SearchEngine
 from data.data_exporter import DataExporter
-from analysis.exclusive_clustererV2 import ExclusiveClustererV2
+from analysis.tfidf_test_demo_clusterer import TfidfTestDemoClusterer
 import demo
 from interface.invindex import InvIndex
 
@@ -10,7 +10,7 @@ data_store = DataStorage()
 data_store.load_data()
 sentences = data_store.get_processed_sentences()
 
-#engine = SearchEngine(sentences, calc_word_freq=True)
+engine = SearchEngine(sentences, calc_word_freq=True)
 
 #demo.tfidf_for_top_words(engine, top_n=20)
 
@@ -44,12 +44,17 @@ sentences = data_store.get_processed_sentences()
 # ============================================
 
 #n = None
-#demo.show_exclusive_clustering(engine, n=n, top_n=20)
-#demo.show_iterative_exclusive_clustering(engine, seed_words=["python"], top_n=20)
-#demo.show_iterative_exclusive_clustering(engine, seed_words=["python", "use"], top_n=20)
+#demo.show_tfidf_clustering(engine, n=n, top_n=20)
+#demo.show_iterative_tfidf_clustering(engine, seed_words=["buy"], top_n=20)
+#demo.show_iterative_tfidf_clustering(engine, seed_words=["buy", "car"], top_n=20)
+#exit()
+res = engine.get_word_freq("buy")
+print("buy:", res)
+res = engine.get_word_freq("people")
+print("people:", res)
 
 print(len(sentences))
-ex_clust = ExclusiveClustererV2()
+ex_clust = TfidfTestDemoClusterer()
 clusters = ex_clust.get_clusters(sentences)
 index = InvIndex(clusters)
 top_words = index.get_top_word_frequency(n=20)
@@ -68,7 +73,7 @@ for i in sent_ind:
 print(new_sents[:10])
 
 print("sent count:", len(new_sents))
-ex_clust = ExclusiveClustererV2()
+ex_clust = TfidfTestDemoClusterer()
 clusters = ex_clust.get_clusters(new_sents, [word])
 index = InvIndex(clusters)
 top_words = index.get_top_word_frequency(n=20)

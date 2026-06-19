@@ -14,12 +14,12 @@ import nltk
 from nltk import pos_tag, word_tokenize
 
 
-class ClusterAnalyzer:
+class PmiClusterer:
     """
     Анализ кластеров слов на основе PMI и POS-фильтрации.
     
     Пример использования:
-        analyzer = ClusterAnalyzer(sentences)
+        analyzer = PmiClusterer(sentences)
         cluster = analyzer.get_cluster_words("russia", top_n=20)
         # [('war', 2.5), ('country', 2.1), ('world', 1.8), ...]
     """

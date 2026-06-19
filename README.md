@@ -37,7 +37,7 @@ data
 
 ```uv run uvicorn src.web_app:app --reload```
 
-Откройте в браузере: http://127.0.0.1:8000/pmi_sequential
+Откройте в браузере: http://127.0.0.1:8000/pmi
 
 ### Запуск тестов
 

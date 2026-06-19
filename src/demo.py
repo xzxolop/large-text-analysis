@@ -152,7 +152,7 @@ def show_exclusive_clustering(
     Показать результаты непересекающейся кластеризации.
     """
     # TODO: сразу создавать invertedindex но с возможностью вкл/выкл word_freq если он нам не нужен.
-    clusters = engine.exclusive_clustering(n=n)
+    clusters = engine.tfidf_exclusive_clustering(n=n)
     index = InvIndex(clusters)
     top_words = index.get_top_word_frequency(top_n)
     print(f"\nTop {top_n} exclusive clusters\n{top_words}")

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exclusive Clustering — Large Text Analysis</title>
+    <title>TF-IDF Clustering — Large Text Analysis</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -41,6 +41,25 @@
             display: inline-block;
         }
         .nav-links a:hover { background: rgba(255,255,255,0.3); }
+        .language-switch {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .language-switch button {
+            color: white;
+            background: rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.24);
+            border-radius: 8px;
+            padding: 8px 14px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+        .language-switch button.active,
+        .language-switch button:hover {
+            background: rgba(255,255,255,0.34);
+        }
         .reset-btn {
             background: rgba(255,255,255,0.2);
             color: white;
@@ -440,41 +459,44 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Exclusive Clustering</h1>
-        <p class="subtitle">Click on a word to view sentences and expand sub-clusters</p>
+        <div class="language-switch" aria-label="Language switch">
+            <button type="button" data-lang-btn="ru" onclick="setLanguage('ru')">RU</button>
+            <button type="button" data-lang-btn="en" onclick="setLanguage('en')">EN</button>
+        </div>
+
+        <h1 data-i18n="pageTitle">📊 TF-IDF Clustering</h1>
+        <p class="subtitle" data-i18n="subtitle">TF-IDF based clustering: click a word to view sentences and expand sub-clusters</p>
 
         <div class="nav-links">
-            <a href="/">🔍 PMI Cluster Analysis</a>
-            <a href="/pmi_sequential">🔀 PMI Sequential</a>
-            <button class="reset-btn" onclick="resetToInitial()">🔄 Reset</button>
+            <a href="/" data-i18n="backToStart">← Back to start</a>
         </div>
 
         <div class="main-layout">
             <!-- Left Panel: Clusters -->
             <div class="left-panel">
                 <div id="left-panel-content" class="left-panel-content">
-                    <div class="loading">Loading initial clustering</div>
+                    <div class="loading" data-i18n="loadingInitial">Loading initial clustering</div>
                 </div>
             </div>
 
             <!-- Right Panel: Sentences -->
             <div class="right-panel">
                 <div class="right-panel-header">
-                    <h2>📄 Sentences</h2>
-                    <p id="sentences-subtitle">Select a word to view sentences</p>
+                    <h2 data-i18n="sentencesTitle">📄 Sentences</h2>
+                    <p id="sentences-subtitle" data-i18n="sentencesSubtitle">Select a word to view sentences</p>
                     <div class="highlight-toggle">
-                        <span class="highlight-toggle-label active" id="label-all">All words</span>
+                        <span class="highlight-toggle-label active" id="label-all" data-i18n="allWords">All words</span>
                         <div class="toggle-switch" onclick="toggleHighlightMode()">
                             <div class="toggle-track" id="toggle-track"></div>
                             <div class="toggle-thumb" id="toggle-thumb"></div>
                         </div>
-                        <span class="highlight-toggle-label" id="label-last">Last only</span>
+                        <span class="highlight-toggle-label" id="label-last" data-i18n="lastOnly">Last only</span>
                     </div>
                 </div>
                 <div id="right-panel-content" class="right-panel-content">
                     <div class="empty-state">
                         <div class="empty-state-icon">👈</div>
-                        <p>Select a word from the left panel to see sentences containing it</p>
+                        <p data-i18n="selectWordHint">Select a word from the left panel to see sentences containing it</p>
                     </div>
                 </div>
             </div>
@@ -482,6 +504,89 @@
     </div>
 
     <script>
+        const translations = {
+            en: {
+                pageTitle: '📊 TF-IDF Clustering',
+                subtitle: 'TF-IDF based clustering: click a word to view sentences and expand sub-clusters',
+                backToStart: '← Back to start',
+                loadingInitial: 'Loading initial clustering',
+                sentencesTitle: '📄 Sentences',
+                sentencesSubtitle: 'Select a word to view sentences',
+                allWords: 'All words',
+                lastOnly: 'Last only',
+                selectWordHint: 'Select a word from the left panel to see sentences containing it',
+                clustersTitle: '📊 Clusters',
+                total: 'total',
+                showing: 'Showing {visible} of {total}',
+                showMoreClusters: 'Show more {count} clusters',
+                showMoreSentences: 'Show more {count} sentences',
+                remaining: '{count} remaining',
+                loadingSentences: 'Loading sentences',
+                noSentencesFound: 'No sentences found for',
+                sentencesFor: 'Sentences for',
+                error: 'Error',
+                failedToFetch: 'Failed to fetch',
+                errorLoadingSubclusters: 'Error loading sub-clusters',
+                noClustersLoaded: 'No clusters loaded',
+            },
+            ru: {
+                pageTitle: '📊 TF-IDF-кластеризация',
+                subtitle: 'Кластеризация на основе TF-IDF: выберите слово, чтобы увидеть предложения и подкластеры',
+                backToStart: '← На главную',
+                loadingInitial: 'Загрузка начальной кластеризации',
+                sentencesTitle: '📄 Предложения',
+                sentencesSubtitle: 'Выберите слово, чтобы увидеть предложения',
+                allWords: 'Все слова',
+                lastOnly: 'Только последнее',
+                selectWordHint: 'Выберите слово слева, чтобы увидеть предложения с ним',
+                clustersTitle: '📊 Кластеры',
+                total: 'всего',
+                showing: 'Показано {visible} из {total}',
+                showMoreClusters: 'Показать еще {count} кластеров',
+                showMoreSentences: 'Показать еще {count} предложений',
+                remaining: 'Осталось: {count}',
+                loadingSentences: 'Загрузка предложений',
+                noSentencesFound: 'Предложения не найдены для',
+                sentencesFor: 'Предложения для',
+                error: 'Ошибка',
+                failedToFetch: 'Не удалось загрузить данные',
+                errorLoadingSubclusters: 'Ошибка загрузки подкластеров',
+                noClustersLoaded: 'Кластеры не загружены',
+            },
+        };
+
+        function getLanguage() {
+            return localStorage.getItem('lta-language') || 'ru';
+        }
+
+        function t(key, params = {}) {
+            const lang = getLanguage();
+            let value = translations[lang][key] || translations.en[key] || key;
+            Object.entries(params).forEach(([name, replacement]) => {
+                value = value.replace(`{${name}}`, replacement);
+            });
+            return value;
+        }
+
+        function setLanguage(lang) {
+            localStorage.setItem('lta-language', lang);
+            applyLanguage();
+            updateSentencesPanel();
+            if (clusterTree) renderClusterTree();
+            if (selectedWord) rerenderCurrentSentences();
+        }
+
+        function applyLanguage() {
+            const lang = getLanguage();
+            document.documentElement.lang = lang;
+            document.querySelectorAll('[data-i18n]').forEach((el) => {
+                el.textContent = t(el.dataset.i18n);
+            });
+            document.querySelectorAll('[data-lang-btn]').forEach((btn) => {
+                btn.classList.toggle('active', btn.dataset.langBtn === lang);
+            });
+        }
+
         // Store the tree structure of expanded clusters
         let clusterTree = null;
         let visibleCount = 25;
@@ -547,12 +652,13 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            applyLanguage();
             loadInitialClustering();
         });
 
         async function loadInitialClustering() {
             const resultsDiv = document.getElementById('left-panel-content');
-            resultsDiv.innerHTML = '<div class="loading">Loading initial clustering</div>';
+            resultsDiv.innerHTML = `<div class="loading">${t('loadingInitial')}</div>`;
             visibleCount = 25;
             selectedWord = null;
             updateSentencesPanel();
@@ -561,7 +667,7 @@
                 const response = await fetch('/api/exclusive');
                 const data = await response.json();
 
-                if (!response.ok) throw new Error(data.detail || 'Failed to fetch');
+                if (!response.ok) throw new Error(data.detail || t('failedToFetch'));
 
                 // Build tree structure with seedWords path
                 clusterTree = {
@@ -581,7 +687,7 @@
 
                 renderClusterTree();
             } catch (error) {
-                resultsDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                resultsDiv.innerHTML = `<div class="error">❌ ${t('error')}: ${error.message}</div>`;
             }
         }
 
@@ -605,7 +711,7 @@
                 });
 
                 const data = await response.json();
-                if (!response.ok) throw new Error(data.detail || 'Failed to fetch');
+                if (!response.ok) throw new Error(data.detail || t('failedToFetch'));
 
                 // Add children to node with updated seedWords path
                 node.children = data.clusters.map(c => ({
@@ -622,7 +728,7 @@
             } catch (error) {
                 node.loading = false;
                 renderClusterTree();
-                alert(`Error loading sub-clusters: ${error.message}`);
+                alert(`${t('errorLoadingSubclusters')}: ${error.message}`);
             }
         }
 
@@ -635,15 +741,15 @@
             const resultsDiv = document.getElementById('left-panel-content');
 
             if (!clusterTree || !clusterTree.children) {
-                resultsDiv.innerHTML = '<div class="error">No clusters loaded</div>';
+                resultsDiv.innerHTML = `<div class="error">${t('noClustersLoaded')}</div>`;
                 return;
             }
 
             const visibleChildren = clusterTree.children.slice(0, visibleCount);
 
             let html = `<div class="results-header">
-                <h2>📊 Clusters (${clusterTree.totalCount} total)</h2>
-                <p>Showing ${visibleCount} of ${clusterTree.totalCount}</p>
+                <h2>${t('clustersTitle')} (${clusterTree.totalCount} ${t('total')})</h2>
+                <p>${t('showing', { visible: visibleCount, total: clusterTree.totalCount })}</p>
             </div>`;
 
             html += '<ul class="cluster-list">';
@@ -659,8 +765,8 @@
                 const remaining = clusterTree.children.length - visibleCount;
                 const toShow = Math.min(20, remaining);
                 html += `<div class="show-more">
-                    <button onclick="showMore()">Show more ${toShow} clusters</button>
-                    <div class="show-more-remaining">${remaining.toLocaleString()} remaining</div>
+                    <button onclick="showMore()">${t('showMoreClusters', { count: toShow })}</button>
+                    <div class="show-more-remaining">${t('remaining', { count: remaining.toLocaleString() })}</div>
                 </div>`;
             }
 
@@ -779,7 +885,7 @@
             document.getElementById('right-panel-content').innerHTML = `
                 <div class="empty-state">
                     <div class="empty-state-icon">👈</div>
-                    <p>Select a word from the left panel to see sentences containing it</p>
+                    <p>${t('selectWordHint')}</p>
                 </div>
             `;
         }
@@ -808,7 +914,7 @@
             }
 
             // Показываем индикатор загрузки в правой панели
-            document.getElementById('right-panel-content').innerHTML = '<div class="loading">Loading sentences</div>';
+            document.getElementById('right-panel-content').innerHTML = `<div class="loading">${t('loadingSentences')}</div>`;
 
             try {
                 console.log(`🔄 Loading from API: ${cacheKey}`);
@@ -820,7 +926,7 @@
                 );
                 const data = await response.json();
 
-                if (!response.ok) throw new Error(data.detail || 'Failed to fetch');
+                if (!response.ok) throw new Error(data.detail || t('failedToFetch'));
 
                 sentenceTotalCount = data.total_count;
                 
@@ -834,7 +940,7 @@
                 renderClusterTree(); // Обновляем отображение кэша
             } catch (error) {
                 document.getElementById('right-panel-content').innerHTML =
-                    `<div class="error">❌ Error: ${error.message}</div>`;
+                    `<div class="error">❌ ${t('error')}: ${error.message}</div>`;
             }
         }
 
@@ -845,7 +951,7 @@
                 contentDiv.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">📭</div>
-                        <p>No sentences found for "${word}"</p>
+                        <p>${t('noSentencesFound')} "${word}"</p>
                     </div>
                 `;
                 return;
@@ -867,8 +973,8 @@
                 const remaining = sentenceTotalCount - (sentenceOffset + sentenceLimit);
                 const toShow = Math.min(20, remaining);
                 html += `<div class="show-more">
-                    <button onclick="loadMoreSentences()">Show more ${toShow} sentences</button>
-                    <div class="show-more-remaining">${remaining.toLocaleString()} remaining</div>
+                    <button onclick="loadMoreSentences()">${t('showMoreSentences', { count: toShow })}</button>
+                    <div class="show-more-remaining">${t('remaining', { count: remaining.toLocaleString() })}</div>
                 </div>`;
             }
 
@@ -995,9 +1101,9 @@
         function updateSentencesPanel() {
             const subtitle = document.getElementById('sentences-subtitle');
             if (selectedWord) {
-                subtitle.textContent = `Sentences for "${selectedWord}"`;
+                subtitle.textContent = `${t('sentencesFor')} "${selectedWord}"`;
             } else {
-                subtitle.textContent = 'Select a word to view sentences';
+                subtitle.textContent = t('sentencesSubtitle');
             }
         }
 

@@ -230,7 +230,7 @@ class SearchEngine:
 
 # ========== Непересекающаяся кластеризация (ExclusiveClusterer) ==========
 
-    def exclusive_clustering(
+    def tfidf_exclusive_clustering(
         self,
         n: Optional[int] = None,
     ) -> Dict[str, Set[int]]:
@@ -262,6 +262,15 @@ class SearchEngine:
             )
 
         return self._exclusive_clusterer.cluster(n=n)
+
+    def exclusive_clustering(
+        self,
+        n: Optional[int] = None,
+    ) -> Dict[str, Set[int]]:
+        """
+        Backward-compatible alias for tfidf_exclusive_clustering().
+        """
+        return self.tfidf_exclusive_clustering(n=n)
 
     def get_top_exclusive_clusters(
         self,
@@ -391,7 +400,7 @@ class SearchEngine:
             )
 
             # Получаем кластеры без исключений - ищем seed_word
-            temp_clusters = temp_engine.exclusive_clustering()
+            temp_clusters = temp_engine.tfidf_exclusive_clustering()
 
             # Находим кластер с именем seed_word
             if seed_word.lower() not in temp_clusters:

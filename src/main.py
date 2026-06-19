@@ -10,7 +10,7 @@ data_store = DataStorage()
 data_store.load_data()
 sentences = data_store.get_processed_sentences()
 
-#engine = SearchEngine(sentences, calc_word_freq=True)
+engine = SearchEngine(sentences, calc_word_freq=True)
 
 #demo.tfidf_for_top_words(engine, top_n=20)
 
@@ -44,9 +44,14 @@ sentences = data_store.get_processed_sentences()
 # ============================================
 
 #n = None
-#demo.show_exclusive_clustering(engine, n=n, top_n=20)
-#demo.show_iterative_exclusive_clustering(engine, seed_words=["python"], top_n=20)
-#demo.show_iterative_exclusive_clustering(engine, seed_words=["python", "use"], top_n=20)
+#demo.show_tfidf_clustering(engine, n=n, top_n=20)
+#demo.show_iterative_tfidf_clustering(engine, seed_words=["buy"], top_n=20)
+#demo.show_iterative_tfidf_clustering(engine, seed_words=["buy", "car"], top_n=20)
+#exit()
+res = engine.get_word_freq("buy")
+print("buy:", res)
+res = engine.get_word_freq("people")
+print("people:", res)
 
 print(len(sentences))
 ex_clust = TfidfTestDemoClusterer()

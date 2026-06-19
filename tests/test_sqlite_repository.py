@@ -1,5 +1,6 @@
 from pathlib import Path
 import sqlite3
+from types import SimpleNamespace
 from uuid import uuid4
 from contextlib import suppress
 
@@ -82,7 +83,10 @@ def test_data_storage_reuses_preprocessed_sqlite_cache(storage_paths, monkeypatc
 
     monkeypatch.setattr(DataStorage, "_find_cached_dataset", lambda self: source_path)
     monkeypatch.setattr("data.data_storage.nltk.download", lambda *args, **kwargs: True)
-    monkeypatch.setattr("data.data_storage.stopwords.words", lambda language: ["the"])
+    monkeypatch.setattr(
+        "data.data_storage.stopwords",
+        SimpleNamespace(words=lambda language: ["the"]),
+    )
     monkeypatch.setattr("data.data_storage.sent_tokenize", lambda text: [text])
     monkeypatch.setattr("data.data_storage.word_tokenize", lambda text: text.split())
 

@@ -539,7 +539,9 @@ async def get_pmi_cluster(request: PmiClusterRequest):
         # Пропускаем слова, которые участвуют в пути поиска
         if cluster_word.lower() in excluded_set:
             continue
-        freq = pmi_clusterer.word_doc_freq.get(cluster_word.lower(), 0)
+        # For PMI, frequency is contextual: both the seed and candidate
+        # must occur in the same sentence of the current analyzer corpus.
+        freq = pmi_clusterer.get_cooccurrence_freq(word, cluster_word)
         cluster_with_freq.append((cluster_word, freq, score))
 
     # Сортируем по убыванию частоты

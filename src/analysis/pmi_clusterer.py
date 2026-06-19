@@ -78,6 +78,13 @@ class PmiClusterer:
                 for w2 in unique_words:
                     if w1 < w2:  # чтобы не дублировать (w1,w2) и (w2,w1)
                         self.cooccurrence[(w1, w2)] += 1
+
+    def get_cooccurrence_freq(self, word1: str, word2: str) -> int:
+        """Return the number of sentences containing both words."""
+        word1 = word1.lower()
+        word2 = word2.lower()
+        key = (min(word1, word2), max(word1, word2))
+        return self.cooccurrence.get(key, 0)
     
     def pmi(self, word1: str, word2: str) -> float:
         """
@@ -197,6 +204,10 @@ class PmiClusterer:
             if word == seed_word:
                 continue
 
+            # A PMI candidate must occur with the seed in at least one sentence.
+            if self.get_cooccurrence_freq(seed_word, word) == 0:
+                continue
+
             # Фильтр по минимальной частоте (мягкий, по умолчанию = 1)
             if self.word_doc_freq[word] < min_freq:
                 continue
@@ -225,7 +236,7 @@ class PmiClusterer:
                 freq = self.word_doc_freq[word]
                 score = score * math.log(freq + 1)
 
-            if score >= min_pmi:
+            if score > 0 and score >= min_pmi:
                 scores.append((word, score))
 
         # Сортировка по убыванию

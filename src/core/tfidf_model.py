@@ -18,6 +18,7 @@ class TfidfModel:
         self._vectorizer = vectorizer or TfidfVectorizer(
             #stop_words="english",
             min_df=2,
+            token_pattern=r"(?u)\b\w[\w-]*\w\b",
         )
         self._matrix = self._vectorizer.fit_transform(sentences)
 

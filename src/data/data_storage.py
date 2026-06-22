@@ -19,7 +19,14 @@ from data.dataset_sources import DatasetSource, get_dataset_source
 from data.sqlite_repository import SQLiteSentenceRepository
 
 
-PREPROCESSING_VERSION = "1"
+PREPROCESSING_VERSION = "2"
+
+
+def _is_supported_token(token: str) -> bool:
+    """Accept alphanumeric and well-formed hyphenated words."""
+    if token.isalnum():
+        return True
+    return re.fullmatch(r"[^\W_]+(?:-[^\W_]+)+", token) is not None
 
 
 class DataStorage:
@@ -222,8 +229,11 @@ class DataStorage:
         sent_without_links = self.__delete_links(sent.lower())
 
         words = word_tokenize(sent_without_links)
-        filtered_words = [word for word in words
-                            if word not in self.__stop_words and word.isalnum()]
+        filtered_words = [
+            word
+            for word in words
+            if word not in self.__stop_words and _is_supported_token(word)
+        ]
         return " ".join(filtered_words)
 
     def __delete_links(self, text):

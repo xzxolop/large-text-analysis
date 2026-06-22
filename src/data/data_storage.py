@@ -7,7 +7,14 @@ import re
 from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
 
-from config import ACTIVE_DATASET, DATASET_MAX_DOCUMENTS, PROJECT_ROOT, FILES_DIR
+from config import (
+    ACTIVE_DATASET,
+    DATASET_MAX_DOCUMENTS,
+    FILES_DIR,
+    INCLUDE_DEMO_SENTENCES,
+    PROJECT_ROOT,
+)
+from data.demo_sentences import DEMO_SENTENCES, DEMO_SENTENCES_VERSION
 from data.dataset_sources import DatasetSource, get_dataset_source
 from data.sqlite_repository import SQLiteSentenceRepository
 
@@ -50,11 +57,14 @@ class DataStorage:
         dataset_name: str | None = None,
         dataset_key: str | None = None,
         max_documents: int | None = None,
+        include_demo_sentences: bool | None = None,
     ):
         """Загружает данные из датасета в списки python."""
 
         self.__dataset_source = get_dataset_source(dataset_key or ACTIVE_DATASET)
         max_documents = self.__resolve_max_documents(max_documents)
+        if include_demo_sentences is None:
+            include_demo_sentences = INCLUDE_DEMO_SENTENCES
 
         if dataset_path is not None:
             dataset_path = Path(dataset_path)
@@ -75,7 +85,8 @@ class DataStorage:
 
         cache_version = (
             f"{PREPROCESSING_VERSION}:{self.__dataset_source.cache_variant}:"
-            f"max={max_documents or 'all'}"
+            f"max={max_documents or 'all'}:"
+            f"demo={DEMO_SENTENCES_VERSION if include_demo_sentences else 'off'}"
         )
 
         cached_records = self.__repository.load_sentences(
@@ -94,6 +105,8 @@ class DataStorage:
         self.__main_text_list = list(
             self.__dataset_source.iter_texts(dataset_path, max_documents)
         )
+        if include_demo_sentences:
+            self.__main_text_list.extend(DEMO_SENTENCES)
 
         nltk.download('stopwords', quiet=True)
         self.__stop_words = set(stopwords.words('english'))

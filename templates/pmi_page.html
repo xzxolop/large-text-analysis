@@ -403,8 +403,18 @@
             display: inline-block;
             font-weight: 600;
             color: #667eea;
-            margin-right: 10px;
             min-width: 30px;
+        }
+        .sentence-id {
+            display: inline-block;
+            margin-right: 10px;
+            padding: 2px 6px;
+            border-radius: 5px;
+            color: #666;
+            background: #eef0f4;
+            font-family: Consolas, monospace;
+            font-size: 0.72rem;
+            white-space: nowrap;
         }
         .sentence-text {
             color: #333;
@@ -1146,6 +1156,7 @@
                 html += `
                     <li class="sentence-item">
                         <span class="sentence-number">${sentenceOffset + idx + 1}.</span>
+                        <span class="sentence-id">ID: ${sent.index}</span>
                         <span class="sentence-text">${highlightedText}</span>
                     </li>
                 `;

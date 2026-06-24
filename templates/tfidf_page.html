@@ -109,6 +109,45 @@
             overflow-y: auto;
             flex: 1;
         }
+        .cluster-search {
+            padding: 12px;
+            background: #f7f8ff;
+            border-bottom: 1px solid #e4e6f2;
+            flex-shrink: 0;
+        }
+        .cluster-search-form {
+            display: flex;
+            gap: 8px;
+        }
+        .cluster-search-input {
+            min-width: 0;
+            flex: 1;
+            padding: 9px 11px;
+            border: 2px solid #dfe2f0;
+            border-radius: 8px;
+            outline: none;
+        }
+        .cluster-search-input:focus {
+            border-color: #667eea;
+        }
+        .cluster-search-button {
+            padding: 9px 12px;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        .cluster-search-status {
+            display: none;
+            margin-top: 7px;
+            color: #666;
+            font-size: 0.78rem;
+        }
+        .cluster-search-status.error-text {
+            display: block;
+            color: #b42318;
+        }
 
         /* Right panel - Sentences */
         .right-panel {
@@ -474,6 +513,20 @@
         <div class="main-layout">
             <!-- Left Panel: Clusters -->
             <div class="left-panel">
+                <div class="cluster-search">
+                    <form id="cluster-search-form" class="cluster-search-form">
+                        <input
+                            id="cluster-search-input"
+                            class="cluster-search-input"
+                            type="search"
+                            autocomplete="off"
+                            data-i18n-placeholder="clusterSearchPlaceholder"
+                            placeholder="Find a cluster word"
+                        >
+                        <button class="cluster-search-button" type="submit" data-i18n="clusterSearchButton">Find</button>
+                    </form>
+                    <p id="cluster-search-status" class="cluster-search-status"></p>
+                </div>
                 <div id="left-panel-content" class="left-panel-content">
                     <div class="loading" data-i18n="loadingInitial">Loading initial clustering</div>
                 </div>
@@ -528,6 +581,9 @@
                 failedToFetch: 'Failed to fetch',
                 errorLoadingSubclusters: 'Error loading sub-clusters',
                 noClustersLoaded: 'No clusters loaded',
+                clusterSearchPlaceholder: 'Find a cluster word',
+                clusterSearchButton: 'Find',
+                clusterNotFound: 'Cluster not found for',
             },
             ru: {
                 pageTitle: '📊 TF-IDF-кластеризация',
@@ -552,6 +608,9 @@
                 failedToFetch: 'Не удалось загрузить данные',
                 errorLoadingSubclusters: 'Ошибка загрузки подкластеров',
                 noClustersLoaded: 'Кластеры не загружены',
+                clusterSearchPlaceholder: 'Найти слово в кластерах',
+                clusterSearchButton: 'Найти',
+                clusterNotFound: 'Кластер не найден для',
             },
         };
 
@@ -653,8 +712,58 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             applyLanguage();
+            document.getElementById('cluster-search-form').addEventListener('submit', searchCluster);
             loadInitialClustering();
         });
+
+        async function searchCluster(event) {
+            event.preventDefault();
+
+            const input = document.getElementById('cluster-search-input');
+            const status = document.getElementById('cluster-search-status');
+            const query = input.value.trim().toLowerCase();
+
+            status.textContent = '';
+            status.className = 'cluster-search-status';
+
+            if (!query || !clusterTree?.children) return;
+
+            const exactMatch = clusterTree.children.find(
+                item => item.word.toLowerCase() === query
+            );
+            const partialMatch = clusterTree.children.find(
+                item => item.word.toLowerCase().startsWith(query)
+            ) || clusterTree.children.find(
+                item => item.word.toLowerCase().includes(query)
+            );
+            const match = exactMatch || partialMatch;
+
+            if (!match) {
+                status.textContent = `${t('clusterNotFound')} "${input.value.trim()}"`;
+                status.className = 'cluster-search-status error-text';
+                return;
+            }
+
+            const matchIndex = clusterTree.children.indexOf(match);
+            visibleCount = Math.max(visibleCount, matchIndex + 1);
+            input.value = match.word;
+
+            selectWord(match.word, []);
+            if (!match.expanded) {
+                await expandCluster(match);
+            }
+            scrollToCluster(match.word);
+        }
+
+        function scrollToCluster(word) {
+            requestAnimationFrame(() => {
+                const elements = document.querySelectorAll('[data-cluster-word]');
+                const target = Array.from(elements).find(
+                    element => element.dataset.clusterWord.toLowerCase() === word.toLowerCase()
+                );
+                target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+        }
 
         async function loadInitialClustering() {
             const resultsDiv = document.getElementById('left-panel-content');
@@ -787,7 +896,7 @@
 
             let html = `
                 <li class="cluster-item" style="margin-left: ${indent}px;">
-                    <div class="cluster-word ${isCached ? 'cached' : ''} ${isLoading ? 'loading' : ''} ${isSelected ? 'active' : ''}" onclick="onClusterClick('${escapeHtml(item.word)}', ${seedWordsJson})">
+                    <div class="cluster-word ${isCached ? 'cached' : ''} ${isLoading ? 'loading' : ''} ${isSelected ? 'active' : ''}" data-cluster-word="${escapeHtml(item.word)}" onclick="onClusterClick('${escapeHtml(item.word)}', ${seedWordsJson})">
                         <span class="word-text">
                             <span class="expand-icon ${isExpanded ? 'expanded' : ''}">▶</span>
                             ${escapeHtml(item.word)}

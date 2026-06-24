@@ -506,6 +506,12 @@
         }
 
         /* Toggle switch for highlight mode */
+        .sentence-controls {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            column-gap: 22px;
+        }
         .highlight-toggle {
             display: flex;
             align-items: center;
@@ -608,13 +614,22 @@
                 <div class="right-panel-header">
                     <h2 data-i18n="sentencesTitle">📄 Sentences</h2>
                     <p id="sentences-subtitle" data-i18n="sentencesSubtitle">Select a word to view sentences</p>
-                    <div class="highlight-toggle">
-                        <span class="highlight-toggle-label active" id="label-all" data-i18n="allWords">All words</span>
-                        <div class="toggle-switch" onclick="toggleHighlightMode()">
-                            <div class="toggle-track" id="toggle-track"></div>
-                            <div class="toggle-thumb" id="toggle-thumb"></div>
+                    <div class="sentence-controls">
+                        <div class="highlight-toggle">
+                            <span class="highlight-toggle-label active" id="label-all" data-i18n="allWords">All words</span>
+                            <div class="toggle-switch" onclick="toggleHighlightMode()">
+                                <div class="toggle-track" id="toggle-track"></div>
+                                <div class="toggle-thumb" id="toggle-thumb"></div>
+                            </div>
+                            <span class="highlight-toggle-label" id="label-last" data-i18n="lastOnly">Last only</span>
                         </div>
-                        <span class="highlight-toggle-label" id="label-last" data-i18n="lastOnly">Last only</span>
+                        <div class="highlight-toggle">
+                            <span class="highlight-toggle-label active" id="sentence-id-label" data-i18n="sentenceIds">Sentence IDs</span>
+                            <div class="toggle-switch" onclick="toggleSentenceIds()">
+                                <div class="toggle-track active" id="sentence-id-track"></div>
+                                <div class="toggle-thumb active" id="sentence-id-thumb"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div id="right-panel-content" class="right-panel-content">
@@ -642,6 +657,7 @@
                 sentencesSubtitle: 'Select a word to view sentences',
                 allWords: 'All words',
                 lastOnly: 'Last only',
+                sentenceIds: 'Sentence IDs',
                 selectWordHint: 'Select a word from the left panel to see sentences containing it',
                 searchingClusters: 'Searching for clusters',
                 clustersFor: '📊 Clusters for',
@@ -674,6 +690,7 @@
                 sentencesSubtitle: 'Выберите слово, чтобы увидеть предложения',
                 allWords: 'Все слова',
                 lastOnly: 'Только последнее',
+                sentenceIds: 'ID предложений',
                 selectWordHint: 'Выберите слово слева, чтобы увидеть предложения с ним',
                 searchingClusters: 'Поиск кластеров',
                 clustersFor: '📊 Кластеры для',
@@ -749,6 +766,7 @@
 
         // Highlight mode: 'all' or 'last'
         let highlightMode = 'all';
+        let showSentenceIds = localStorage.getItem('lta-show-sentence-ids') !== 'false';
 
         /**
          * Получить данные из кэша (обновляет позицию при попадании).
@@ -790,6 +808,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             applyLanguage();
+            applySentenceIdToggle();
             // Фокус на поле ввода
             document.getElementById('wordInput').focus();
         });
@@ -1060,6 +1079,19 @@
             }
         }
 
+        function toggleSentenceIds() {
+            showSentenceIds = !showSentenceIds;
+            localStorage.setItem('lta-show-sentence-ids', String(showSentenceIds));
+            applySentenceIdToggle();
+            if (selectedWord) rerenderCurrentSentences();
+        }
+
+        function applySentenceIdToggle() {
+            document.getElementById('sentence-id-track').classList.toggle('active', showSentenceIds);
+            document.getElementById('sentence-id-thumb').classList.toggle('active', showSentenceIds);
+            document.getElementById('sentence-id-label').classList.toggle('active', showSentenceIds);
+        }
+
         function rerenderCurrentSentences() {
             const cacheKey = getCacheKey(selectedWord, sentenceSeedWords);
             const cached = sentencesCache.get(cacheKey);
@@ -1156,7 +1188,7 @@
                 html += `
                     <li class="sentence-item">
                         <span class="sentence-number">${sentenceOffset + idx + 1}.</span>
-                        <span class="sentence-id">ID: ${sent.index}</span>
+                        ${showSentenceIds ? `<span class="sentence-id">ID: ${sent.index}</span>` : ''}
                         <span class="sentence-text">${highlightedText}</span>
                     </li>
                 `;
